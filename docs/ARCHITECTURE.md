@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the intended architecture for Capsule Wishes. The current repository is still in the SwiftUI scaffold stage, so this is a target structure for the first production-quality implementation.
+This document describes the working architecture for Capsule Wishes. The app currently uses a feature-first SwiftUI structure with SwiftData persistence kept local-first.
 
 ## Architectural Goals
 
@@ -10,76 +10,61 @@ This document describes the intended architecture for Capsule Wishes. The curren
 - Allow future AI-assisted reflection without coupling the app to a network service.
 - Keep the first MVP small enough to build, but structured enough to grow.
 
-## Proposed App Structure
+## Current App Structure
 
 ```text
 CapsuleWishes/
 ├── App/
 │   ├── CapsuleWishesApp.swift
-│   ├── AppRouter.swift
-│   └── AppEnvironment.swift
+│   └── ContentView.swift
 ├── Domain/
 │   ├── Models/
 │   │   ├── WishCapsule.swift
-│   │   ├── JournalEntry.swift
-│   │   ├── Ritual.swift
-│   │   ├── ActionStep.swift
-│   │   └── WishTheme.swift
+│   │   └── JournalEntry.swift
 │   ├── Enums/
-│   └── UseCases/
+│   │   ├── CapsuleStatus.swift
+│   │   └── JournalEntryType.swift
 ├── Data/
 │   ├── Persistence/
-│   ├── Repositories/
-│   └── Migrations/
+│   │   └── SwiftDataContainer.swift
 ├── Features/
-│   ├── Onboarding/
-│   ├── CapsuleList/
-│   ├── CapsuleDetail/
-│   ├── CreateCapsule/
+│   ├── Capsules/
 │   ├── Journal/
-│   ├── Rituals/
-│   └── Opening/
 ├── DesignSystem/
-│   ├── Colors.swift
-│   ├── Typography.swift
+│   ├── Backgrounds/
+│   ├── Buttons/
 │   ├── Components/
-│   └── Motion/
-└── Services/
-    ├── NotificationService.swift
-    ├── ReflectionService.swift
-    └── MediaStorageService.swift
+│   └── Palette/
+└── Utilities/
+    └── Color+Hex.swift
 ```
 
 ## Layers
 
 ### Presentation Layer
 
-SwiftUI views and view models live inside feature folders. Each feature owns its local UI state and delegates persistence or business logic to use cases and repositories.
+SwiftUI views live inside feature folders. Each feature owns its local UI state. For the current MVP, views use SwiftData queries directly to keep the implementation small and readable.
 
 Examples:
 
 - `CreateCapsuleView`
-- `CreateCapsuleViewModel`
 - `CapsuleDetailView`
-- `JournalEntryEditorView`
-- `OpeningCeremonyView`
+- `CapsuleListView`
+- `JournalView`
 
 ### Domain Layer
 
 The domain layer describes the product language:
 
 - a wish capsule;
-- a ritual;
 - a journal entry;
-- a small action;
-- a wish theme;
-- a capsule opening reflection.
+- capsule and journal status/type enums.
 
-Domain code should be independent from SwiftUI.
+Domain code should stay independent from SwiftUI unless a specific UI helper belongs elsewhere. Visual helpers live in `DesignSystem` or `Utilities`.
 
 ### Data Layer
 
-The first implementation should use SwiftData for local persistence. Repositories wrap SwiftData access so views are not coupled directly to storage details.
+The first implementation uses SwiftData for local persistence. `SwiftDataContainer` owns model container setup. Repositories can be introduced later when query logic, migrations, iCloud sync, notifications, or tests need a stable abstraction.
 
 Cloud sync can be added later behind repository interfaces.
 
@@ -92,135 +77,74 @@ Services handle system capabilities:
 - optional reflection or AI assistance;
 - export and backup.
 
-## Domain Model
+## Current Domain Model
 
 ### WishCapsule
 
 ```swift
-enum CapsuleStatus: String, Codable {
-    case draft
-    case sealed
-    case active
-    case readyToOpen
-    case opened
-    case fulfilled
-    case changed
-    case released
-}
-
-struct WishCapsule {
-    let id: UUID
+@Model
+final class WishCapsule {
+    var id: UUID
     var title: String
     var intentionText: String
-    var desiredOutcome: String?
-    var feeling: String?
+    var desiredFeeling: String
     var createdAt: Date
-    var sealedAt: Date?
-    var openAt: Date?
+    var sealedAt: Date
+    var openAt: Date
     var openedAt: Date?
-    var status: CapsuleStatus
-    var colorToken: String
-    var symbol: String?
-    var energyScore: Double
+    var statusRawValue: String
+    var colorHex: String
+    var symbol: String
+}
+
+enum CapsuleStatus: String, Codable, CaseIterable {
+    case sealed
+    case opened
+    case fulfilled
+    case unfolding
+    case changed
+    case released
 }
 ```
 
 ### JournalEntry
 
 ```swift
-enum JournalEntryType: String, Codable {
+@Model
+final class JournalEntry {
+    var id: UUID
+    var capsuleID: UUID?
+    var typeRawValue: String
+    var text: String
+    var createdAt: Date
+}
+
+enum JournalEntryType: String, Codable, CaseIterable, Identifiable {
     case sign
     case smallJoy
     case thought
     case dream
     case gratitude
-    case action
-    case reflection
-}
-
-struct JournalEntry {
-    let id: UUID
-    var capsuleId: UUID?
-    var type: JournalEntryType
-    var text: String
-    var moodBefore: Int?
-    var moodAfter: Int?
-    var emotionTags: [String]
-    var bodyFeeling: String?
-    var significanceScore: Double?
-    var createdAt: Date
+    case step
 }
 ```
 
-### Ritual
+## Future Domain Candidates
 
-```swift
-enum RitualType: String, Codable {
-    case visualization
-    case writing
-    case action
-    case voice
-    case silence
-    case symbol
-    case time
-    case gratitude
-    case release
-}
+- `Ritual`
+- `ActionStep`
+- `WishTheme`
+- `OpeningReflection`
 
-struct Ritual {
-    let id: UUID
-    var title: String
-    var type: RitualType
-    var description: String
-    var durationMinutes: Int
-    var difficulty: Int
-    var tags: [String]
-}
-```
+These should be introduced when the product flow needs them, not as empty abstractions.
 
-### ActionStep
+## Core Flows
 
-```swift
-enum ActionStepStatus: String, Codable {
-    case planned
-    case completed
-    case skipped
-}
-
-struct ActionStep {
-    let id: UUID
-    var capsuleId: UUID
-    var text: String
-    var status: ActionStepStatus
-    var createdAt: Date
-    var completedAt: Date?
-}
-```
-
-### WishTheme
-
-```swift
-struct WishTheme {
-    let id: UUID
-    var name: String
-    var confidenceScore: Double
-    var sourceEntryCount: Int
-    var lastSeenAt: Date
-}
-```
-
-## Core Use Cases
-
-- `CreateWishCapsule`
-- `SealWishCapsule`
-- `AddJournalEntry`
-- `SuggestRitual`
-- `CompleteRitual`
-- `AddActionStep`
-- `MarkActionStepComplete`
-- `PrepareCapsuleOpening`
-- `CompleteCapsuleOpening`
-- `DetectWishThemes`
+- Create wish capsule.
+- Add journal entry.
+- Link journal entry to capsule.
+- Show capsule opening readiness.
+- Complete capsule opening with an outcome status.
 
 ## Persistence Strategy
 
@@ -228,11 +152,12 @@ For MVP:
 
 - SwiftData models mirror the domain entities closely.
 - Journals and wishes are stored on device.
-- Media attachments are stored locally and referenced by URL.
-- Notifications use local notification scheduling.
+- The model container is created in `Data/Persistence/SwiftDataContainer.swift`.
 
 Future:
 
+- local notification scheduling for capsule openings;
+- media attachments stored locally and referenced by URL;
 - encrypted iCloud sync;
 - export/import;
 - optional AI reflection with explicit consent;
@@ -250,19 +175,24 @@ The app stores highly personal material. Architecture should assume:
 
 ## State and Navigation
 
-Recommended navigation model:
+Current navigation model:
 
-- `AppRouter` owns root navigation state.
-- Feature view models own local screen state.
-- Long-lived app settings live in `AppEnvironment`.
+- `ContentView` owns the root tab shell.
+- Feature views own local screen state with SwiftUI state wrappers.
+- SwiftData queries currently provide persisted state directly to screens.
+
+Future navigation additions:
+
+- introduce `AppRouter` when onboarding, archive, and deep links make root navigation more complex;
+- introduce feature view models when a screen gains non-trivial business logic;
+- introduce `AppEnvironment` for long-lived settings and service dependencies.
 
 Primary tabs or destinations:
 
 - Capsules;
 - Journal;
 - Rituals;
-- Archive;
-- Profile / Path.
+- Archive.
 
 ## Testing Strategy
 

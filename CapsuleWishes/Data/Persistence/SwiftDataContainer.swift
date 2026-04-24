@@ -1,16 +1,14 @@
 //
-//  CapsuleWishesApp.swift
+//  SwiftDataContainer.swift
 //  CapsuleWishes
 //
-//  Created by Рамиль Аглямов on 06.02.2025.
+//  Created by Codex on 24.04.2026.
 //
 
-import SwiftUI
 import SwiftData
 
-@main
-struct CapsuleWishesApp: App {
-    var sharedModelContainer: ModelContainer = {
+enum SwiftDataContainer {
+    static let shared: ModelContainer = {
         let schema = Schema([
             WishCapsule.self,
             JournalEntry.self,
@@ -23,11 +21,4 @@ struct CapsuleWishesApp: App {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
-
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-        .modelContainer(sharedModelContainer)
-    }
 }
