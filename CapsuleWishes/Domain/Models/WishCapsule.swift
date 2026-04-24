@@ -54,4 +54,8 @@ final class WishCapsule {
     var isReadyToOpen: Bool {
         status == .sealed && openAt <= Date()
     }
+
+    var hasBeenOpened: Bool {
+        status != .sealed
+    }
 }

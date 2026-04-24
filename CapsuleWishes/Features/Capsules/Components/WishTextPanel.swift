@@ -12,9 +12,9 @@ struct WishTextPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Желание", systemImage: "lock.open")
+            Label("Желание", systemImage: capsule.hasBeenOpened ? "lock.open.fill" : "lock.fill")
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(titleColor)
 
             Text(capsule.intentionText)
                 .font(.body)
@@ -37,5 +37,17 @@ struct WishTextPanel: View {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(.white.opacity(0.12), lineWidth: 1)
         )
+    }
+
+    private var titleColor: Color {
+        if capsule.hasBeenOpened {
+            return .white.opacity(0.72)
+        }
+
+        if capsule.isReadyToOpen {
+            return Color(hex: capsule.colorHex).opacity(0.95)
+        }
+
+        return .white
     }
 }

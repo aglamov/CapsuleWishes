@@ -235,101 +235,65 @@ private struct CapsuleOrbRippleOverlay: View {
 
     var body: some View {
         ZStack {
-            ForEach(0..<4, id: \.self) { index in
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                .clear,
-                                highlight.opacity(index.isMultiple(of: 2) ? 0.44 : 0.30),
-                                color.opacity(0.34),
-                                .clear
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: size * waveWidth(for: index), height: size * waveHeight(for: index))
-                    .blur(radius: size * 0.02)
-                    .rotationEffect(.degrees(waveAngle(for: index)))
-                    .offset(waveOffset(for: index))
-                    .opacity(waveOpacity(for: index))
-            }
-
-            ForEach(0..<7, id: \.self) { index in
+            ForEach(0..<6, id: \.self) { index in
                 Circle()
                     .fill(
                         RadialGradient(
                             colors: [
-                                .white.opacity(index.isMultiple(of: 2) ? 0.46 : 0.30),
-                                highlight.opacity(0.24),
+                                .white.opacity(index.isMultiple(of: 3) ? 0.34 : 0.18),
+                                highlight.opacity(index.isMultiple(of: 2) ? 0.46 : 0.32),
+                                color.opacity(0.22),
                                 .clear
                             ],
                             center: .topLeading,
-                            startRadius: 1,
-                            endRadius: bubbleSize(for: index)
+                            startRadius: bubbleSize(for: index) * 0.08,
+                            endRadius: bubbleSize(for: index) * 0.62
                         )
                     )
                     .frame(width: bubbleSize(for: index), height: bubbleSize(for: index))
-                    .blur(radius: size * 0.004)
+                    .blur(radius: size * blurAmount(for: index))
                     .offset(bubbleOffset(for: index))
                     .opacity(bubbleOpacity(for: index))
+                    .scaleEffect(bubbleScale(for: index))
             }
         }
         .frame(width: size, height: size)
     }
 
-    private func waveWidth(for index: Int) -> CGFloat {
-        [1.45, 1.18, 1.34, 0.98][index]
-    }
-
-    private func waveHeight(for index: Int) -> CGFloat {
-        [0.25, 0.18, 0.22, 0.15][index]
-    }
-
-    private func waveAngle(for index: Int) -> Double {
-        let bases = [-28.0, 19.0, 62.0, -67.0]
-        return bases[index] + sin(phaseAngle(for: index)) * 42
-    }
-
-    private func waveOffset(for index: Int) -> CGSize {
-        let angle = phaseAngle(for: index)
-        return CGSize(
-            width: cos(angle) * size * waveRadius(for: index),
-            height: sin(angle * 0.74 + Double(index)) * size * waveRadius(for: index) * 0.82
-        )
-    }
-
-    private func waveOpacity(for index: Int) -> Double {
-        0.34 + (sin(phaseAngle(for: index) + 1.2) + 1) * 0.12
-    }
-
-    private func waveRadius(for index: Int) -> Double {
-        [0.22, 0.18, 0.14, 0.24][index]
-    }
-
     private func bubbleSize(for index: Int) -> CGFloat {
-        size * [0.15, 0.09, 0.12, 0.07, 0.18, 0.08, 0.11][index]
+        size * [0.56, 0.44, 0.62, 0.36, 0.50, 0.30][index]
     }
 
     private func bubbleOffset(for index: Int) -> CGSize {
-        let angle = phaseAngle(for: index + 4)
+        let angle = phaseAngle(for: index)
         let radius = bubbleRadius(for: index)
         return CGSize(
             width: cos(angle) * size * radius,
-            height: sin(angle * 1.12 + Double(index) * 0.4) * size * radius
+            height: sin(angle * 0.82 + Double(index) * 0.54) * size * radius
         )
     }
 
     private func bubbleOpacity(for index: Int) -> Double {
-        0.24 + (sin(phaseAngle(for: index) * 1.4) + 1) * 0.15
+        0.26 + (sin(phaseAngle(for: index) * 1.18) + 1) * 0.13
+    }
+
+    private func bubbleScale(for index: Int) -> CGFloat {
+        0.92 + CGFloat((sin(phaseAngle(for: index) * 0.72) + 1) * 0.08)
+    }
+
+    private func blurAmount(for index: Int) -> CGFloat {
+        [0.055, 0.065, 0.050, 0.070, 0.060, 0.075][index]
     }
 
     private func bubbleRadius(for index: Int) -> Double {
-        [0.22, 0.26, 0.18, 0.28, 0.16, 0.12, 0.24][index]
+        [0.20, 0.28, 0.18, 0.24, 0.30, 0.16][index]
     }
 
     private func phaseAngle(for index: Int) -> Double {
-        phase * .pi * 2 + Double(index) * 0.83
+        phase * .pi * 2 * speed(for: index) + Double(index) * 0.96
+    }
+
+    private func speed(for index: Int) -> Double {
+        [0.82, 1.05, 0.70, 1.24, 0.92, 1.14][index]
     }
 }
