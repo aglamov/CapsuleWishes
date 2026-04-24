@@ -12,6 +12,9 @@ struct CapsuleListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \WishCapsule.createdAt, order: .reverse) private var capsules: [WishCapsule]
     @State private var isCreatingCapsule = false
+    @State private var highlightedCapsuleID: UUID?
+    @State private var selectedCapsule: WishCapsule?
+    @State private var pendingNavigationTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -29,12 +32,13 @@ struct CapsuleListView: View {
                         } else {
                             VStack(spacing: 16) {
                                 ForEach(capsules) { capsule in
-                                    NavigationLink {
-                                        CapsuleDetailView(capsule: capsule)
+                                    Button {
+                                        openCapsuleAfterPause(capsule)
                                     } label: {
-                                        CapsuleCard(capsule: capsule)
+                                        CapsuleCard(capsule: capsule, isHighlighted: highlightedCapsuleID == capsule.id)
                                     }
                                     .buttonStyle(.plain)
+                                    .disabled(pendingNavigationTask != nil)
                                 }
                             }
                         }
@@ -58,6 +62,9 @@ struct CapsuleListView: View {
             .sheet(isPresented: $isCreatingCapsule) {
                 CreateCapsuleView()
             }
+            .navigationDestination(item: $selectedCapsule) { capsule in
+                CapsuleDetailView(capsule: capsule)
+            }
         }
     }
 
@@ -73,5 +80,26 @@ struct CapsuleListView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.top, 12)
+    }
+
+    private func openCapsuleAfterPause(_ capsule: WishCapsule) {
+        guard pendingNavigationTask == nil else { return }
+
+        withAnimation(.easeInOut(duration: 0.38)) {
+            highlightedCapsuleID = capsule.id
+        }
+
+        pendingNavigationTask = Task {
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.32)) {
+                    selectedCapsule = capsule
+                    highlightedCapsuleID = nil
+                }
+                pendingNavigationTask = nil
+            }
+        }
     }
 }

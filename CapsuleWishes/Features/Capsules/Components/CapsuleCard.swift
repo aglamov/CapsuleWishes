@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CapsuleCard: View {
     let capsule: WishCapsule
+    var isHighlighted = false
 
     var body: some View {
         HStack(spacing: 16) {
@@ -32,11 +33,17 @@ struct CapsuleCard: View {
                 .foregroundStyle(.white.opacity(0.44))
         }
         .padding(16)
-        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
+        .scaleEffect(isHighlighted ? 1.018 : 1)
+        .background(.white.opacity(isHighlighted ? 0.15 : 0.08), in: RoundedRectangle(cornerRadius: 18))
         .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .stroke(.white.opacity(0.12), lineWidth: 1)
+                .stroke(
+                    isHighlighted ? Color(hex: capsule.colorHex).opacity(0.58) : .white.opacity(0.12),
+                    lineWidth: isHighlighted ? 1.4 : 1
+                )
         )
+        .shadow(color: Color(hex: capsule.colorHex).opacity(isHighlighted ? 0.30 : 0), radius: 20)
+        .animation(.easeInOut(duration: 0.42), value: isHighlighted)
     }
 
     private var subtitle: String {

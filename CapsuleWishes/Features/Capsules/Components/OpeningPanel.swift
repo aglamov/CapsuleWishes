@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct OpeningPanel: View {
-    @Bindable var capsule: WishCapsule
+    let isOpening: Bool
+    let onOutcome: (CapsuleStatus) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -38,15 +39,14 @@ struct OpeningPanel: View {
 
     private func outcomeButton(_ status: CapsuleStatus, title: String) -> some View {
         Button {
-            withAnimation {
-                capsule.status = status
-                capsule.openedAt = Date()
-            }
+            onOutcome(status)
         } label: {
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(SecondaryCapsuleButtonStyle())
+        .disabled(isOpening)
+        .opacity(isOpening ? 0.62 : 1)
     }
 }

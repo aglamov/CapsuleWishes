@@ -14,6 +14,7 @@ struct CapsuleDetailView: View {
     @Bindable var capsule: WishCapsule
     @State private var selectedEntryType: JournalEntryType = .sign
     @State private var entryText = ""
+    @State private var didEnter = false
     @FocusState private var isEntryFieldFocused: Bool
 
     private var entries: [JournalEntry] {
@@ -26,7 +27,7 @@ struct CapsuleDetailView: View {
 
             ScrollView {
                 VStack(spacing: 22) {
-                    CapsuleOrbView(capsule: capsule, size: 168)
+                    CapsuleOrbView(capsule: capsule, size: 168, isInteractive: true)
                         .padding(.top, 28)
 
                     VStack(spacing: 8) {
@@ -43,15 +44,28 @@ struct CapsuleDetailView: View {
                     WishTextPanel(capsule: capsule)
 
                     if capsule.isReadyToOpen {
-                        OpeningPanel(capsule: capsule)
+                        OpeningPanel(isOpening: false) { status in
+                            openCapsule(as: status)
+                        }
                     }
 
-                    addEntryPanel
+                    if capsule.status == .sealed {
+                        addEntryPanel
+                    } else {
+                        openedReflectionPanel
+                    }
 
                     entriesPanel
                 }
                 .padding(20)
                 .padding(.bottom, 32)
+                .opacity(didEnter ? 1 : 0)
+                .scaleEffect(didEnter ? 1 : 0.985)
+            }
+        }
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.48)) {
+                didEnter = true
             }
         }
         .contentShape(Rectangle())
@@ -122,6 +136,26 @@ struct CapsuleDetailView: View {
         )
     }
 
+    private var openedReflectionPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Капсула открыта", systemImage: "sparkles")
+                .font(.headline)
+                .foregroundStyle(.white)
+
+            Text("Ты уже сделал важную часть: сохранил желание, дал ему время и вернулся к нему внимательнее. Пусть то, что открылось сейчас, станет не итогом, а мягкой подсказкой для следующего шага.")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.72))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(.white.opacity(0.16), lineWidth: 1)
+        )
+    }
+
     private var entriesPanel: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Следы вокруг желания")
@@ -151,6 +185,15 @@ struct CapsuleDetailView: View {
             modelContext.insert(entry)
             entryText = ""
             isEntryFieldFocused = false
+        }
+    }
+
+    private func openCapsule(as status: CapsuleStatus) {
+        isEntryFieldFocused = false
+
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+            capsule.status = status
+            capsule.openedAt = Date()
         }
     }
 }
