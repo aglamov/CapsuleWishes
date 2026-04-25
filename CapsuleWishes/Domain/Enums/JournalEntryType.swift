@@ -9,10 +9,8 @@ import Foundation
 
 enum JournalEntryType: String, Codable, CaseIterable, Identifiable {
     case sign
-    case smallJoy
     case thought
     case dream
-    case gratitude
     case step
 
     var id: String { rawValue }
@@ -20,32 +18,26 @@ enum JournalEntryType: String, Codable, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .sign: "Странность"
-        case .smallJoy: "Радость"
         case .thought: "Мысль"
         case .dream: "Сон"
-        case .gratitude: "Благодарность"
         case .step: "Шаг"
         }
     }
 
     var prompt: String {
         switch self {
-        case .sign: "Что сегодня было чуть-чуть необычным?"
-        case .smallJoy: "Что сделало день хотя бы на 1% легче?"
-        case .thought: "Какая мысль возвращалась к тебе?"
-        case .dream: "Что запомнилось из сна или полусна?"
-        case .gratitude: "За что сегодня можно тихо поблагодарить?"
-        case .step: "Какой маленький шаг ты сделал?"
+        case .sign: "Что сегодня показалось случайным, но почему-то задержалось внутри?"
+        case .thought: "Какая мысль вернулась к тебе рядом с этим желанием?"
+        case .dream: "Что запомнилось из сна, образа или полусна?"
+        case .step: "Какой маленький жест ты сделал в сторону желания?"
         }
     }
 
     var symbolName: String {
         switch self {
         case .sign: "sparkles"
-        case .smallJoy: "sun.max"
         case .thought: "text.bubble"
         case .dream: "moon.stars"
-        case .gratitude: "heart"
         case .step: "figure.walk"
         }
     }

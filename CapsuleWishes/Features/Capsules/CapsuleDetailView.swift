@@ -20,10 +20,30 @@ struct CapsuleDetailView: View {
     @State private var isShowingDeleteConfirmation = false
     @State private var openingStage: CapsuleOpeningStage = .idle
     @State private var openingTask: Task<Void, Never>?
+    @State private var aiEntryPrompt: String?
+    @State private var isLoadingAIEntryPrompt = false
     @FocusState private var isEntryFieldFocused: Bool
+
+    private let aiWishPromptService = AIWishPromptService()
 
     private var entries: [JournalEntry] {
         allEntries.filter { $0.capsuleID == capsule.id }
+    }
+
+    private var currentEntryPrompt: String {
+        aiEntryPrompt ?? WishPromptLibrary.prompt(
+            for: selectedEntryType,
+            capsule: capsule,
+            recentEntries: entries
+        )
+    }
+
+    private var promptRequestKey: String {
+        [
+            capsule.id.uuidString,
+            selectedEntryType.rawValue,
+            entries.first?.id.uuidString ?? "empty",
+        ].joined(separator: "-")
     }
 
     private var isOpeningPending: Bool {
@@ -31,11 +51,35 @@ struct CapsuleDetailView: View {
     }
 
     private var freezesCapsuleMotion: Bool {
-        openingStage == .settled
+        openingStage == .returning
     }
 
     private var focusOpacity: Double {
-        freezesCapsuleMotion ? 0.22 : 1
+        switch openingStage {
+        case .idle:
+            1
+        case .centering:
+            0.45
+        case .awakening, .tension, .release, .afterglow, .returning:
+            0
+        }
+    }
+
+    private var orbOpeningPhase: CapsuleOrbOpeningPhase {
+        switch openingStage {
+        case .idle, .centering:
+            .idle
+        case .awakening:
+            .awakening
+        case .tension:
+            .tension
+        case .release:
+            .release
+        case .afterglow:
+            .afterglow
+        case .returning:
+            .returning
+        }
     }
 
     private var showsSealedControls: Bool {
@@ -57,7 +101,8 @@ struct CapsuleDetailView: View {
                             capsule: capsule,
                             size: 168,
                             isInteractive: true,
-                            freezesMotion: freezesCapsuleMotion
+                            freezesMotion: freezesCapsuleMotion,
+                            openingPhase: orbOpeningPhase
                         )
                         .id("capsule-orb")
                         .padding(.top, 28)
@@ -143,6 +188,9 @@ struct CapsuleDetailView: View {
                 isEntryFieldFocused = false
             }
         }
+        .task(id: promptRequestKey) {
+            await refreshAIEntryPrompt()
+        }
     }
 
     private var statusText: String {
@@ -172,9 +220,7 @@ struct CapsuleDetailView: View {
             .pickerStyle(.menu)
             .tint(.white)
 
-            Text(selectedEntryType.prompt)
-                .font(.footnote)
-                .foregroundStyle(.white.opacity(0.66))
+            promptView
 
             TextField("Запиши коротко, как есть", text: $entryText, axis: .vertical)
                 .lineLimit(3...6)
@@ -253,6 +299,46 @@ struct CapsuleDetailView: View {
         }
     }
 
+    private var promptView: some View {
+        HStack(alignment: .top, spacing: 8) {
+            if isLoadingAIEntryPrompt {
+                ProgressView()
+                    .controlSize(.mini)
+                    .tint(.white.opacity(0.70))
+                    .padding(.top, 1)
+            }
+
+            Text(isLoadingAIEntryPrompt ? "Ищу подсказку вокруг этого желания..." : currentEntryPrompt)
+                .font(.footnote)
+                .foregroundStyle(.white.opacity(0.66))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @MainActor
+    private func refreshAIEntryPrompt() async {
+        aiEntryPrompt = nil
+
+        guard aiWishPromptService.isAvailable else {
+            isLoadingAIEntryPrompt = false
+            return
+        }
+
+        isLoadingAIEntryPrompt = true
+        do {
+            aiEntryPrompt = try await aiWishPromptService.prompt(
+                for: selectedEntryType,
+                capsule: capsule,
+                recentEntries: entries
+            )
+        } catch {
+            print("OpenAI capsule prompt fallback: \(error)")
+            aiEntryPrompt = nil
+        }
+
+        isLoadingAIEntryPrompt = false
+    }
+
     private func openCapsule(as status: CapsuleStatus, scrollProxy: ScrollViewProxy) {
         guard !isOpeningPending else { return }
         isEntryFieldFocused = false
@@ -275,12 +361,30 @@ struct CapsuleDetailView: View {
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                withAnimation(.easeInOut(duration: 0.44)) {
-                    openingStage = .settled
+                withAnimation(.smooth(duration: 2.0)) {
+                    openingStage = .awakening
                 }
             }
 
-            try? await Task.sleep(for: .milliseconds(520))
+            try? await Task.sleep(for: .milliseconds(2000))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                withAnimation(.smooth(duration: 5.1)) {
+                    openingStage = .tension
+                }
+            }
+
+            try? await Task.sleep(for: .milliseconds(5100))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                withAnimation(.smooth(duration: 0.78)) {
+                    openingStage = .release
+                }
+            }
+
+            try? await Task.sleep(for: .milliseconds(780))
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
@@ -293,11 +397,23 @@ struct CapsuleDetailView: View {
                 }
             }
 
-            try? await Task.sleep(for: .milliseconds(180))
+            await MainActor.run {
+                openingStage = .returning
+            }
+
+            try? await Task.sleep(for: .milliseconds(80))
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                openingStage = .idle
+                withAnimation(.smooth(duration: 1.20)) {
+                    openingStage = .idle
+                }
+            }
+
+            try? await Task.sleep(for: .milliseconds(1200))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
                 openingTask = nil
             }
         }
@@ -321,5 +437,9 @@ struct CapsuleDetailView: View {
 private enum CapsuleOpeningStage {
     case idle
     case centering
-    case settled
+    case awakening
+    case tension
+    case release
+    case afterglow
+    case returning
 }

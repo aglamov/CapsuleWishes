@@ -31,7 +31,20 @@ final class JournalEntry {
     }
 
     var type: JournalEntryType {
-        get { JournalEntryType(rawValue: typeRawValue) ?? .thought }
+        get {
+            if let type = JournalEntryType(rawValue: typeRawValue) {
+                return type
+            }
+
+            switch typeRawValue {
+            case "smallJoy":
+                return .sign
+            case "gratitude":
+                return .thought
+            default:
+                return .thought
+            }
+        }
         set { typeRawValue = newValue.rawValue }
     }
 }

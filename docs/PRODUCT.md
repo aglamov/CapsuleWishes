@@ -134,7 +134,7 @@ Elements:
 - capsule visualization;
 - opening date;
 - current ritual;
-- recent signs and joys;
+- recent signs, thoughts, dreams, and steps;
 - small actions;
 - reflection button;
 - opening state when ready.
@@ -146,10 +146,8 @@ Purpose: train attention.
 Fast entry types:
 
 - Strange thing;
-- Small joy;
 - Thought;
 - Dream;
-- Gratitude;
 - Tiny step.
 
 Example prompts:

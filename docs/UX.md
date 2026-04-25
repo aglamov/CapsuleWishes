@@ -104,10 +104,8 @@ Goal: help the user notice life.
 Fast entry buttons:
 
 - Strange thing;
-- Small joy;
 - Thought;
 - Dream;
-- Gratitude;
 - Tiny step.
 
 Prompts:

@@ -77,6 +77,10 @@ Services handle system capabilities:
 - optional reflection or AI assistance;
 - export and backup.
 
+### Prompt Library
+
+`WishPromptLibrary` is the first local prototype for wish-aware guidance. It keeps observation prompts tied to the selected capsule, so the app can help the user notice signs, thoughts, dreams, and small steps around a wish without introducing a separate chat surface.
+
 ## Current Domain Model
 
 ### WishCapsule
@@ -121,10 +125,8 @@ final class JournalEntry {
 
 enum JournalEntryType: String, Codable, CaseIterable, Identifiable {
     case sign
-    case smallJoy
     case thought
     case dream
-    case gratitude
     case step
 }
 ```
