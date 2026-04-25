@@ -402,7 +402,7 @@ private struct CapsuleOrbWakeRings: View {
                 Circle()
                     .stroke(color.opacity(ringOpacity(for: progress)), lineWidth: ringWidth(for: progress))
                     .frame(width: size * 1.08, height: size * 1.08)
-                    .scaleEffect(0.86 + CGFloat(progress) * 0.62)
+                    .scaleEffect(0.94 + CGFloat(progress) * 0.54)
                     .blur(radius: size * (0.006 + CGFloat(progress) * 0.018))
             }
         }
