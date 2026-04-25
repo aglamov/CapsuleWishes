@@ -62,6 +62,11 @@ struct CapsuleListView: View {
             .navigationDestination(item: $selectedCapsule) { capsule in
                 CapsuleDetailView(capsule: capsule)
             }
+            .onDisappear {
+                pendingNavigationTask?.cancel()
+                pendingNavigationTask = nil
+                highlightedCapsuleID = nil
+            }
         }
     }
 
@@ -148,8 +153,14 @@ struct CapsuleListView: View {
         }
 
         pendingNavigationTask = Task {
-            try? await Task.sleep(for: .seconds(1))
-            guard !Task.isCancelled else { return }
+            try? await Task.sleep(for: .seconds(0.65))
+            guard !Task.isCancelled else {
+                await MainActor.run {
+                    pendingNavigationTask = nil
+                    highlightedCapsuleID = nil
+                }
+                return
+            }
 
             await MainActor.run {
                 withAnimation(.easeInOut(duration: 0.32)) {

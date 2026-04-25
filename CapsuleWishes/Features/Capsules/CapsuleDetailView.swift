@@ -10,63 +10,104 @@ import SwiftUI
 
 struct CapsuleDetailView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(sort: \JournalEntry.createdAt, order: .reverse) private var allEntries: [JournalEntry]
     @Bindable var capsule: WishCapsule
     @State private var selectedEntryType: JournalEntryType = .sign
     @State private var entryText = ""
     @State private var didEnter = false
+    @State private var openingStage: CapsuleOpeningStage = .idle
+    @State private var openingTask: Task<Void, Never>?
     @FocusState private var isEntryFieldFocused: Bool
 
     private var entries: [JournalEntry] {
         allEntries.filter { $0.capsuleID == capsule.id }
     }
 
+    private var isOpeningPending: Bool {
+        openingStage != .idle
+    }
+
+    private var freezesCapsuleMotion: Bool {
+        openingStage == .settled
+    }
+
+    private var focusOpacity: Double {
+        freezesCapsuleMotion ? 0.22 : 1
+    }
+
+    private var showsSealedControls: Bool {
+        capsule.status == .sealed || isOpeningPending
+    }
+
+    private var showsOpeningPanel: Bool {
+        showsSealedControls && capsule.openAt <= Date()
+    }
+
     var body: some View {
         ZStack {
             NightSkyBackground()
 
-            ScrollView {
-                VStack(spacing: 22) {
-                    CapsuleOrbView(capsule: capsule, size: 168, isInteractive: true)
+            ScrollViewReader { scrollProxy in
+                ScrollView {
+                    VStack(spacing: 22) {
+                        CapsuleOrbView(
+                            capsule: capsule,
+                            size: 168,
+                            isInteractive: true,
+                            freezesMotion: freezesCapsuleMotion
+                        )
+                        .id("capsule-orb")
                         .padding(.top, 28)
 
-                    VStack(spacing: 8) {
-                        Text(capsule.title)
-                            .font(.title.bold())
-                            .foregroundStyle(.white)
-                            .multilineTextAlignment(.center)
+                        VStack(spacing: 8) {
+                            Text(capsule.title)
+                                .font(.title.bold())
+                                .foregroundStyle(.white)
+                                .multilineTextAlignment(.center)
 
-                        Text(statusText)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.white.opacity(0.72))
-                    }
-
-                    WishTextPanel(capsule: capsule)
-
-                    if capsule.isReadyToOpen {
-                        OpeningPanel(isOpening: false) { status in
-                            openCapsule(as: status)
+                            Text(statusText)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.white.opacity(0.72))
                         }
-                    }
+                        .opacity(focusOpacity)
 
-                    if capsule.status == .sealed {
-                        addEntryPanel
-                    } else {
-                        openedReflectionPanel
-                    }
+                        WishTextPanel(capsule: capsule)
+                            .opacity(focusOpacity)
 
-                    entriesPanel
+                        if showsOpeningPanel {
+                            OpeningPanel(isOpening: isOpeningPending) { status in
+                                openCapsule(as: status, scrollProxy: scrollProxy)
+                            }
+                            .opacity(focusOpacity)
+                        }
+
+                        Group {
+                            if showsSealedControls {
+                                addEntryPanel
+                            } else {
+                                openedReflectionPanel
+                            }
+                        }
+                        .opacity(focusOpacity)
+
+                        entriesPanel
+                            .opacity(focusOpacity)
+                    }
+                    .padding(20)
+                    .padding(.bottom, 32)
+                    .opacity(didEnter ? 1 : 0)
+                    .scaleEffect(didEnter ? 1 : 0.985)
                 }
-                .padding(20)
-                .padding(.bottom, 32)
-                .opacity(didEnter ? 1 : 0)
-                .scaleEffect(didEnter ? 1 : 0.985)
             }
         }
         .onAppear {
             withAnimation(.easeOut(duration: 0.48)) {
                 didEnter = true
             }
+        }
+        .onDisappear {
+            openingTask?.cancel()
         }
         .contentShape(Rectangle())
         .onTapGesture {
@@ -81,7 +122,7 @@ struct CapsuleDetailView: View {
     }
 
     private var statusText: String {
-        if capsule.isReadyToOpen {
+        if capsule.status == .sealed && capsule.isReadyToOpen {
             return "Капсула готова открыться"
         }
 
@@ -188,12 +229,59 @@ struct CapsuleDetailView: View {
         }
     }
 
-    private func openCapsule(as status: CapsuleStatus) {
+    private func openCapsule(as status: CapsuleStatus, scrollProxy: ScrollViewProxy) {
+        guard !isOpeningPending else { return }
         isEntryFieldFocused = false
 
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+        if reduceMotion {
             capsule.status = status
             capsule.openedAt = Date()
+            return
+        }
+
+        openingStage = .centering
+        openingTask?.cancel()
+
+        withAnimation(.easeInOut(duration: 0.88)) {
+            scrollProxy.scrollTo("capsule-orb", anchor: .center)
+        }
+
+        openingTask = Task {
+            try? await Task.sleep(for: .milliseconds(900))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.44)) {
+                    openingStage = .settled
+                }
+            }
+
+            try? await Task.sleep(for: .milliseconds(520))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+
+                withTransaction(transaction) {
+                    capsule.status = status
+                    capsule.openedAt = Date()
+                }
+            }
+
+            try? await Task.sleep(for: .milliseconds(180))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                openingStage = .idle
+                openingTask = nil
+            }
         }
     }
+}
+
+private enum CapsuleOpeningStage {
+    case idle
+    case centering
+    case settled
 }

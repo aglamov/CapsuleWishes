@@ -19,13 +19,22 @@ struct CapsuleOrbView: View {
     let capsule: WishCapsule
     let size: CGFloat
     var isInteractive = false
+    var freezesMotion = false
 
     var body: some View {
+        if capsule.status == .sealed {
+            animatedOrb
+        } else {
+            staticOrb
+        }
+    }
+
+    private var animatedOrb: some View {
         let color = Color(hex: capsule.colorHex)
         let highlight = color.mix(with: .white, by: 0.34)
         let ready = capsule.isReadyToOpen
 
-        ZStack {
+        return ZStack {
             Circle()
                 .fill(color.opacity(ready ? 0.26 : 0.16))
                 .frame(width: size * 1.25, height: size * 1.25)
@@ -34,12 +43,21 @@ struct CapsuleOrbView: View {
                 .opacity(glowOpacity)
 
             if ready {
-                Circle()
-                    .stroke(color.opacity(0.58), lineWidth: max(size * 0.035, 2))
-                    .frame(width: size * 1.14, height: size * 1.14)
-                    .scaleEffect(isEager && !reduceMotion ? 1.22 : 0.88)
-                    .opacity(isEager && !reduceMotion ? 0.08 : 0.72)
-                    .blur(radius: size * 0.015)
+                if reduceMotion || freezesMotion {
+                    Circle()
+                        .stroke(color.opacity(0.42), lineWidth: max(size * 0.026, 2))
+                        .frame(width: size * 1.20, height: size * 1.20)
+                        .blur(radius: size * 0.012)
+                } else {
+                    TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
+                        CapsuleOrbWakeRings(
+                            color: color,
+                            size: size,
+                            time: timeline.date.timeIntervalSinceReferenceDate
+                        )
+                    }
+                    .allowsHitTesting(false)
+                }
             }
 
             Circle()
@@ -82,25 +100,76 @@ struct CapsuleOrbView: View {
                 .foregroundStyle(.white.opacity(0.90))
                 .scaleEffect(symbolScale)
         }
+        .frame(width: size * 1.25, height: size * 1.25)
         .scaleEffect(orbScale * pressScale)
         .offset(y: verticalOffset)
         .rotationEffect(.degrees(rotation))
         .contentShape(Circle())
         .accessibilityLabel(capsule.title)
-        .animation(reduceMotion ? nil : breathingAnimation, value: isBreathing)
-        .animation(reduceMotion ? nil : eagerAnimation, value: isEager)
+        .animation(allowsAmbientMotion ? breathingAnimation : nil, value: isBreathing)
+        .animation(allowsAmbientMotion ? eagerAnimation : nil, value: isEager)
         .simultaneousGesture(pressGesture)
         .onAppear {
             guard !reduceMotion else { return }
-            isBreathing = true
-            isEager = capsule.isReadyToOpen
+            isBreathing = capsule.status == .sealed
+            isEager = capsule.status == .sealed && capsule.isReadyToOpen
         }
         .onChange(of: capsule.isReadyToOpen) { _, isReady in
             guard !reduceMotion else { return }
-            isEager = isReady
+            isEager = capsule.status == .sealed && isReady
+        }
+        .onChange(of: capsule.status) { _, status in
+            let sealed = status == .sealed
+            isBreathing = !reduceMotion && sealed
+            isEager = !reduceMotion && sealed && capsule.isReadyToOpen
+
+            if !sealed {
+                stopMotionEffects()
+            }
         }
         .onDisappear {
             stopPressTasks()
+        }
+    }
+
+    private var staticOrb: some View {
+        let color = Color(hex: capsule.colorHex)
+
+        return ZStack {
+            Circle()
+                .fill(color.opacity(0.16))
+                .frame(width: size * 1.25, height: size * 1.25)
+                .blur(radius: size * 0.12)
+                .opacity(0.58)
+
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            .white.opacity(0.72),
+                            color.opacity(0.82),
+                            color.opacity(0.18)
+                        ],
+                        center: .topLeading,
+                        startRadius: 4,
+                        endRadius: size * 0.62
+                    )
+                )
+                .frame(width: size, height: size)
+                .shadow(color: color.opacity(0.55), radius: size * 0.18)
+                .overlay {
+                    Circle()
+                        .stroke(.white.opacity(0.36), lineWidth: 1)
+                }
+
+            Image(systemName: capsule.symbol)
+                .font(.system(size: size * 0.30, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.90))
+        }
+        .contentShape(Circle())
+        .accessibilityLabel(capsule.title)
+        .onAppear {
+            stopMotionEffects()
         }
     }
 
@@ -109,31 +178,40 @@ struct CapsuleOrbView: View {
     }
 
     private var eagerAnimation: Animation {
-        .easeInOut(duration: 0.36).repeatForever(autoreverses: true)
+        .easeInOut(duration: 0.82).repeatForever(autoreverses: true)
+    }
+
+    private var allowsAmbientMotion: Bool {
+        capsule.status == .sealed && !freezesMotion && !reduceMotion
     }
 
     private var orbScale: CGFloat {
         if reduceMotion { return 1 }
+        guard !freezesMotion else { return 1 }
+        guard capsule.status == .sealed else { return 1 }
         if capsule.isReadyToOpen {
-            return isEager ? 1.08 : 0.96
+            return 1
         }
         return isBreathing ? 1.025 : 0.985
     }
 
     private var pressScale: CGFloat {
-        guard isInteractive, !reduceMotion else { return 1 }
+        guard !freezesMotion, capsule.status == .sealed, isInteractive, !reduceMotion else { return 1 }
         return isPressingOrb ? 1.38 : 1
     }
 
     private var glowScale: CGFloat {
         if reduceMotion { return 1 }
+        guard !freezesMotion else { return 1 }
+        guard capsule.status == .sealed else { return 1 }
         if capsule.isReadyToOpen {
-            return isEager ? 1.42 : 1.00
+            return 1.18
         }
         return isBreathing ? 1.10 : 0.96
     }
 
     private var glowOpacity: Double {
+        guard capsule.status == .sealed else { return 0.58 }
         if capsule.isReadyToOpen {
             return isEager && !reduceMotion ? 0.95 : 0.70
         }
@@ -141,6 +219,7 @@ struct CapsuleOrbView: View {
     }
 
     private var shadowRadius: CGFloat {
+        guard capsule.status == .sealed else { return size * 0.18 }
         if capsule.isReadyToOpen {
             return size * (isEager && !reduceMotion ? 0.30 : 0.23)
         }
@@ -148,25 +227,27 @@ struct CapsuleOrbView: View {
     }
 
     private var symbolScale: CGFloat {
-        guard capsule.isReadyToOpen, !reduceMotion else { return 1 }
-        return isEager ? 1.16 : 0.92
+        guard !freezesMotion else { return 1 }
+        guard capsule.status == .sealed, capsule.isReadyToOpen, !reduceMotion else { return 1 }
+        return 1
     }
 
     private var verticalOffset: CGFloat {
         guard !reduceMotion else { return 0 }
+        guard !freezesMotion else { return 0 }
+        guard capsule.status == .sealed else { return 0 }
         if capsule.isReadyToOpen {
-            return isEager ? -size * 0.14 : size * 0.04
+            return 0
         }
         return isBreathing ? -size * 0.018 : size * 0.012
     }
 
     private var rotation: Double {
-        guard capsule.isReadyToOpen, !reduceMotion else { return 0 }
-        return isEager ? 7 : -5
+        0
     }
 
     private func startPressEffect() {
-        guard isInteractive, !reduceMotion, !isPressingOrb else { return }
+        guard !freezesMotion, capsule.status == .sealed, isInteractive, !reduceMotion, !isPressingOrb else { return }
 
         withAnimation(.easeInOut(duration: 1.15)) {
             isPressingOrb = true
@@ -224,6 +305,14 @@ struct CapsuleOrbView: View {
     private func stopPressTasks() {
         hapticTask?.cancel()
         hapticTask = nil
+    }
+
+    private func stopMotionEffects() {
+        stopPressTasks()
+        isBreathing = false
+        isEager = false
+        isShimmering = false
+        isPressingOrb = false
     }
 }
 
@@ -295,5 +384,44 @@ private struct CapsuleOrbRippleOverlay: View {
 
     private func speed(for index: Int) -> Double {
         [0.82, 1.05, 0.70, 1.24, 0.92, 1.14][index]
+    }
+}
+
+private struct CapsuleOrbWakeRings: View {
+    let color: Color
+    let size: CGFloat
+    let time: TimeInterval
+
+    private let duration: TimeInterval = 2.45
+
+    var body: some View {
+        ZStack {
+            ForEach(0..<3, id: \.self) { index in
+                let progress = ringProgress(for: index)
+
+                Circle()
+                    .stroke(color.opacity(ringOpacity(for: progress)), lineWidth: ringWidth(for: progress))
+                    .frame(width: size * 1.08, height: size * 1.08)
+                    .scaleEffect(0.86 + CGFloat(progress) * 0.62)
+                    .blur(radius: size * (0.006 + CGFloat(progress) * 0.018))
+            }
+        }
+        .frame(width: size * 1.85, height: size * 1.85)
+    }
+
+    private func ringProgress(for index: Int) -> Double {
+        let offset = duration / 3 * Double(index)
+        let shiftedTime = time + offset
+        return shiftedTime.truncatingRemainder(dividingBy: duration) / duration
+    }
+
+    private func ringOpacity(for progress: Double) -> Double {
+        let fadeIn = min(progress / 0.16, 1)
+        let fadeOut = max(1 - progress, 0)
+        return 0.56 * fadeIn * pow(fadeOut, 1.55)
+    }
+
+    private func ringWidth(for progress: Double) -> CGFloat {
+        max(size * (0.030 - CGFloat(progress) * 0.016), 1.4)
     }
 }
