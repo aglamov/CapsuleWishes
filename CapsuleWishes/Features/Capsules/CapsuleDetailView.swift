@@ -10,12 +10,14 @@ import SwiftUI
 
 struct CapsuleDetailView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(sort: \JournalEntry.createdAt, order: .reverse) private var allEntries: [JournalEntry]
     @Bindable var capsule: WishCapsule
     @State private var selectedEntryType: JournalEntryType = .sign
     @State private var entryText = ""
     @State private var didEnter = false
+    @State private var isShowingDeleteConfirmation = false
     @State private var openingStage: CapsuleOpeningStage = .idle
     @State private var openingTask: Task<Void, Never>?
     @FocusState private var isEntryFieldFocused: Bool
@@ -114,6 +116,28 @@ struct CapsuleDetailView: View {
             isEntryFieldFocused = false
         }
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(role: .destructive) {
+                    isEntryFieldFocused = false
+                    isShowingDeleteConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.42))
+                }
+                .accessibilityLabel("Удалить капсулу")
+            }
+        }
+        .alert("Удалить капсулу?", isPresented: $isShowingDeleteConfirmation) {
+            Button("Оставить", role: .cancel) { }
+
+            Button("Удалить", role: .destructive) {
+                deleteCapsule()
+            }
+        } message: {
+            Text("Капсула уже хранит твой запрос к миру. Иногда именно такие внезапные желания оказываются заветными. Удалить ее навсегда?")
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             FloatingKeyboardDoneBar(isVisible: isEntryFieldFocused) {
                 isEntryFieldFocused = false
@@ -277,6 +301,20 @@ struct CapsuleDetailView: View {
                 openingTask = nil
             }
         }
+    }
+
+    private func deleteCapsule() {
+        openingTask?.cancel()
+        openingTask = nil
+        isEntryFieldFocused = false
+
+        let capsuleID = capsule.id
+        allEntries
+            .filter { $0.capsuleID == capsuleID }
+            .forEach(modelContext.delete)
+
+        modelContext.delete(capsule)
+        dismiss()
     }
 }
 
