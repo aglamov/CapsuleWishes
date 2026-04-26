@@ -326,13 +326,17 @@ struct CapsuleDetailView: View {
 
         isLoadingAIEntryPrompt = true
         do {
-            aiEntryPrompt = try await aiWishPromptService.prompt(
+            let prompt = try await aiWishPromptService.prompt(
                 for: selectedEntryType,
                 capsule: capsule,
                 recentEntries: entries
             )
+            try Task.checkCancellation()
+            aiEntryPrompt = prompt
+        } catch is CancellationError {
+            return
         } catch {
-            print("OpenAI capsule prompt fallback: \(error)")
+            AppLog.ai.error("OpenAI capsule prompt fallback: \(error.localizedDescription, privacy: .public)")
             aiEntryPrompt = nil
         }
 
@@ -346,6 +350,7 @@ struct CapsuleDetailView: View {
         if reduceMotion {
             capsule.status = status
             capsule.openedAt = Date()
+            CapsuleNotificationScheduler.shared.cancelSignals(for: capsule)
             return
         }
 
@@ -394,6 +399,7 @@ struct CapsuleDetailView: View {
                 withTransaction(transaction) {
                     capsule.status = status
                     capsule.openedAt = Date()
+                    CapsuleNotificationScheduler.shared.cancelSignals(for: capsule)
                 }
             }
 
@@ -425,6 +431,7 @@ struct CapsuleDetailView: View {
         isEntryFieldFocused = false
 
         let capsuleID = capsule.id
+        CapsuleNotificationScheduler.shared.cancelSignals(for: capsule)
         allEntries
             .filter { $0.capsuleID == capsuleID }
             .forEach(modelContext.delete)

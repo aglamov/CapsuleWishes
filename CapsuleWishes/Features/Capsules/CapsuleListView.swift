@@ -12,6 +12,7 @@ struct CapsuleListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \WishCapsule.openAt, order: .forward) private var capsules: [WishCapsule]
     @State private var isCreatingCapsule = false
+    @State private var isShowingNotificationSettings = false
     @State private var highlightedCapsuleID: UUID?
     @State private var selectedCapsule: WishCapsule?
     @State private var pendingNavigationTask: Task<Void, Never>?
@@ -47,6 +48,15 @@ struct CapsuleListView: View {
             .navigationTitle("Капсула желания")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        isShowingNotificationSettings = true
+                    } label: {
+                        Image(systemName: "bell")
+                    }
+                    .accessibilityLabel("Настроить сигналы")
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         isCreatingCapsule = true
@@ -58,6 +68,9 @@ struct CapsuleListView: View {
             }
             .sheet(isPresented: $isCreatingCapsule) {
                 CreateCapsuleView()
+            }
+            .sheet(isPresented: $isShowingNotificationSettings) {
+                NotificationSettingsView()
             }
             .navigationDestination(item: $selectedCapsule) { capsule in
                 CapsuleDetailView(capsule: capsule)

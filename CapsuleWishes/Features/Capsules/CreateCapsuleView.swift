@@ -177,5 +177,10 @@ struct CreateCapsuleView: View {
             isTextInputFocused = false
             dismiss()
         }
+
+        Task {
+            guard await CapsuleNotificationScheduler.shared.requestAuthorizationIfNeeded() else { return }
+            CapsuleNotificationScheduler.shared.scheduleOpeningSignal(for: capsule)
+        }
     }
 }

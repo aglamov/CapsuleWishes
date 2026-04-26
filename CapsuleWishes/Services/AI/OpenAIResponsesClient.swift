@@ -35,24 +35,22 @@ struct OpenAIResponsesClient {
         let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
-            print("OpenAI prompt failed: invalid response")
+            AppLog.ai.error("OpenAI prompt failed: invalid response")
             throw OpenAIResponsesClientError.invalidResponse
         }
 
         guard (200..<300).contains(httpResponse.statusCode) else {
-            let responseBody = String(data: data, encoding: .utf8) ?? "<non-utf8 response>"
-            print("OpenAI prompt failed: status=\(httpResponse.statusCode), body=\(responseBody)")
-            throw OpenAIResponsesClientError.requestFailed(statusCode: httpResponse.statusCode, body: responseBody)
+            AppLog.ai.error("OpenAI prompt failed: status=\(httpResponse.statusCode, privacy: .public)")
+            throw OpenAIResponsesClientError.requestFailed(statusCode: httpResponse.statusCode)
         }
 
         let decoded = try JSONDecoder().decode(ResponseEnvelope.self, from: data)
         guard let text = decoded.outputText else {
-            let responseBody = String(data: data, encoding: .utf8) ?? "<non-utf8 response>"
-            print("OpenAI prompt failed: missing output text, body=\(responseBody)")
+            AppLog.ai.error("OpenAI prompt failed: missing output text")
             throw OpenAIResponsesClientError.missingOutputText
         }
 
-        print("OpenAI prompt succeeded: \(text)")
+        AppLog.ai.debug("OpenAI prompt succeeded")
         return text
     }
 }
@@ -104,6 +102,6 @@ private struct ResponseContentItem: Decodable {
 
 enum OpenAIResponsesClientError: Error {
     case invalidResponse
-    case requestFailed(statusCode: Int, body: String)
+    case requestFailed(statusCode: Int)
     case missingOutputText
 }

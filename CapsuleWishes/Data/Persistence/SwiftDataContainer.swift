@@ -12,6 +12,7 @@ enum SwiftDataContainer {
         let schema = Schema([
             WishCapsule.self,
             JournalEntry.self,
+            NotificationSignal.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

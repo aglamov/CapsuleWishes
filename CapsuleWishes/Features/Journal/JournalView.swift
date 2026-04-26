@@ -22,9 +22,13 @@ struct JournalView: View {
 
     private let aiWishPromptService = AIWishPromptService()
 
+    private var activeCapsules: [WishCapsule] {
+        capsules.filter { !$0.hasBeenOpened }
+    }
+
     private var selectedCapsule: WishCapsule? {
         guard let selectedCapsuleID else { return nil }
-        return capsules.first { $0.id == selectedCapsuleID }
+        return activeCapsules.first { $0.id == selectedCapsuleID }
     }
 
     private var selectedCapsuleEntries: [JournalEntry] {
@@ -110,6 +114,10 @@ struct JournalView: View {
             }
             .task(id: promptRequestKey) {
                 await refreshAIPrompt()
+            }
+            .onChange(of: activeCapsules.map(\.id)) { _, activeCapsuleIDs in
+                guard let selectedCapsuleID, !activeCapsuleIDs.contains(selectedCapsuleID) else { return }
+                self.selectedCapsuleID = nil
             }
         }
     }
@@ -226,7 +234,7 @@ struct JournalView: View {
                     selectedCapsuleID = nil
                 }
 
-                ForEach(capsules) { capsule in
+                ForEach(activeCapsules) { capsule in
                     Button {
                         selectedCapsuleID = capsule.id
                     } label: {
@@ -236,8 +244,8 @@ struct JournalView: View {
             } label: {
                 HStack(spacing: 9) {
                     if let selectedCapsule {
-                        Text(selectedCapsule.symbol)
-                            .font(.body)
+                        Image(systemName: selectedCapsule.symbol)
+                            .font(.subheadline.weight(.semibold))
                     } else {
                         Image(systemName: "link")
                             .font(.subheadline.weight(.semibold))
@@ -263,7 +271,7 @@ struct JournalView: View {
                 )
             }
             .buttonStyle(.plain)
-            .disabled(capsules.isEmpty)
+            .disabled(activeCapsules.isEmpty)
         }
     }
 
@@ -272,7 +280,7 @@ struct JournalView: View {
         guard !trimmed.isEmpty else { return }
 
         withAnimation {
-            modelContext.insert(JournalEntry(capsuleID: selectedCapsuleID, type: selectedType, text: trimmed))
+            modelContext.insert(JournalEntry(capsuleID: selectedCapsule?.id, type: selectedType, text: trimmed))
             text = ""
             isTextEditorFocused = false
         }
@@ -306,13 +314,17 @@ struct JournalView: View {
 
         isLoadingAIPrompt = true
         do {
-            aiPrompt = try await aiWishPromptService.prompt(
+            let prompt = try await aiWishPromptService.prompt(
                 for: selectedType,
                 capsule: selectedCapsule,
                 recentEntries: selectedCapsuleEntries
             )
+            try Task.checkCancellation()
+            aiPrompt = prompt
+        } catch is CancellationError {
+            return
         } catch {
-            print("OpenAI journal prompt fallback: \(error)")
+            AppLog.ai.error("OpenAI journal prompt fallback: \(error.localizedDescription, privacy: .public)")
             aiPrompt = nil
         }
 

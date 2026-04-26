@@ -14,9 +14,9 @@ struct AIWishPromptService {
         client = configuration.map { OpenAIResponsesClient(configuration: $0) }
 
         if configuration == nil {
-            print("OpenAI prompt disabled: OPENAI_API_KEY is missing")
+            AppLog.ai.debug("OpenAI prompt disabled: OPENAI_API_KEY is missing")
         } else {
-            print("OpenAI prompt enabled")
+            AppLog.ai.debug("OpenAI prompt enabled")
         }
     }
 
@@ -30,15 +30,9 @@ struct AIWishPromptService {
         recentEntries: [JournalEntry]
     ) async throws -> String? {
         guard let client else {
-            print("OpenAI prompt skipped: client is unavailable")
+            AppLog.ai.debug("OpenAI prompt skipped: client is unavailable")
             return nil
         }
-
-        let fallback = WishPromptLibrary.prompt(
-            for: entryType,
-            capsule: capsule,
-            recentEntries: recentEntries
-        )
 
         let instructions = """
         Ты пишешь короткие подсказки для приложения CapsuleWishes.
@@ -58,9 +52,8 @@ struct AIWishPromptService {
         Последние записи вокруг желания:
         \(recentEntries.prefix(6).map { "- \($0.type.title): \($0.text)" }.joined(separator: "\n"))
         """
-        //Локальная подсказка-основа: \(fallback)
-        
-        print("OpenAI prompt request: type=\(entryType.rawValue), capsule=\(capsule.title), recentEntries=\(recentEntries.count)")
+
+        AppLog.ai.debug("OpenAI prompt request: type=\(entryType.rawValue, privacy: .public), recentEntries=\(recentEntries.count, privacy: .public)")
 
         let text = try await client.generateText(
             instructions: instructions,

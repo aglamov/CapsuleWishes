@@ -14,10 +14,13 @@ Primary destinations:
 
 ## Navigation Model
 
-MVP can start with a simple tab structure:
+MVP starts with a simple tab structure:
 
 - Capsules;
-- Journal;
+- Journal.
+
+Later versions can add:
+
 - Rituals;
 - Archive.
 

@@ -189,10 +189,13 @@ Future navigation additions:
 - introduce feature view models when a screen gains non-trivial business logic;
 - introduce `AppEnvironment` for long-lived settings and service dependencies.
 
-Primary tabs or destinations:
+Current primary tabs:
 
 - Capsules;
-- Journal;
+- Journal.
+
+Future destinations:
+
 - Rituals;
 - Archive.
 
