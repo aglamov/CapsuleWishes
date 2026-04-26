@@ -314,7 +314,7 @@ struct NotificationSettingsView: View {
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text(signal.message)
+                Text(displayMessage(for: signal))
                     .font(.footnote)
                     .foregroundStyle(.white.opacity(0.66))
                     .fixedSize(horizontal: false, vertical: true)
@@ -340,6 +340,7 @@ struct NotificationSettingsView: View {
         Array(signals
             .filter(isVisibleSignal)
             .filter { !$0.hasPassed }
+            .filter { $0.kind != .futureLetter }
             .sorted { $0.scheduledAt < $1.scheduledAt }
             .prefix(16))
     }
@@ -351,6 +352,14 @@ struct NotificationSettingsView: View {
         }
 
         return !signal.isCancelled || signal.kind == .futureLetter
+    }
+
+    private func displayMessage(for signal: NotificationSignal) -> String {
+        if signal.kind == .futureLetter {
+            return "Открыть письмо"
+        }
+
+        return signal.message
     }
 
     private var authorizationTitle: String {

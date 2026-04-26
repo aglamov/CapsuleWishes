@@ -24,6 +24,7 @@ struct CapsuleDetailView: View {
     @State private var openingTask: Task<Void, Never>?
     @State private var aiEntryPrompt: String?
     @State private var isLoadingAIEntryPrompt = false
+    @State private var selectedFutureLetterSignal: NotificationSignal?
     @FocusState private var isEntryFieldFocused: Bool
 
     private let aiWishPromptService = AIWishPromptService()
@@ -34,7 +35,7 @@ struct CapsuleDetailView: View {
 
     private var futureLetterSignal: NotificationSignal? {
         allSignals
-            .filter { $0.capsuleID == capsule.id && $0.kind == .futureLetter }
+            .filter { $0.capsuleID == capsule.id && $0.kind == .futureLetter && $0.hasPassed }
             .sorted { $0.scheduledAt > $1.scheduledAt }
             .first
     }
@@ -206,6 +207,9 @@ struct CapsuleDetailView: View {
         .task(id: promptRequestKey) {
             await refreshAIEntryPrompt()
         }
+        .sheet(item: $selectedFutureLetterSignal) { signal in
+            FutureLetterReadingView(signal: signal)
+        }
     }
 
     private var statusText: String {
@@ -283,31 +287,41 @@ struct CapsuleDetailView: View {
     }
 
     private func futureLetterPanel(_ signal: NotificationSignal) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label("Письмо из будущего", systemImage: "envelope.open.fill")
-                .font(.headline)
-                .foregroundStyle(.white)
+        Button {
+            selectedFutureLetterSignal = signal
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "envelope.open.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(.white.opacity(0.12), in: Circle())
 
-            if signal.hasPassed {
-                Text(signal.message)
-                    .font(.body)
-                    .lineSpacing(5)
-                    .foregroundStyle(.white.opacity(0.78))
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                Text("Будущий ты уже написал тебе письмо. Оно придет \(signal.scheduledAt.formatted(date: .abbreviated, time: .shortened)), когда первая волна после запечатывания немного уляжется.")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.70))
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Письмо из будущего")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+
+                    Text("Открыть")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.62))
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.42))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 18))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(.white.opacity(0.14), lineWidth: 1)
+            )
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(18)
-        .background(.white.opacity(signal.hasPassed ? 0.11 : 0.07), in: RoundedRectangle(cornerRadius: 18))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(.white.opacity(signal.hasPassed ? 0.18 : 0.10), lineWidth: 1)
-        )
+        .buttonStyle(.plain)
     }
 
     private var entriesPanel: some View {
@@ -484,6 +498,59 @@ struct CapsuleDetailView: View {
 
         modelContext.delete(capsule)
         dismiss()
+    }
+}
+
+private struct FutureLetterReadingView: View {
+    @Environment(\.dismiss) private var dismiss
+    let signal: NotificationSignal
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                NightSkyBackground()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 22) {
+                        Image(systemName: "envelope.open.fill")
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 52, height: 52)
+                            .background(.white.opacity(0.12), in: Circle())
+                            .padding(.top, 24)
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Письмо из будущего")
+                                .font(.largeTitle.bold())
+                                .foregroundStyle(.white)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Text(signal.message)
+                                .font(.title3)
+                                .lineSpacing(6)
+                                .foregroundStyle(.white.opacity(0.76))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        Text(signal.scheduledAt.formatted(date: .complete, time: .shortened))
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.50))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(24)
+                }
+            }
+            .navigationTitle("Письмо")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Закрыть") {
+                        dismiss()
+                    }
+                    .foregroundStyle(.white)
+                }
+            }
+        }
     }
 }
 

@@ -9,6 +9,7 @@ import SwiftData
 import SwiftUI
 
 struct CapsuleListView: View {
+    @EnvironmentObject private var notificationRouteCenter: NotificationRouteCenter
     @Query(sort: \WishCapsule.openAt, order: .forward) private var capsules: [WishCapsule]
     @State private var isCreatingCapsule = false
     @State private var isShowingNotificationSettings = false
@@ -78,6 +79,15 @@ struct CapsuleListView: View {
                 pendingNavigationTask?.cancel()
                 pendingNavigationTask = nil
                 highlightedCapsuleID = nil
+            }
+            .onAppear {
+                openRequestedCapsuleIfPossible()
+            }
+            .onChange(of: notificationRouteCenter.requestedCapsuleID) { _, _ in
+                openRequestedCapsuleIfPossible()
+            }
+            .onChange(of: capsules.map(\.id)) { _, _ in
+                openRequestedCapsuleIfPossible()
             }
         }
     }
@@ -182,5 +192,17 @@ struct CapsuleListView: View {
                 pendingNavigationTask = nil
             }
         }
+    }
+
+    private func openRequestedCapsuleIfPossible() {
+        guard let requestedCapsuleID = notificationRouteCenter.requestedCapsuleID,
+              let capsule = capsules.first(where: { $0.id == requestedCapsuleID })
+        else { return }
+
+        pendingNavigationTask?.cancel()
+        pendingNavigationTask = nil
+        highlightedCapsuleID = nil
+        selectedCapsule = capsule
+        notificationRouteCenter.consumeCapsuleOpenRequest()
     }
 }

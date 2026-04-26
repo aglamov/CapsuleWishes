@@ -11,6 +11,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
+    @EnvironmentObject private var notificationRouteCenter: NotificationRouteCenter
     @AppStorage(NotificationPreferences.modeKey) private var notificationModeRawValue = NotificationMode.soft.rawValue
     @AppStorage(NotificationPreferences.morningDreamSignalsEnabledKey) private var morningDreamSignalsEnabled = false
     @AppStorage(NotificationPreferences.morningDreamSignalHourKey) private var morningDreamSignalHour = MorningSignalTime.defaultValue.hour
@@ -18,6 +19,7 @@ struct ContentView: View {
     @AppStorage(NotificationPreferences.lastMorningSignalAdjustmentDayKey) private var lastMorningSignalAdjustmentDay = 0.0
     @Query(sort: \WishCapsule.openAt, order: .forward) private var capsules: [WishCapsule]
     @Query(sort: \NotificationSignal.scheduledAt, order: .forward) private var signals: [NotificationSignal]
+    @State private var selectedTab: AppTab = .capsules
 
     private var notificationMode: NotificationMode {
         NotificationMode(rawValue: notificationModeRawValue) ?? .soft
@@ -42,18 +44,25 @@ struct ContentView: View {
     }
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             CapsuleListView()
                 .tabItem {
                     Label("Капсулы", systemImage: "sparkles")
                 }
+                .tag(AppTab.capsules)
 
             JournalView()
                 .tabItem {
                     Label("Дневник", systemImage: "book.closed")
                 }
+                .tag(AppTab.journal)
         }
         .tint(.white)
+        .onChange(of: notificationRouteCenter.requestedCapsuleID) { _, capsuleID in
+            if capsuleID != nil {
+                selectedTab = .capsules
+            }
+        }
         .task(id: notificationSyncKey) {
             adaptMorningSignalTimeIfNeeded()
             await syncNotifications()
@@ -106,7 +115,13 @@ struct ContentView: View {
     }
 }
 
+private enum AppTab {
+    case capsules
+    case journal
+}
+
 #Preview {
     ContentView()
+        .environmentObject(NotificationRouteCenter.shared)
         .modelContainer(for: [WishCapsule.self, JournalEntry.self, NotificationSignal.self], inMemory: true)
 }

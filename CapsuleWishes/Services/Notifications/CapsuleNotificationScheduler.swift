@@ -318,7 +318,7 @@ final class CapsuleNotificationScheduler {
 
         let content = UNMutableNotificationContent()
         content.title = spec.title
-        content.body = spec.body
+        content.body = notificationBody(for: spec)
         content.sound = .default
         content.userInfo = spec.userInfo
 
@@ -332,6 +332,14 @@ final class CapsuleNotificationScheduler {
         }
 
         center.add(UNNotificationRequest(identifier: spec.id, content: content, trigger: trigger))
+    }
+
+    private func notificationBody(for spec: NotificationSignalSpec) -> String {
+        if spec.kind == .futureLetter {
+            return "Кажется, будущий ты хочет кое-что сказать."
+        }
+
+        return spec.body
     }
 
     @MainActor
