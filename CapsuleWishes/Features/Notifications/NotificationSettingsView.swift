@@ -11,8 +11,8 @@ import UserNotifications
 
 struct NotificationSettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("notificationMode") private var notificationModeRawValue = NotificationMode.soft.rawValue
-    @AppStorage("morningDreamSignalsEnabled") private var morningDreamSignalsEnabled = false
+    @AppStorage(NotificationPreferences.modeKey) private var notificationModeRawValue = NotificationMode.soft.rawValue
+    @AppStorage(NotificationPreferences.morningDreamSignalsEnabledKey) private var morningDreamSignalsEnabled = false
     @Query(sort: \NotificationSignal.scheduledAt, order: .reverse) private var signals: [NotificationSignal]
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
     @State private var selectedSignal: NotificationSignal?
@@ -182,6 +182,10 @@ struct NotificationSettingsView: View {
             } else {
                 signalSection(title: "Уже приходило", signals: pastSignals)
             }
+
+            if !upcomingSignals.isEmpty {
+                signalSection(title: "Ожидают", signals: upcomingSignals)
+            }
         }
     }
 
@@ -245,10 +249,22 @@ struct NotificationSettingsView: View {
 
     private var pastSignals: [NotificationSignal] {
         Array(signals
-            .filter { !$0.isCancelled }
+            .filter(isVisibleSignal)
             .filter(\.hasPassed)
             .sorted { $0.scheduledAt > $1.scheduledAt }
             .prefix(12))
+    }
+
+    private var upcomingSignals: [NotificationSignal] {
+        Array(signals
+            .filter(isVisibleSignal)
+            .filter { !$0.hasPassed }
+            .sorted { $0.scheduledAt < $1.scheduledAt }
+            .prefix(16))
+    }
+
+    private func isVisibleSignal(_ signal: NotificationSignal) -> Bool {
+        !signal.isCancelled || signal.kind == .futureLetter
     }
 
     private var authorizationTitle: String {
@@ -305,38 +321,40 @@ private struct NotificationSignalDetailView: View {
             ZStack {
                 NightSkyBackground()
 
-                VStack(alignment: .leading, spacing: 22) {
-                    Image(systemName: signal.kind.symbolName)
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 52, height: 52)
-                        .background(.white.opacity(0.12), in: Circle())
-                        .padding(.top, 24)
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(signal.kind.title)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.56))
-
-                        Text(signal.title)
-                            .font(.largeTitle.bold())
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 22) {
+                        Image(systemName: signal.kind.symbolName)
+                            .font(.title2.weight(.semibold))
                             .foregroundStyle(.white)
-                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(width: 52, height: 52)
+                            .background(.white.opacity(0.12), in: Circle())
+                            .padding(.top, 24)
 
-                        Text(signal.message)
-                            .font(.title3)
-                            .foregroundStyle(.white.opacity(0.74))
-                            .fixedSize(horizontal: false, vertical: true)
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(signal.kind.title)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.56))
+
+                            Text(signal.title)
+                                .font(.largeTitle.bold())
+                                .foregroundStyle(.white)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Text(signal.message)
+                                .font(.title3)
+                                .foregroundStyle(.white.opacity(0.74))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        Text(signal.scheduledAt.formatted(date: .complete, time: .shortened))
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.50))
+
+                        Spacer(minLength: 0)
                     }
-
-                    Text(signal.scheduledAt.formatted(date: .complete, time: .shortened))
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.50))
-
-                    Spacer(minLength: 0)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(24)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(24)
             }
             .navigationTitle("Сигнал")
             .navigationBarTitleDisplayMode(.inline)

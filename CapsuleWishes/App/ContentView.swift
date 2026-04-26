@@ -11,9 +11,10 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("notificationMode") private var notificationModeRawValue = NotificationMode.soft.rawValue
-    @AppStorage("morningDreamSignalsEnabled") private var morningDreamSignalsEnabled = false
+    @AppStorage(NotificationPreferences.modeKey) private var notificationModeRawValue = NotificationMode.soft.rawValue
+    @AppStorage(NotificationPreferences.morningDreamSignalsEnabledKey) private var morningDreamSignalsEnabled = false
     @Query(sort: \WishCapsule.openAt, order: .forward) private var capsules: [WishCapsule]
+    @Query(sort: \NotificationSignal.scheduledAt, order: .forward) private var signals: [NotificationSignal]
 
     private var notificationMode: NotificationMode {
         NotificationMode(rawValue: notificationModeRawValue) ?? .soft
@@ -23,8 +24,17 @@ struct ContentView: View {
         [
             notificationModeRawValue,
             morningDreamSignalsEnabled.description,
-            capsules.map { "\($0.id.uuidString):\($0.statusRawValue):\($0.openAt.timeIntervalSince1970)" }.joined(separator: "|"),
+            capsuleSyncFingerprint,
+            signalSyncFingerprint,
         ].joined(separator: "#")
+    }
+
+    private var capsuleSyncFingerprint: String {
+        capsules.map { "\($0.id.uuidString):\($0.statusRawValue):\($0.openAt.timeIntervalSince1970)" }.joined(separator: "|")
+    }
+
+    private var signalSyncFingerprint: String {
+        signals.map { "\($0.identifier):\($0.scheduledAt.timeIntervalSince1970):\($0.cancelledAt?.timeIntervalSince1970 ?? 0)" }.joined(separator: "|")
     }
 
     var body: some View {
@@ -57,6 +67,7 @@ struct ContentView: View {
             capsules: capsules,
             mode: notificationMode,
             morningDreamsEnabled: morningDreamSignalsEnabled,
+            customSignals: signals.filter { $0.kind == .futureLetter || $0.kind == .wishPlanCheckpoint },
             modelContext: modelContext
         )
     }

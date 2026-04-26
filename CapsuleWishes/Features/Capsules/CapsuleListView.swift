@@ -9,7 +9,6 @@ import SwiftData
 import SwiftUI
 
 struct CapsuleListView: View {
-    @Environment(\.modelContext) private var modelContext
     @Query(sort: \WishCapsule.openAt, order: .forward) private var capsules: [WishCapsule]
     @State private var isCreatingCapsule = false
     @State private var isShowingNotificationSettings = false

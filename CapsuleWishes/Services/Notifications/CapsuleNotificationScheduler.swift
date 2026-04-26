@@ -42,28 +42,27 @@ final class CapsuleNotificationScheduler {
         }
     }
 
+    @MainActor
     func sync(
         capsules: [WishCapsule],
         mode: NotificationMode,
         morningDreamsEnabled: Bool,
+        customSignals: [NotificationSignal] = [],
         modelContext: ModelContext? = nil
     ) async {
         center.removePendingNotificationRequests(withIdentifiers: managedIdentifiers(for: capsules))
 
         let sealedCapsules = capsules.filter { $0.status == .sealed }
-        let needsSignals = !sealedCapsules.isEmpty || (mode != .quiet && morningDreamsEnabled)
         let specs = signalSpecs(
             capsules: sealedCapsules,
             allCapsules: capsules,
             mode: mode,
             morningDreamsEnabled: morningDreamsEnabled
-        )
+        ) + customSignalSpecs(customSignals)
 
-        await MainActor.run {
-            updateLedger(with: specs, modelContext: modelContext)
-        }
+        updateLedger(with: specs, modelContext: modelContext)
 
-        guard needsSignals, await requestAuthorizationIfNeeded() else { return }
+        guard !specs.isEmpty, await requestAuthorizationIfNeeded() else { return }
 
         for spec in specs {
             addNotification(for: spec)
@@ -83,6 +82,56 @@ final class CapsuleNotificationScheduler {
             userInfo: ["capsuleID": capsule.id.uuidString, "signal": "capsule_open"]
         )
         addNotification(for: spec)
+    }
+
+    @MainActor
+    func scheduleFutureLetter(
+        _ draft: FutureLetterDraft,
+        for capsule: WishCapsule,
+        modelContext: ModelContext
+    ) {
+        guard draft.shouldCreate, capsule.status == .sealed else {
+            AppLog.notifications.debug("Future letter schedule skipped: shouldCreate=\(draft.shouldCreate, privacy: .public), capsuleStatus=\(capsule.statusRawValue, privacy: .public)")
+            return
+        }
+
+        let spec = NotificationSignalSpec(
+            id: Self.futureLetterIdentifier(for: capsule.id),
+            kind: .futureLetter,
+            title: draft.title,
+            body: draft.letter,
+            date: draft.scheduledAt,
+            capsuleID: capsule.id,
+            userInfo: ["capsuleID": capsule.id.uuidString, "signal": "future_letter", "reason": draft.reason]
+        )
+
+        updateLedger(with: [spec], modelContext: modelContext)
+        addNotification(for: spec)
+
+        AppLog.notifications.debug("Future letter scheduled: identifier=\(spec.id, privacy: .public), capsuleID=\(capsule.id.uuidString, privacy: .public), date=\(spec.date.formatted(date: .abbreviated, time: .shortened), privacy: .public)")
+    }
+
+    @MainActor
+    func schedulePlanCheckpoints(
+        _ checkpoints: [WishPlanCheckpoint],
+        for capsule: WishCapsule,
+        modelContext: ModelContext
+    ) {
+        guard capsule.status == .sealed, !checkpoints.isEmpty else { return }
+
+        let specs = checkpoints.prefix(3).enumerated().compactMap { index, checkpoint in
+            planCheckpointSpec(checkpoint, index: index, for: capsule)
+        }
+
+        guard !specs.isEmpty else { return }
+
+        updateLedger(with: specs, modelContext: modelContext)
+
+        for spec in specs {
+            addNotification(for: spec)
+        }
+
+        AppLog.notifications.debug("Plan checkpoints scheduled: count=\(specs.count, privacy: .public), capsuleID=\(capsule.id.uuidString, privacy: .public)")
     }
 
     func cancelSignals(for capsule: WishCapsule) {
@@ -206,6 +255,57 @@ final class CapsuleNotificationScheduler {
         return specs
     }
 
+    private func planCheckpointSpec(
+        _ checkpoint: WishPlanCheckpoint,
+        index: Int,
+        for capsule: WishCapsule
+    ) -> NotificationSignalSpec? {
+        guard let rawDate = calendar.date(byAdding: .day, value: checkpoint.afterDays, to: capsule.sealedAt) else {
+            return nil
+        }
+
+        let latestAllowedDate = calendar.date(byAdding: .hour, value: -2, to: capsule.openAt) ?? capsule.openAt
+        let scheduledDate = min(rawDate, latestAllowedDate)
+        let preferredDate = signalDate(on: scheduledDate, hour: 19)
+        let finalDate = preferredDate < latestAllowedDate ? preferredDate : scheduledDate
+        guard finalDate > Date(), finalDate < capsule.openAt else { return nil }
+
+        return NotificationSignalSpec(
+            id: Self.planCheckpointIdentifier(for: capsule.id, index: index),
+            kind: .wishPlanCheckpoint,
+            title: checkpoint.title,
+            body: checkpoint.message,
+            date: finalDate,
+            capsuleID: capsule.id,
+            userInfo: [
+                "capsuleID": capsule.id.uuidString,
+                "signal": "wish_plan_checkpoint",
+                "checkpointIndex": index,
+            ]
+        )
+    }
+
+    private func customSignalSpecs(_ signals: [NotificationSignal]) -> [NotificationSignalSpec] {
+        signals.compactMap { signal in
+            guard (!signal.isCancelled || signal.kind == .futureLetter), signal.scheduledAt > Date() else { return nil }
+
+            var userInfo: [AnyHashable: Any] = ["signal": signal.kind.rawValue]
+            if let capsuleID = signal.capsuleID {
+                userInfo["capsuleID"] = capsuleID.uuidString
+            }
+
+            return NotificationSignalSpec(
+                id: signal.identifier,
+                kind: signal.kind,
+                title: signal.title,
+                body: signal.message,
+                date: signal.scheduledAt,
+                capsuleID: signal.capsuleID,
+                userInfo: userInfo
+            )
+        }
+    }
+
     private func addNotification(for spec: NotificationSignalSpec) {
         guard spec.date > Date() else { return }
 
@@ -235,7 +335,7 @@ final class CapsuleNotificationScheduler {
             let existing = try modelContext.fetch(FetchDescriptor<NotificationSignal>())
             let specIDs = Set(specs.map(\.id))
 
-            for signal in existing where signal.cancelledAt == nil && isManagedIdentifier(signal.identifier) && !specIDs.contains(signal.identifier) && !signal.hasPassed {
+            for signal in existing where shouldCancelMissingSignal(signal, specIDs: specIDs) {
                 signal.cancelledAt = Date()
             }
 
@@ -247,6 +347,7 @@ final class CapsuleNotificationScheduler {
                     signal.scheduledAt = spec.date
                     signal.capsuleID = spec.capsuleID
                     signal.cancelledAt = nil
+                    AppLog.notifications.debug("Notification ledger updated: identifier=\(spec.id, privacy: .public), kind=\(spec.kind.rawValue, privacy: .public)")
                 } else {
                     modelContext.insert(NotificationSignal(
                         identifier: spec.id,
@@ -256,6 +357,7 @@ final class CapsuleNotificationScheduler {
                         scheduledAt: spec.date,
                         capsuleID: spec.capsuleID
                     ))
+                    AppLog.notifications.debug("Notification ledger inserted: identifier=\(spec.id, privacy: .public), kind=\(spec.kind.rawValue, privacy: .public)")
                 }
             }
         } catch {
@@ -286,7 +388,8 @@ final class CapsuleNotificationScheduler {
             openIdentifier(for: capsuleID),
             soonIdentifier(for: capsuleID),
             revisitIdentifier(for: capsuleID),
-        ]
+            futureLetterIdentifier(for: capsuleID),
+        ] + (0..<3).map { planCheckpointIdentifier(for: capsuleID, index: $0) }
     }
 
     private static func openIdentifier(for capsuleID: UUID) -> String {
@@ -301,8 +404,26 @@ final class CapsuleNotificationScheduler {
         "capsule.\(capsuleID.uuidString).revisit"
     }
 
+    private static func futureLetterIdentifier(for capsuleID: UUID) -> String {
+        "capsule.\(capsuleID.uuidString).futureLetter"
+    }
+
+    private static func planCheckpointIdentifier(for capsuleID: UUID, index: Int) -> String {
+        "capsule.\(capsuleID.uuidString).planCheckpoint.\(index)"
+    }
+
     private func isManagedIdentifier(_ identifier: String) -> Bool {
         identifier.hasPrefix("capsule.") || identifier.hasPrefix("signal.")
+    }
+
+    private func shouldCancelMissingSignal(_ signal: NotificationSignal, specIDs: Set<String>) -> Bool {
+        guard signal.cancelledAt == nil,
+              isManagedIdentifier(signal.identifier),
+              !specIDs.contains(signal.identifier),
+              !signal.hasPassed
+        else { return false }
+
+        return signal.kind != .futureLetter
     }
 }
 

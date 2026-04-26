@@ -60,6 +60,8 @@ enum NotificationSignalKind: String, CaseIterable {
     case capsuleOpen
     case capsuleSoon
     case capsuleRevisit
+    case futureLetter
+    case wishPlanCheckpoint
     case reactivation
     case morningDream
 
@@ -71,6 +73,10 @@ enum NotificationSignalKind: String, CaseIterable {
             "Капсула близко"
         case .capsuleRevisit:
             "Перечитать себя"
+        case .futureLetter:
+            "Письмо из будущего"
+        case .wishPlanCheckpoint:
+            "Точка плана"
         case .reactivation:
             "Мягкое возвращение"
         case .morningDream:
@@ -86,6 +92,10 @@ enum NotificationSignalKind: String, CaseIterable {
             "hourglass"
         case .capsuleRevisit:
             "text.magnifyingglass"
+        case .futureLetter:
+            "envelope.open.fill"
+        case .wishPlanCheckpoint:
+            "point.topleft.down.curvedto.point.bottomright.up.fill"
         case .reactivation:
             "sparkles"
         case .morningDream:

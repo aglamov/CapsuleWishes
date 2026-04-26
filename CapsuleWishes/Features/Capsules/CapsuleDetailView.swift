@@ -13,6 +13,7 @@ struct CapsuleDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(sort: \JournalEntry.createdAt, order: .reverse) private var allEntries: [JournalEntry]
+    @Query(sort: \NotificationSignal.scheduledAt, order: .reverse) private var allSignals: [NotificationSignal]
     @Bindable var capsule: WishCapsule
     @State private var selectedEntryType: JournalEntryType = .sign
     @State private var entryText = ""
@@ -28,6 +29,13 @@ struct CapsuleDetailView: View {
 
     private var entries: [JournalEntry] {
         allEntries.filter { $0.capsuleID == capsule.id }
+    }
+
+    private var futureLetterSignal: NotificationSignal? {
+        allSignals
+            .filter { $0.capsuleID == capsule.id && $0.kind == .futureLetter }
+            .sorted { $0.scheduledAt > $1.scheduledAt }
+            .first
     }
 
     private var currentEntryPrompt: String {
@@ -121,6 +129,11 @@ struct CapsuleDetailView: View {
 
                         WishTextPanel(capsule: capsule)
                             .opacity(focusOpacity)
+
+                        if let futureLetterSignal {
+                            futureLetterPanel(futureLetterSignal)
+                                .opacity(focusOpacity)
+                        }
 
                         if showsOpeningPanel {
                             OpeningPanel(isOpening: isOpeningPending) { status in
@@ -264,6 +277,34 @@ struct CapsuleDetailView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 18)
                 .stroke(.white.opacity(0.16), lineWidth: 1)
+        )
+    }
+
+    private func futureLetterPanel(_ signal: NotificationSignal) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("Письмо из будущего", systemImage: "envelope.open.fill")
+                .font(.headline)
+                .foregroundStyle(.white)
+
+            if signal.hasPassed {
+                Text(signal.message)
+                    .font(.body)
+                    .lineSpacing(5)
+                    .foregroundStyle(.white.opacity(0.78))
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("Будущий ты уже написал тебе письмо. Оно придет \(signal.scheduledAt.formatted(date: .abbreviated, time: .shortened)), когда первая волна после запечатывания немного уляжется.")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.70))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background(.white.opacity(signal.hasPassed ? 0.11 : 0.07), in: RoundedRectangle(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(.white.opacity(signal.hasPassed ? 0.18 : 0.10), lineWidth: 1)
         )
     }
 
