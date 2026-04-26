@@ -8,13 +8,42 @@
 import SwiftUI
 
 struct WishTextPanel: View {
+    @State private var isFortuneButtonGlowing = false
+
     let capsule: WishCapsule
+    var showsSealingFortuneButton = false
+    var onOpenSealingFortune: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Желание", systemImage: capsule.hasBeenOpened ? "lock.open.fill" : "lock.fill")
-                .font(.headline)
-                .foregroundStyle(titleColor)
+            HStack(alignment: .center, spacing: 10) {
+                Label("Желание", systemImage: capsule.hasBeenOpened ? "lock.open.fill" : "lock.fill")
+                    .font(.headline)
+                    .foregroundStyle(titleColor)
+
+                Spacer(minLength: 0)
+
+                if showsSealingFortuneButton, let onOpenSealingFortune {
+                    Button {
+                        onOpenSealingFortune()
+                    } label: {
+                        Image(systemName: "bookmark.circle")
+                            .font(.system(size: 21, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 30, height: 30)
+                            .background(.white.opacity(isFortuneButtonGlowing ? 0.16 : 0.06), in: Circle())
+                            .shadow(color: Color(hex: capsule.colorHex).opacity(isFortuneButtonGlowing ? 0.82 : 0.22), radius: isFortuneButtonGlowing ? 14 : 4)
+                            .scaleEffect(isFortuneButtonGlowing ? 1.08 : 0.96)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Открыть послание при запечатывании")
+                    .onAppear {
+                        withAnimation(.easeInOut(duration: 1.35).repeatForever(autoreverses: true)) {
+                            isFortuneButtonGlowing = true
+                        }
+                    }
+                }
+            }
 
             Text(capsule.intentionText)
                 .font(.body)

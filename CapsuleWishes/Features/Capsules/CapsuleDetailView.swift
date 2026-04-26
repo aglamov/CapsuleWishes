@@ -27,6 +27,8 @@ struct CapsuleDetailView: View {
     @State private var aiEntryPromptGlowAmount = 0.0
     @State private var aiEntryPromptGlowTask: Task<Void, Never>?
     @State private var selectedFutureLetterSignal: NotificationSignal?
+    @State private var isShowingSealingFortune = false
+    @State private var didAutoScrollToEntryPanel = false
     @FocusState private var isEntryFieldFocused: Bool
 
     private let aiWishPromptService = AIWishPromptService()
@@ -132,8 +134,13 @@ struct CapsuleDetailView: View {
                         }
                         .opacity(focusOpacity)
 
-                        WishTextPanel(capsule: capsule)
-                            .opacity(focusOpacity)
+                        WishTextPanel(
+                            capsule: capsule,
+                            showsSealingFortuneButton: sealingFortuneText != nil
+                        ) {
+                            isShowingSealingFortune = true
+                        }
+                        .opacity(focusOpacity)
 
                         if let futureLetterSignal {
                             futureLetterPanel(futureLetterSignal)
@@ -150,6 +157,7 @@ struct CapsuleDetailView: View {
                         Group {
                             if showsSealedControls {
                                 addEntryPanel
+                                    .id("add-entry-panel")
                             } else {
                                 openedReflectionPanel
                             }
@@ -163,6 +171,9 @@ struct CapsuleDetailView: View {
                     .padding(.bottom, 32)
                     .opacity(didEnter ? 1 : 0)
                     .scaleEffect(didEnter ? 1 : 0.985)
+                }
+                .onAppear {
+                    scrollToEntryPanelIfNeeded(scrollProxy)
                 }
             }
         }
@@ -213,6 +224,11 @@ struct CapsuleDetailView: View {
         .sheet(item: $selectedFutureLetterSignal) { signal in
             FutureLetterReadingView(signal: signal)
         }
+        .sheet(isPresented: $isShowingSealingFortune) {
+            if let sealingFortuneText {
+                SealingFortuneReadingView(text: sealingFortuneText, sealedAt: capsule.sealedAt)
+            }
+        }
     }
 
     private var statusText: String {
@@ -225,6 +241,11 @@ struct CapsuleDetailView: View {
         }
 
         return capsule.status.title
+    }
+
+    private var sealingFortuneText: String? {
+        let text = capsule.sealingFortuneText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return text.isEmpty ? nil : text
     }
 
     private var addEntryPanel: some View {
@@ -356,6 +377,19 @@ struct CapsuleDetailView: View {
             modelContext.insert(entry)
             entryText = ""
             isEntryFieldFocused = false
+        }
+    }
+
+    private func scrollToEntryPanelIfNeeded(_ scrollProxy: ScrollViewProxy) {
+        guard showsSealedControls, !didAutoScrollToEntryPanel else { return }
+        didAutoScrollToEntryPanel = true
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+            guard openingStage == .idle else { return }
+
+            withAnimation(.easeInOut(duration: 0.62)) {
+                scrollProxy.scrollTo("add-entry-panel", anchor: .top)
+            }
         }
     }
 
@@ -533,6 +567,60 @@ struct CapsuleDetailView: View {
 
         modelContext.delete(capsule)
         dismiss()
+    }
+}
+
+private struct SealingFortuneReadingView: View {
+    @Environment(\.dismiss) private var dismiss
+    let text: String
+    let sealedAt: Date
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                NightSkyBackground()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 22) {
+                        Image(systemName: "bookmark.circle")
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 52, height: 52)
+                            .background(.white.opacity(0.12), in: Circle())
+                            .padding(.top, 24)
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Послание при запечатывании")
+                                .font(.largeTitle.bold())
+                                .foregroundStyle(.white)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Text(text)
+                                .font(.title3)
+                                .lineSpacing(6)
+                                .foregroundStyle(.white.opacity(0.76))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        Text(sealedAt.formatted(date: .complete, time: .shortened))
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.50))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(24)
+                }
+            }
+            .navigationTitle("Послание")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Закрыть") {
+                        dismiss()
+                    }
+                    .foregroundStyle(.white)
+                }
+            }
+        }
     }
 }
 

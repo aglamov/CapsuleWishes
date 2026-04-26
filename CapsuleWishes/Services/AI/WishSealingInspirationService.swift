@@ -19,6 +19,18 @@ struct WishSealingInspiration {
             .joined(separator: "\n\n")
     }
 
+    var sealingText: String {
+        guard !checkpoints.isEmpty else { return fortuneText }
+
+        let checkpointText = checkpoints
+            .map { "\($0.title)\n\($0.message)" }
+            .joined(separator: "\n\n")
+
+        return [fortuneText, "Капсула оставила знаки на пути:\n\n\(checkpointText)"]
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+    }
+
     var isPlan: Bool {
         planSummary != nil || recommendation != nil || !checkpoints.isEmpty
     }

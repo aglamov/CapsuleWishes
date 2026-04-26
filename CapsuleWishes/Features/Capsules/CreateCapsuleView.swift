@@ -345,6 +345,7 @@ struct CreateCapsuleView: View {
                     title: titleForCapsule,
                     intention: trimmedIntention,
                     feeling: trimmedFeeling,
+                    sealingFortuneText: inspiration.sealingText,
                     planCheckpoints: inspiration.checkpoints
                 )
 
@@ -359,6 +360,7 @@ struct CreateCapsuleView: View {
         title: String,
         intention: String,
         feeling: String,
+        sealingFortuneText: String,
         planCheckpoints: [WishPlanCheckpoint]
     ) {
         let capsule = WishCapsule(
@@ -367,7 +369,8 @@ struct CreateCapsuleView: View {
             desiredFeeling: feeling.trimmingCharacters(in: .whitespacesAndNewlines),
             openAt: openAt,
             colorHex: selectedColor.hex,
-            symbol: selectedSymbol
+            symbol: selectedSymbol,
+            sealingFortuneText: sealingFortuneText
         )
 
         modelContext.insert(capsule)
