@@ -507,7 +507,7 @@ private enum WishSealingStage: Equatable {
         case .launching:
             return "Запрос уходит во вселенную"
         case .listening:
-            return "OpenAI вслушивается в формулировку"
+            return "Невидимые механизмы приходят в движение"
         case .complete:
             return "Капсула запечатана"
         }
@@ -559,105 +559,92 @@ private struct WishSealingOverlay: View {
                     }
                 }
 
-                VStack(spacing: 22) {
-                    Spacer(minLength: 30)
+                ScrollView(showsIndicators: stage == .complete) {
+                    VStack(spacing: 22) {
+                        Spacer(minLength: 30)
 
-                    sealingOrb
+                        sealingOrb
 
-                    VStack(spacing: 8) {
-                        Text(stage.statusText)
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .multilineTextAlignment(.center)
+                        VStack(spacing: 8) {
+                            Text(stage.statusText)
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .multilineTextAlignment(.center)
 
-                        Text(title)
-                            .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.62))
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
-                    }
-                    .padding(.horizontal, 28)
+                            Text(title)
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.62))
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                        }
+                        .padding(.horizontal, 28)
 
-                    if let inspiration, stage == .complete {
-                        ScrollView(showsIndicators: false) {
+                        if let inspiration, stage == .complete {
                             VStack(spacing: 14) {
-                                Text(inspiration.message)
+                                Text(inspiration.fortuneText)
                                     .font(.title3.weight(.medium))
                                     .lineSpacing(5)
                                     .multilineTextAlignment(.center)
                                     .foregroundStyle(.white)
+                                    .minimumScaleFactor(0.86)
+                                    .fixedSize(horizontal: false, vertical: true)
 
-                                if inspiration.isPlan {
-                                    planInsight(inspiration)
+                                if !inspiration.checkpoints.isEmpty {
+                                    signalPreview(inspiration.checkpoints)
                                 }
                             }
                             .padding(.horizontal, 26)
-                        }
-                        .frame(maxHeight: 250)
-                        .transition(.opacity.combined(with: .offset(y: 12)))
+                            .transition(.opacity.combined(with: .offset(y: 12)))
 
-                        Button {
-                            onDone()
-                        } label: {
-                            Label("Вернуться к капсулам", systemImage: "checkmark.seal.fill")
-                                .frame(maxWidth: .infinity)
+                            Button {
+                                onDone()
+                            } label: {
+                                Label("Вернуться к капсулам", systemImage: "checkmark.seal.fill")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(PrimaryCapsuleButtonStyle())
+                            .padding(.horizontal, 26)
+                            .padding(.top, 4)
+                            .transition(.opacity.combined(with: .offset(y: 10)))
+                        } else {
+                            ProgressView()
+                                .tint(.white)
+                                .controlSize(.regular)
+                                .padding(.top, 6)
                         }
-                        .buttonStyle(PrimaryCapsuleButtonStyle())
-                        .padding(.horizontal, 26)
-                        .padding(.top, 4)
-                        .transition(.opacity.combined(with: .offset(y: 10)))
-                    } else {
-                        ProgressView()
-                            .tint(.white)
-                            .controlSize(.regular)
-                            .padding(.top, 6)
+
+                        Spacer(minLength: 34)
                     }
-
-                    Spacer(minLength: 34)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: proxy.size.height)
                 }
             }
         }
     }
 
-    private func planInsight(_ inspiration: WishSealingInspiration) -> some View {
+    private func signalPreview(_ checkpoints: [WishPlanCheckpoint]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("В этом желании есть маршрут", systemImage: "point.topleft.down.curvedto.point.bottomright.up.fill")
+            Label("Капсула оставила знаки на пути", systemImage: "bell.badge")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white)
 
-            if let planSummary = inspiration.planSummary {
-                Text(planSummary)
-                    .font(.footnote)
-                    .foregroundStyle(.white.opacity(0.72))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            VStack(alignment: .leading, spacing: 7) {
+                ForEach(Array(checkpoints.enumerated()), id: \.offset) { _, checkpoint in
+                    HStack(alignment: .top, spacing: 8) {
+                        Circle()
+                            .fill(.white.opacity(0.72))
+                            .frame(width: 5, height: 5)
+                            .padding(.top, 6)
 
-            if let recommendation = inspiration.recommendation {
-                Text(recommendation)
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.82))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if !inspiration.checkpoints.isEmpty {
-                VStack(alignment: .leading, spacing: 7) {
-                    ForEach(Array(inspiration.checkpoints.enumerated()), id: \.offset) { _, checkpoint in
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "bell.badge")
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(checkpoint.title)
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(.white.opacity(0.82))
-                                .frame(width: 18)
+                                .foregroundStyle(.white)
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(checkpoint.title)
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.white)
-
-                                Text(checkpoint.message)
-                                    .font(.caption2)
-                                    .foregroundStyle(.white.opacity(0.64))
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
+                            Text(checkpoint.message)
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.64))
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
