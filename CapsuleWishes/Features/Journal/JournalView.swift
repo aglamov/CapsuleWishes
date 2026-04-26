@@ -10,6 +10,7 @@ import SwiftUI
 
 struct JournalView: View {
     @Environment(\.modelContext) private var modelContext
+    @AppStorage(AIUsagePreferences.enabledKey) private var aiFeaturesEnabled = false
     @Query(sort: \WishCapsule.createdAt, order: .reverse) private var capsules: [WishCapsule]
     @Query(sort: \JournalEntry.createdAt, order: .reverse) private var entries: [JournalEntry]
     @State private var selectedType: JournalEntryType = .sign
@@ -48,6 +49,7 @@ struct JournalView: View {
         [
             selectedCapsuleID?.uuidString ?? "none",
             selectedType.rawValue,
+            aiFeaturesEnabled.description,
             selectedCapsuleEntries.first?.id.uuidString ?? "empty",
         ].joined(separator: "-")
     }

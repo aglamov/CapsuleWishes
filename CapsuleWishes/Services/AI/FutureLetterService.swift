@@ -16,17 +16,16 @@ struct FutureLetterDraft {
 }
 
 struct FutureLetterService {
-    private let client: OpenAIResponsesClient?
     private let calendar: Calendar
 
-    init(configuration: OpenAIConfiguration? = .current, calendar: Calendar = .current) {
-        client = configuration.map { OpenAIResponsesClient(configuration: $0) }
+    init(calendar: Calendar = .current) {
         self.calendar = calendar
     }
 
     func draft(for capsule: WishCapsule) async -> FutureLetterDraft? {
-        if let client {
+        if let configuration = OpenAIConfiguration.current {
             do {
+                let client = OpenAIResponsesClient(configuration: configuration)
                 let decision = try await aiDraft(for: capsule, client: client)
 
                 switch decision {

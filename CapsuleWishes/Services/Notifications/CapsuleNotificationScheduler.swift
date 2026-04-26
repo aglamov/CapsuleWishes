@@ -47,20 +47,25 @@ final class CapsuleNotificationScheduler {
         capsules: [WishCapsule],
         mode: NotificationMode,
         morningDreamsEnabled: Bool,
+        morningDreamSignalTime: MorningSignalTime = .defaultValue,
         customSignals: [NotificationSignal] = [],
         modelContext: ModelContext? = nil
     ) async {
-        center.removePendingNotificationRequests(withIdentifiers: managedIdentifiers(for: capsules))
-
         let sealedCapsules = capsules.filter { $0.status == .sealed }
+        let capsuleIDs = Set(capsules.map(\.id))
+        let customSignalIdentifiers = customSignals.map(\.identifier)
+
+        center.removePendingNotificationRequests(withIdentifiers: managedIdentifiers(for: capsules) + customSignalIdentifiers)
+
         let specs = signalSpecs(
             capsules: sealedCapsules,
             allCapsules: capsules,
             mode: mode,
-            morningDreamsEnabled: morningDreamsEnabled
-        ) + customSignalSpecs(customSignals)
+            morningDreamsEnabled: morningDreamsEnabled,
+            morningDreamSignalTime: morningDreamSignalTime
+        ) + customSignalSpecs(customSignals, existingCapsuleIDs: capsuleIDs)
 
-        updateLedger(with: specs, modelContext: modelContext)
+        updateLedger(with: specs, existingCapsuleIDs: capsuleIDs, modelContext: modelContext)
 
         guard !specs.isEmpty, await requestAuthorizationIfNeeded() else { return }
 
@@ -142,7 +147,8 @@ final class CapsuleNotificationScheduler {
         capsules sealedCapsules: [WishCapsule],
         allCapsules: [WishCapsule],
         mode: NotificationMode,
-        morningDreamsEnabled: Bool
+        morningDreamsEnabled: Bool,
+        morningDreamSignalTime: MorningSignalTime
     ) -> [NotificationSignalSpec] {
         var specs = sealedCapsules.compactMap(openingSignalSpec)
 
@@ -153,7 +159,7 @@ final class CapsuleNotificationScheduler {
         }
 
         if morningDreamsEnabled {
-            specs.append(morningDreamSignalSpec())
+            specs.append(morningDreamSignalSpec(time: morningDreamSignalTime))
         }
 
         for capsule in sealedCapsules {
@@ -200,10 +206,10 @@ final class CapsuleNotificationScheduler {
         }
     }
 
-    private func morningDreamSignalSpec() -> NotificationSignalSpec {
+    private func morningDreamSignalSpec(time: MorningSignalTime) -> NotificationSignalSpec {
         var components = calendar.dateComponents([.year, .month, .day], from: Date())
-        components.hour = 8
-        components.minute = 30
+        components.hour = time.hour
+        components.minute = time.minute
 
         let today = calendar.date(from: components) ?? Date()
         let nextDate = today > Date() ? today : calendar.date(byAdding: .day, value: 1, to: today) ?? today
@@ -285,9 +291,10 @@ final class CapsuleNotificationScheduler {
         )
     }
 
-    private func customSignalSpecs(_ signals: [NotificationSignal]) -> [NotificationSignalSpec] {
+    private func customSignalSpecs(_ signals: [NotificationSignal], existingCapsuleIDs: Set<UUID>) -> [NotificationSignalSpec] {
         signals.compactMap { signal in
             guard (!signal.isCancelled || signal.kind == .futureLetter), signal.scheduledAt > Date() else { return nil }
+            if let capsuleID = signal.capsuleID, !existingCapsuleIDs.contains(capsuleID) { return nil }
 
             var userInfo: [AnyHashable: Any] = ["signal": signal.kind.rawValue]
             if let capsuleID = signal.capsuleID {
@@ -328,15 +335,25 @@ final class CapsuleNotificationScheduler {
     }
 
     @MainActor
-    private func updateLedger(with specs: [NotificationSignalSpec], modelContext: ModelContext?) {
+    private func updateLedger(
+        with specs: [NotificationSignalSpec],
+        existingCapsuleIDs: Set<UUID>? = nil,
+        modelContext: ModelContext?
+    ) {
         guard let modelContext else { return }
 
         do {
             let existing = try modelContext.fetch(FetchDescriptor<NotificationSignal>())
             let specIDs = Set(specs.map(\.id))
+            var cancelledIdentifiers: [String] = []
 
-            for signal in existing where shouldCancelMissingSignal(signal, specIDs: specIDs) {
+            for signal in existing where shouldCancelMissingSignal(signal, specIDs: specIDs, existingCapsuleIDs: existingCapsuleIDs) {
                 signal.cancelledAt = Date()
+                cancelledIdentifiers.append(signal.identifier)
+            }
+
+            if !cancelledIdentifiers.isEmpty {
+                center.removePendingNotificationRequests(withIdentifiers: cancelledIdentifiers)
             }
 
             for spec in specs {
@@ -416,14 +433,23 @@ final class CapsuleNotificationScheduler {
         identifier.hasPrefix("capsule.") || identifier.hasPrefix("signal.")
     }
 
-    private func shouldCancelMissingSignal(_ signal: NotificationSignal, specIDs: Set<String>) -> Bool {
+    private func shouldCancelMissingSignal(
+        _ signal: NotificationSignal,
+        specIDs: Set<String>,
+        existingCapsuleIDs: Set<UUID>?
+    ) -> Bool {
         guard signal.cancelledAt == nil,
               isManagedIdentifier(signal.identifier),
-              !specIDs.contains(signal.identifier),
-              !signal.hasPassed
+              !specIDs.contains(signal.identifier)
         else { return false }
 
-        return signal.kind != .futureLetter
+        if let capsuleID = signal.capsuleID,
+           let existingCapsuleIDs,
+           !existingCapsuleIDs.contains(capsuleID) {
+            return true
+        }
+
+        return !signal.hasPassed
     }
 }
 

@@ -13,20 +13,27 @@ struct CreateCapsuleView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \WishCapsule.createdAt, order: .reverse) private var existingCapsules: [WishCapsule]
     @Query(sort: \JournalEntry.createdAt, order: .reverse) private var recentJournalEntries: [JournalEntry]
-    @State private var title = ""
     @State private var intention = ""
     @State private var feeling = ""
+    @State private var wishPrompt = ""
+    @State private var feelingPrompt = ""
+    @State private var isBeautifyingIntention = false
+    @State private var feelingPromptTask: Task<Void, Never>?
+    @State private var beautifyTask: Task<Void, Never>?
+    @State private var generatedTitle = ""
+    @State private var didAttemptSeal = false
     @State private var openAt = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
     @State private var selectedColor = CapsulePalette.options[0]
-    @State private var selectedSymbol = "sparkles"
+    @State private var selectedSymbol = "star"
     @State private var sealingStage: WishSealingStage = .idle
     @State private var sealingInspiration: WishSealingInspiration?
     @State private var sealingTask: Task<Void, Never>?
     @FocusState private var isTextInputFocused: Bool
 
     private let futureLetterService = FutureLetterService()
+    private let creationAssistantService = WishCreationAssistantService()
     private let sealingInspirationService = WishSealingInspirationService()
-    private let symbols = ["sparkles", "moon.stars", "heart", "star", "sun.max", "leaf", "flame"]
+    private let symbols = CapsuleCreationSymbol.library
 
     var body: some View {
         NavigationStack {
@@ -47,9 +54,21 @@ struct CreateCapsuleView: View {
                         }
 
                         VStack(spacing: 14) {
-                            field("Название", text: $title, prompt: "Например: дом у моря")
-                            field("Желание", text: $intention, prompt: "Чего ты хочешь на самом деле?", lines: 4)
-                            field("Чувство", text: $feeling, prompt: "Что ты хочешь почувствовать?", lines: 2)
+                            field(
+                                "Желание",
+                                text: $intention,
+                                prompt: wishPrompt,
+                                lines: 4,
+                                showsValidation: didAttemptSeal && intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                                trailingAction: creationAssistantService.isAvailable ? AnyView(intentionMagicButton) : nil
+                            )
+                            field(
+                                "Чувство",
+                                text: $feeling,
+                                prompt: feelingPrompt,
+                                lines: 2,
+                                showsValidation: didAttemptSeal && feeling.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            )
                         }
 
                         DatePicker("Открыть капсулу", selection: $openAt, displayedComponents: .date)
@@ -68,7 +87,7 @@ struct CreateCapsuleView: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(PrimaryCapsuleButtonStyle())
-                        .disabled(!canCreate || sealingStage.isActive)
+                        .disabled(sealingStage.isActive)
                     }
                     .padding(20)
                     .padding(.bottom, 24)
@@ -80,7 +99,7 @@ struct CreateCapsuleView: View {
                 if sealingStage.isActive {
                     WishSealingOverlay(
                         stage: sealingStage,
-                        title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+                        title: generatedTitle.isEmpty ? "Будущая капсула" : generatedTitle,
                         colorHex: selectedColor.hex,
                         symbol: selectedSymbol,
                         inspiration: sealingInspiration
@@ -111,14 +130,22 @@ struct CreateCapsuleView: View {
                 }
             }
             .onDisappear {
+                feelingPromptTask?.cancel()
+                beautifyTask?.cancel()
                 sealingTask?.cancel()
+            }
+            .task {
+                await refreshWishPrompt()
+            }
+            .onChange(of: intention) { _, newValue in
+                refreshFeelingPrompt(for: newValue)
             }
         }
     }
 
     private var canCreate: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !feeling.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var colorPicker: some View {
@@ -127,7 +154,11 @@ struct CreateCapsuleView: View {
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            HStack(spacing: 12) {
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 42, maximum: 42), spacing: 14)],
+                alignment: .leading,
+                spacing: 14
+            ) {
                 ForEach(CapsulePalette.options, id: \.hex) { option in
                     Button {
                         selectedColor = option
@@ -147,6 +178,7 @@ struct CreateCapsuleView: View {
                     .accessibilityLabel(option.name)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -156,50 +188,114 @@ struct CreateCapsuleView: View {
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            HStack(spacing: 10) {
-                ForEach(symbols, id: \.self) { symbol in
-                    Button {
-                        selectedSymbol = symbol
-                    } label: {
-                        Image(systemName: symbol)
-                            .font(.title3)
-                            .foregroundStyle(.white)
-                            .frame(width: 42, height: 42)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(symbols) { symbol in
+                        Button {
+                            selectedSymbol = symbol.systemName
+                        } label: {
+                            VStack(spacing: 6) {
+                                Image(systemName: symbol.systemName)
+                                    .font(.title3)
+                                    .foregroundStyle(.white)
+                                    .frame(width: 42, height: 34)
+
+                                Text(symbol.title)
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundStyle(.white.opacity(0.72))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.78)
+                            }
+                            .frame(width: 68, height: 64)
                             .background(
-                                selectedSymbol == symbol ? .white.opacity(0.22) : .white.opacity(0.08),
+                                selectedSymbol == symbol.systemName ? .white.opacity(0.22) : .white.opacity(0.08),
                                 in: RoundedRectangle(cornerRadius: 12)
                             )
+                        }
+                        .accessibilityLabel(symbol.accessibilityLabel)
                     }
                 }
             }
         }
     }
 
-    private func field(_ title: String, text: Binding<String>, prompt: String, lines: Int = 1) -> some View {
+    private var intentionMagicButton: some View {
+        Button {
+            beautifyIntention()
+        } label: {
+            Image(systemName: isBeautifyingIntention ? "wand.and.rays" : "wand.and.stars")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 42, height: 42)
+                .background(.white.opacity(0.14), in: Circle())
+        }
+        .disabled(intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isBeautifyingIntention)
+        .opacity(intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
+        .accessibilityLabel("Переписать желание красивее")
+    }
+
+    private func field(
+        _ title: String,
+        text: Binding<String>,
+        prompt: String,
+        lines: Int = 1,
+        showsValidation: Bool = false,
+        trailingAction: AnyView? = nil
+    ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            TextField(prompt, text: text, axis: .vertical)
-                .lineLimit(lines...max(lines, 6))
-                .textFieldStyle(.plain)
-                .padding(14)
-                .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
-                .foregroundStyle(.white)
-                .focused($isTextInputFocused)
+            HStack(alignment: .top, spacing: 10) {
+                ZStack(alignment: .topLeading) {
+                    if text.wrappedValue.isEmpty, !prompt.isEmpty {
+                        Text(prompt)
+                            .font(.body)
+                            .foregroundStyle(.white.opacity(0.48))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .allowsHitTesting(false)
+                    }
+
+                    TextField("", text: text, axis: .vertical)
+                        .lineLimit(lines...max(lines, 6))
+                        .textFieldStyle(.plain)
+                        .foregroundStyle(.white)
+                        .focused($isTextInputFocused)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: lines == 1 ? 22 : CGFloat(lines) * 24)
+
+                if let trailingAction {
+                    trailingAction
+                }
+            }
+            .padding(14)
+            .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(showsValidation ? Color(hex: "FF7A70").opacity(0.95) : .white.opacity(0.12), lineWidth: showsValidation ? 1.4 : 1)
+            }
+
+            if showsValidation {
+                Text("Заполни это поле, чтобы запечатать капсулу.")
+                    .font(.caption)
+                    .foregroundStyle(Color(hex: "FFB3AA"))
+            }
         }
     }
 
     private func sealCapsule() {
-        guard canCreate, !sealingStage.isActive else { return }
+        guard !sealingStage.isActive else { return }
+        didAttemptSeal = true
+        guard canCreate else { return }
 
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedIntention = intention.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedFeeling = feeling.trimmingCharacters(in: .whitespacesAndNewlines)
 
         isTextInputFocused = false
         sealingInspiration = nil
+        generatedTitle = ""
         sealingStage = .gathering
         sealingTask?.cancel()
 
@@ -222,12 +318,22 @@ struct CreateCapsuleView: View {
                 }
             }
 
+            let titleForCapsule = await creationAssistantService.title(
+                for: trimmedIntention,
+                feeling: trimmedFeeling
+            )
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                generatedTitle = titleForCapsule
+            }
+
             let inspiration = await sealingInspirationService.inspiration(
-                title: trimmedTitle,
+                title: titleForCapsule,
                 intention: trimmedIntention,
                 feeling: trimmedFeeling,
                 context: sealingContext(
-                    title: trimmedTitle,
+                    title: titleForCapsule,
                     intention: trimmedIntention
                 )
             )
@@ -236,7 +342,7 @@ struct CreateCapsuleView: View {
             await MainActor.run {
                 sealingInspiration = inspiration
                 createCapsule(
-                    title: trimmedTitle,
+                    title: titleForCapsule,
                     intention: trimmedIntention,
                     feeling: trimmedFeeling,
                     planCheckpoints: inspiration.checkpoints
@@ -287,6 +393,62 @@ struct CreateCapsuleView: View {
 
             guard await CapsuleNotificationScheduler.shared.requestAuthorizationIfNeeded() else { return }
             CapsuleNotificationScheduler.shared.scheduleOpeningSignal(for: capsule)
+        }
+    }
+
+    private func refreshWishPrompt() async {
+        if creationAssistantService.isAvailable {
+            await MainActor.run {
+                wishPrompt = ""
+            }
+        }
+
+        let prompt = await creationAssistantService.wishPrompt()
+        guard !Task.isCancelled else { return }
+
+        await MainActor.run {
+            wishPrompt = prompt
+        }
+    }
+
+    private func refreshFeelingPrompt(for intention: String) {
+        feelingPromptTask?.cancel()
+        feelingPromptTask = Task {
+            if creationAssistantService.isAvailable {
+                await MainActor.run {
+                    feelingPrompt = ""
+                }
+            }
+
+            try? await Task.sleep(for: .milliseconds(650))
+            guard !Task.isCancelled else { return }
+
+            let prompt = await creationAssistantService.feelingPrompt(for: intention)
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                feelingPrompt = prompt
+            }
+        }
+    }
+
+    private func beautifyIntention() {
+        let cleanIntention = intention.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanIntention.isEmpty, !isBeautifyingIntention else { return }
+
+        isTextInputFocused = false
+        isBeautifyingIntention = true
+        beautifyTask?.cancel()
+        beautifyTask = Task {
+            let polished = await creationAssistantService.polishedIntention(cleanIntention, feeling: feeling)
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                if let polished {
+                    intention = polished
+                }
+                isBeautifyingIntention = false
+            }
         }
     }
 
@@ -350,6 +512,27 @@ private enum WishSealingStage: Equatable {
             return "Капсула запечатана"
         }
     }
+}
+
+private struct CapsuleCreationSymbol: Identifiable {
+    let systemName: String
+    let title: String
+    let meaning: String
+
+    var id: String { systemName }
+
+    var accessibilityLabel: String {
+        "\(title): \(meaning)"
+    }
+
+    static let library = [
+        CapsuleCreationSymbol(systemName: "star", title: "Звезда", meaning: "для желания, которое хочется держать в поле зрения"),
+        CapsuleCreationSymbol(systemName: "heart", title: "Сердце", meaning: "для личного и эмоционально важного желания"),
+        CapsuleCreationSymbol(systemName: "flag", title: "Флаг", meaning: "для цели, маршрута и выбранного направления"),
+        CapsuleCreationSymbol(systemName: "lightbulb", title: "Идея", meaning: "для ясности и нового понимания"),
+        CapsuleCreationSymbol(systemName: "circle", title: "Круг", meaning: "для целостности, спокойствия и внутренней опоры"),
+        CapsuleCreationSymbol(systemName: "seal", title: "Печать", meaning: "для обещания себе и бережного запечатывания")
+    ]
 }
 
 private struct WishSealingOverlay: View {

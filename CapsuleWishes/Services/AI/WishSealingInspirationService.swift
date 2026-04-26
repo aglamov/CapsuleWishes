@@ -42,20 +42,15 @@ struct JournalEntryContext {
 }
 
 struct WishSealingInspirationService {
-    private let client: OpenAIResponsesClient?
-
-    init(configuration: OpenAIConfiguration? = .current) {
-        client = configuration.map { OpenAIResponsesClient(configuration: $0) }
-    }
-
     func inspiration(
         title: String,
         intention: String,
         feeling: String,
         context: WishSealingContext = WishSealingContext(relatedWishes: [], journalEntries: [])
     ) async -> WishSealingInspiration {
-        if let client {
+        if let configuration = OpenAIConfiguration.current {
             do {
+                let client = OpenAIResponsesClient(configuration: configuration)
                 let text = try await aiInspiration(
                     title: title,
                     intention: intention,

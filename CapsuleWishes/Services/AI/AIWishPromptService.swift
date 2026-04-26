@@ -8,20 +8,8 @@
 import Foundation
 
 struct AIWishPromptService {
-    private let client: OpenAIResponsesClient?
-
-    init(configuration: OpenAIConfiguration? = .current) {
-        client = configuration.map { OpenAIResponsesClient(configuration: $0) }
-
-        if configuration == nil {
-            AppLog.ai.debug("OpenAI prompt disabled: OPENAI_API_KEY is missing")
-        } else {
-            AppLog.ai.debug("OpenAI prompt enabled")
-        }
-    }
-
     var isAvailable: Bool {
-        client != nil
+        OpenAIConfiguration.current != nil
     }
 
     func prompt(
@@ -29,10 +17,12 @@ struct AIWishPromptService {
         capsule: WishCapsule,
         recentEntries: [JournalEntry]
     ) async throws -> String? {
-        guard let client else {
+        guard let configuration = OpenAIConfiguration.current else {
             AppLog.ai.debug("OpenAI prompt skipped: client is unavailable")
             return nil
         }
+
+        let client = OpenAIResponsesClient(configuration: configuration)
 
         let instructions = """
         Ты пишешь короткие подсказки для приложения CapsuleWishes.

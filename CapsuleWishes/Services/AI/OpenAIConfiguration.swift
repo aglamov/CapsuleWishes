@@ -12,6 +12,10 @@ struct OpenAIConfiguration {
     let model: String
 
     static var current: OpenAIConfiguration? {
+        guard UserDefaults.standard.bool(forKey: AIUsagePreferences.enabledKey) else {
+            return nil
+        }
+
         let environment = ProcessInfo.processInfo.environment
         let apiKey = environment["OPENAI_API_KEY"] ?? Bundle.main.object(forInfoDictionaryKey: "OPENAI_API_KEY") as? String
         let model = environment["OPENAI_MODEL"] ?? Bundle.main.object(forInfoDictionaryKey: "OPENAI_MODEL") as? String ?? "gpt-5.4-mini"

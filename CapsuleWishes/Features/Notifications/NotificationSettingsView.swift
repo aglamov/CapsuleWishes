@@ -13,6 +13,10 @@ struct NotificationSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage(NotificationPreferences.modeKey) private var notificationModeRawValue = NotificationMode.soft.rawValue
     @AppStorage(NotificationPreferences.morningDreamSignalsEnabledKey) private var morningDreamSignalsEnabled = false
+    @AppStorage(NotificationPreferences.morningDreamSignalHourKey) private var morningDreamSignalHour = MorningSignalTime.defaultValue.hour
+    @AppStorage(NotificationPreferences.morningDreamSignalMinuteKey) private var morningDreamSignalMinute = MorningSignalTime.defaultValue.minute
+    @AppStorage(AIUsagePreferences.enabledKey) private var aiFeaturesEnabled = false
+    @Query private var capsules: [WishCapsule]
     @Query(sort: \NotificationSignal.scheduledAt, order: .reverse) private var signals: [NotificationSignal]
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
     @State private var selectedSignal: NotificationSignal?
@@ -22,6 +26,16 @@ struct NotificationSettingsView: View {
             NotificationMode(rawValue: notificationModeRawValue) ?? .soft
         } set: { mode in
             notificationModeRawValue = mode.rawValue
+        }
+    }
+
+    private var morningSignalTime: MorningSignalTime {
+        get {
+            MorningSignalTime(hour: morningDreamSignalHour, minute: morningDreamSignalMinute)
+        }
+        nonmutating set {
+            morningDreamSignalHour = newValue.hour
+            morningDreamSignalMinute = newValue.minute
         }
     }
 
@@ -35,6 +49,7 @@ struct NotificationSettingsView: View {
                         header
                         authorizationPanel
                         modePicker
+                        aiUsageToggle
                         morningDreamsToggle
                         signalHistory
                     }
@@ -147,19 +162,85 @@ struct NotificationSettingsView: View {
     }
 
     private var morningDreamsToggle: some View {
-        Toggle(isOn: $morningDreamSignalsEnabled) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Утренние сны")
+        VStack(alignment: .leading, spacing: 14) {
+            Toggle(isOn: $morningDreamSignalsEnabled) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Утренние сны")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+
+                    Text("Один мягкий утренний сигнал, если хочется сделать это личным ритуалом.")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.66))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .tint(Color(hex: "7EE0B3"))
+
+            if morningDreamSignalsEnabled {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Примерное утро")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.58))
+
+                    HStack(spacing: 8) {
+                        ForEach(MorningSignalTime.presets, id: \.self) { time in
+                            Button {
+                                morningSignalTime = time
+                            } label: {
+                                Text(time.title)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(morningSignalTime == time ? .black.opacity(0.78) : .white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        morningSignalTime == time ? Color(hex: "7EE0B3") : .white.opacity(0.08),
+                                        in: RoundedRectangle(cornerRadius: 12)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "wand.and.stars")
+                            .font(.caption.weight(.semibold))
+
+                        Text("Сейчас: \(morningSignalTime.title). Будет мягко подстраиваться по первому утреннему открытию приложения.")
+                            .font(.footnote)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .foregroundStyle(.white.opacity(0.58))
+                }
+            }
+        }
+        .padding(18)
+        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(.white.opacity(0.12), lineWidth: 1)
+        )
+    }
+
+    private var aiUsageToggle: some View {
+        Toggle(isOn: $aiFeaturesEnabled) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Использовать ИИ")
                     .font(.headline)
                     .foregroundStyle(.white)
 
-                Text("Один мягкий утренний сигнал, если хочется сделать это личным ритуалом.")
+                Text("Когда включено, подсказки и письма могут создаваться через OpenAI. В OpenAI отправляются только данные из этого приложения, нужные для выбранной функции, и ничего более.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.66))
                     .fixedSize(horizontal: false, vertical: true)
+
+                Text("Когда выключено, приложение использует локальные шаблонные выражения.")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.54))
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .tint(.white)
+        .tint(Color(hex: "7EE0B3"))
         .padding(18)
         .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
         .overlay(
@@ -264,7 +345,12 @@ struct NotificationSettingsView: View {
     }
 
     private func isVisibleSignal(_ signal: NotificationSignal) -> Bool {
-        !signal.isCancelled || signal.kind == .futureLetter
+        if let capsuleID = signal.capsuleID,
+           !capsules.contains(where: { $0.id == capsuleID }) {
+            return false
+        }
+
+        return !signal.isCancelled || signal.kind == .futureLetter
     }
 
     private var authorizationTitle: String {

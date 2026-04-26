@@ -12,6 +12,7 @@ struct CapsuleDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(AIUsagePreferences.enabledKey) private var aiFeaturesEnabled = false
     @Query(sort: \JournalEntry.createdAt, order: .reverse) private var allEntries: [JournalEntry]
     @Query(sort: \NotificationSignal.scheduledAt, order: .reverse) private var allSignals: [NotificationSignal]
     @Bindable var capsule: WishCapsule
@@ -50,6 +51,7 @@ struct CapsuleDetailView: View {
         [
             capsule.id.uuidString,
             selectedEntryType.rawValue,
+            aiFeaturesEnabled.description,
             entries.first?.id.uuidString ?? "empty",
         ].joined(separator: "-")
     }
@@ -474,6 +476,9 @@ struct CapsuleDetailView: View {
         let capsuleID = capsule.id
         CapsuleNotificationScheduler.shared.cancelSignals(for: capsule)
         allEntries
+            .filter { $0.capsuleID == capsuleID }
+            .forEach(modelContext.delete)
+        allSignals
             .filter { $0.capsuleID == capsuleID }
             .forEach(modelContext.delete)
 
