@@ -24,6 +24,8 @@ struct CapsuleDetailView: View {
     @State private var openingTask: Task<Void, Never>?
     @State private var aiEntryPrompt: String?
     @State private var isLoadingAIEntryPrompt = false
+    @State private var aiEntryPromptGlowAmount = 0.0
+    @State private var aiEntryPromptGlowTask: Task<Void, Never>?
     @State private var selectedFutureLetterSignal: NotificationSignal?
     @FocusState private var isEntryFieldFocused: Bool
 
@@ -171,6 +173,7 @@ struct CapsuleDetailView: View {
         }
         .onDisappear {
             openingTask?.cancel()
+            aiEntryPromptGlowTask?.cancel()
         }
         .contentShape(Rectangle())
         .onTapGesture {
@@ -367,9 +370,14 @@ struct CapsuleDetailView: View {
 
             Text(isLoadingAIEntryPrompt ? "Ищу подсказку вокруг этого желания..." : currentEntryPrompt)
                 .font(.footnote)
-                .foregroundStyle(.white.opacity(0.66))
+                .foregroundStyle(.white.opacity(0.76 + aiEntryPromptGlowAmount * 0.24))
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .shadow(color: Color(hex: "F2C46D").opacity(0.14 + aiEntryPromptGlowAmount * 0.64), radius: 3 + aiEntryPromptGlowAmount * 17)
+        .shadow(color: .white.opacity(aiEntryPromptGlowAmount * 0.28), radius: aiEntryPromptGlowAmount * 7)
     }
 
     @MainActor
@@ -382,6 +390,7 @@ struct CapsuleDetailView: View {
         }
 
         isLoadingAIEntryPrompt = true
+        var shouldGlow = false
         do {
             let prompt = try await aiWishPromptService.prompt(
                 for: selectedEntryType,
@@ -390,14 +399,40 @@ struct CapsuleDetailView: View {
             )
             try Task.checkCancellation()
             aiEntryPrompt = prompt
+            shouldGlow = true
         } catch is CancellationError {
+            isLoadingAIEntryPrompt = false
             return
         } catch {
             AppLog.ai.error("OpenAI capsule prompt fallback: \(error.localizedDescription, privacy: .public)")
             aiEntryPrompt = nil
+            shouldGlow = true
         }
 
         isLoadingAIEntryPrompt = false
+
+        if shouldGlow {
+            glowEntryPrompt()
+        }
+    }
+
+    @MainActor
+    private func glowEntryPrompt() {
+        aiEntryPromptGlowTask?.cancel()
+
+        withAnimation(.easeOut(duration: 0.36)) {
+            aiEntryPromptGlowAmount = 1
+        }
+
+        aiEntryPromptGlowTask = Task {
+            try? await Task.sleep(for: .milliseconds(1500))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 2.4)) {
+                    aiEntryPromptGlowAmount = 0
+                }
+            }
+        }
     }
 
     private func openCapsule(as status: CapsuleStatus, scrollProxy: ScrollViewProxy) {

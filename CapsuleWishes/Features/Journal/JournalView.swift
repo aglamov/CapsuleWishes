@@ -19,6 +19,8 @@ struct JournalView: View {
     @State private var aiPrompt: String?
     @State private var isIntroExpanded = false
     @State private var isLoadingAIPrompt = false
+    @State private var aiPromptGlowAmount = 0.0
+    @State private var aiPromptGlowTask: Task<Void, Never>?
     @FocusState private var isTextEditorFocused: Bool
 
     private let aiWishPromptService = AIWishPromptService()
@@ -120,6 +122,9 @@ struct JournalView: View {
             .onChange(of: activeCapsules.map(\.id)) { _, activeCapsuleIDs in
                 guard let selectedCapsuleID, !activeCapsuleIDs.contains(selectedCapsuleID) else { return }
                 self.selectedCapsuleID = nil
+            }
+            .onDisappear {
+                aiPromptGlowTask?.cancel()
             }
         }
     }
@@ -299,10 +304,14 @@ struct JournalView: View {
 
             Text(isLoadingAIPrompt ? "Ищу подсказку вокруг этого желания..." : currentPrompt)
                 .font(.footnote)
-                .foregroundStyle(.white.opacity(0.66))
+                .foregroundStyle(.white.opacity(0.76 + aiPromptGlowAmount * 0.24))
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .shadow(color: Color(hex: "F2C46D").opacity(0.14 + aiPromptGlowAmount * 0.64), radius: 3 + aiPromptGlowAmount * 17)
+        .shadow(color: .white.opacity(aiPromptGlowAmount * 0.28), radius: aiPromptGlowAmount * 7)
     }
 
     @MainActor
@@ -315,6 +324,7 @@ struct JournalView: View {
         }
 
         isLoadingAIPrompt = true
+        var shouldGlow = false
         do {
             let prompt = try await aiWishPromptService.prompt(
                 for: selectedType,
@@ -323,14 +333,40 @@ struct JournalView: View {
             )
             try Task.checkCancellation()
             aiPrompt = prompt
+            shouldGlow = true
         } catch is CancellationError {
+            isLoadingAIPrompt = false
             return
         } catch {
             AppLog.ai.error("OpenAI journal prompt fallback: \(error.localizedDescription, privacy: .public)")
             aiPrompt = nil
+            shouldGlow = true
         }
 
         isLoadingAIPrompt = false
+
+        if shouldGlow {
+            glowPrompt()
+        }
+    }
+
+    @MainActor
+    private func glowPrompt() {
+        aiPromptGlowTask?.cancel()
+
+        withAnimation(.easeOut(duration: 0.36)) {
+            aiPromptGlowAmount = 1
+        }
+
+        aiPromptGlowTask = Task {
+            try? await Task.sleep(for: .milliseconds(1500))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 2.4)) {
+                    aiPromptGlowAmount = 0
+                }
+            }
+        }
     }
 }
 
