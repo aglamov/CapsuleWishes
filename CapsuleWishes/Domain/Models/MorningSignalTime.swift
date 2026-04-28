@@ -11,7 +11,7 @@ struct MorningSignalTime: Hashable {
     var hour: Int
     var minute: Int
 
-    private var totalMinutes: Int {
+    var totalMinutes: Int {
         hour * 60 + minute
     }
 

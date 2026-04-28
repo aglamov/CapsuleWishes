@@ -367,7 +367,7 @@ struct CreateCapsuleView: View {
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             intentionText: intention.trimmingCharacters(in: .whitespacesAndNewlines),
             desiredFeeling: feeling.trimmingCharacters(in: .whitespacesAndNewlines),
-            openAt: openAt,
+            openAt: Calendar.current.startOfDay(for: openAt),
             colorHex: selectedColor.hex,
             symbol: selectedSymbol,
             sealingFortuneText: sealingFortuneText

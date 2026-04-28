@@ -31,10 +31,12 @@ struct CapsuleDetailView: View {
     @State private var selectedFutureLetterSignal: NotificationSignal?
     @State private var isShowingSealingFortune = false
     @State private var didAutoScrollToEntryPanel = false
+    @State private var readinessRefreshDate = Date()
     @FocusState private var isEntryFieldFocused: Bool
 
     private let aiWishPromptService = AIWishPromptService()
     private let creationAssistantService = WishCreationAssistantService()
+    private let readinessTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     private var entries: [JournalEntry] {
         allEntries.filter { $0.capsuleID == capsule.id }
@@ -109,10 +111,13 @@ struct CapsuleDetailView: View {
     }
 
     private var showsOpeningPanel: Bool {
-        showsSealedControls && capsule.openAt <= Date()
+        _ = readinessRefreshDate
+        return showsSealedControls && capsule.isReadyToOpen
     }
 
     var body: some View {
+        let _ = readinessRefreshDate
+
         ZStack {
             NightSkyBackground()
 
@@ -124,7 +129,8 @@ struct CapsuleDetailView: View {
                             size: 168,
                             isInteractive: true,
                             freezesMotion: freezesCapsuleMotion,
-                            openingPhase: orbOpeningPhase
+                            openingPhase: orbOpeningPhase,
+                            refreshDate: readinessRefreshDate
                         )
                         .id("capsule-orb")
                         .padding(.top, 28)
@@ -170,12 +176,20 @@ struct CapsuleDetailView: View {
                             .opacity(focusOpacity)
                     }
                     .padding(20)
-                    .padding(.bottom, 32)
+                    .padding(.bottom, isEntryFieldFocused ? 170 : 32)
                     .opacity(didEnter ? 1 : 0)
                     .scaleEffect(didEnter ? 1 : 0.985)
                 }
                 .onAppear {
                     scrollToEntryPanelIfNeeded(scrollProxy)
+                }
+                .onChange(of: isEntryFieldFocused) { _, isFocused in
+                    guard isFocused else { return }
+                    scrollEntryFieldIntoView(scrollProxy)
+                }
+                .onChange(of: entryText) { _, _ in
+                    guard isEntryFieldFocused else { return }
+                    scrollEntryFieldIntoView(scrollProxy)
                 }
             }
         }
@@ -223,6 +237,9 @@ struct CapsuleDetailView: View {
         .task(id: promptRequestKey) {
             await refreshAIEntryPrompt()
         }
+        .onReceive(readinessTimer) { date in
+            readinessRefreshDate = date
+        }
         .sheet(item: $selectedFutureLetterSignal) { signal in
             FutureLetterReadingView(signal: signal)
         }
@@ -234,6 +251,8 @@ struct CapsuleDetailView: View {
     }
 
     private var statusText: String {
+        _ = readinessRefreshDate
+
         if capsule.status == .sealed && capsule.isReadyToOpen {
             return "Капсула готова открыться"
         }
@@ -274,6 +293,7 @@ struct CapsuleDetailView: View {
                     .foregroundStyle(.white)
                     .focused($isEntryFieldFocused)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .id("capsule-entry-field")
 
                 Button {
                     beautifyEntry()
@@ -420,6 +440,14 @@ struct CapsuleDetailView: View {
 
             withAnimation(.easeInOut(duration: 0.62)) {
                 scrollProxy.scrollTo("add-entry-panel", anchor: .top)
+            }
+        }
+    }
+
+    private func scrollEntryFieldIntoView(_ scrollProxy: ScrollViewProxy) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            withAnimation(.easeInOut(duration: 0.24)) {
+                scrollProxy.scrollTo("capsule-entry-field", anchor: .bottom)
             }
         }
     }

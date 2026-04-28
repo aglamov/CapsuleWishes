@@ -55,7 +55,8 @@ final class WishCapsule {
     }
 
     var isReadyToOpen: Bool {
-        status == .sealed && openAt <= Date()
+        let calendar = Calendar.current
+        return status == .sealed && calendar.startOfDay(for: openAt) <= calendar.startOfDay(for: Date())
     }
 
     var hasBeenOpened: Bool {

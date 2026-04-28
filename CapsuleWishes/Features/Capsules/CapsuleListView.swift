@@ -16,6 +16,8 @@ struct CapsuleListView: View {
     @State private var highlightedCapsuleID: UUID?
     @State private var selectedCapsule: WishCapsule?
     @State private var pendingNavigationTask: Task<Void, Never>?
+    @State private var readinessRefreshDate = Date()
+    private let readinessTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     var body: some View {
         NavigationStack {
@@ -89,6 +91,9 @@ struct CapsuleListView: View {
             .onChange(of: capsules.map(\.id)) { _, _ in
                 openRequestedCapsuleIfPossible()
             }
+            .onReceive(readinessTimer) { date in
+                readinessRefreshDate = date
+            }
         }
     }
 
@@ -98,7 +103,11 @@ struct CapsuleListView: View {
                 Button {
                     openCapsuleAfterPause(capsule)
                 } label: {
-                    CapsuleCard(capsule: capsule, isHighlighted: highlightedCapsuleID == capsule.id)
+                    CapsuleCard(
+                        capsule: capsule,
+                        isHighlighted: highlightedCapsuleID == capsule.id,
+                        refreshDate: readinessRefreshDate
+                    )
                 }
                 .buttonStyle(.plain)
                 .disabled(pendingNavigationTask != nil)

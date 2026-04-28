@@ -75,14 +75,15 @@ final class CapsuleNotificationScheduler {
     }
 
     func scheduleOpeningSignal(for capsule: WishCapsule) {
-        guard capsule.status == .sealed, capsule.openAt > Date() else { return }
+        let morningSignalTime = storedMorningSignalTime()
+        guard let date = openingSignalDate(for: capsule, morningSignalTime: morningSignalTime) else { return }
 
         let spec = NotificationSignalSpec(
             id: Self.openIdentifier(for: capsule.id),
             kind: .capsuleOpen,
             title: "Тебе пришло письмо из прошлого",
             body: "Ты писал это себе. Пришло время прочитать.",
-            date: capsule.openAt,
+            date: date,
             capsuleID: capsule.id,
             userInfo: ["capsuleID": capsule.id.uuidString, "signal": "capsule_open"]
         )
@@ -150,7 +151,9 @@ final class CapsuleNotificationScheduler {
         morningDreamsEnabled: Bool,
         morningDreamSignalTime: MorningSignalTime
     ) -> [NotificationSignalSpec] {
-        var specs = sealedCapsules.compactMap(openingSignalSpec)
+        var specs = sealedCapsules.compactMap {
+            openingSignalSpec(for: $0, morningSignalTime: morningDreamSignalTime)
+        }
 
         guard mode != .quiet else { return specs }
 
@@ -169,18 +172,75 @@ final class CapsuleNotificationScheduler {
         return specs
     }
 
-    private func openingSignalSpec(for capsule: WishCapsule) -> NotificationSignalSpec? {
-        guard capsule.status == .sealed, capsule.openAt > Date() else { return nil }
+    private func openingSignalSpec(
+        for capsule: WishCapsule,
+        morningSignalTime: MorningSignalTime
+    ) -> NotificationSignalSpec? {
+        guard let date = openingSignalDate(for: capsule, morningSignalTime: morningSignalTime) else { return nil }
 
         return NotificationSignalSpec(
             id: Self.openIdentifier(for: capsule.id),
             kind: .capsuleOpen,
             title: "Тебе пришло письмо из прошлого",
             body: "Ты писал это себе. Пришло время прочитать.",
-            date: capsule.openAt,
+            date: date,
             capsuleID: capsule.id,
             userInfo: ["capsuleID": capsule.id.uuidString, "signal": "capsule_open"]
         )
+    }
+
+    private func openingSignalDate(
+        for capsule: WishCapsule,
+        morningSignalTime: MorningSignalTime
+    ) -> Date? {
+        guard capsule.status == .sealed else { return nil }
+
+        let openingDay = calendar.startOfDay(for: capsule.openAt)
+        let startMinute = morningSignalTime.totalMinutes
+        let endMinute = 21 * 60
+        let clampedStartMinute = min(startMinute, endMinute)
+        let minuteOffset = stableMinuteOffset(
+            for: capsule,
+            on: openingDay,
+            availableMinutes: endMinute - clampedStartMinute
+        )
+        let signalMinute = clampedStartMinute + minuteOffset
+
+        guard let date = calendar.date(
+            bySettingHour: signalMinute / 60,
+            minute: signalMinute % 60,
+            second: 0,
+            of: openingDay
+        ), date > Date() else {
+            return nil
+        }
+
+        return date
+    }
+
+    private func stableMinuteOffset(
+        for capsule: WishCapsule,
+        on openingDay: Date,
+        availableMinutes: Int
+    ) -> Int {
+        guard availableMinutes > 0 else { return 0 }
+
+        var seed: UInt64 = 1469598103934665603
+        let uuid = capsule.id.uuid
+        withUnsafeBytes(of: uuid) { bytes in
+            for byte in bytes {
+                seed ^= UInt64(byte)
+                seed &*= 1099511628211
+            }
+        }
+
+        let components = calendar.dateComponents([.year, .month, .day], from: openingDay)
+        for value in [components.year, components.month, components.day].compactMap(\.self) {
+            seed ^= UInt64(value)
+            seed &*= 1099511628211
+        }
+
+        return Int(seed % UInt64(availableMinutes + 1))
     }
 
     private func reactivationSignalSpecs() -> [NotificationSignalSpec] {
@@ -223,6 +283,17 @@ final class CapsuleNotificationScheduler {
             capsuleID: nil,
             userInfo: ["signal": "morning_dream"],
             repeatsDaily: true
+        )
+    }
+
+    private func storedMorningSignalTime() -> MorningSignalTime {
+        let defaults = UserDefaults.standard
+        let hour = defaults.object(forKey: NotificationPreferences.morningDreamSignalHourKey) as? Int
+        let minute = defaults.object(forKey: NotificationPreferences.morningDreamSignalMinuteKey) as? Int
+
+        return MorningSignalTime(
+            hour: hour ?? MorningSignalTime.defaultValue.hour,
+            minute: minute ?? MorningSignalTime.defaultValue.minute
         )
     }
 

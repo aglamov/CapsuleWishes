@@ -35,8 +35,11 @@ struct CapsuleOrbView: View {
     var isInteractive = false
     var freezesMotion = false
     var openingPhase: CapsuleOrbOpeningPhase = .idle
+    var refreshDate = Date()
 
     var body: some View {
+        let _ = refreshDate
+
         if capsule.status == .sealed || openingPhase.isActive {
             animatedOrb
         } else {

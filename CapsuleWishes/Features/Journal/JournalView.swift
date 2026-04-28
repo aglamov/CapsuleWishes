@@ -22,9 +22,11 @@ struct JournalView: View {
     @State private var isLoadingAIPrompt = false
     @State private var aiPromptGlowAmount = 0.0
     @State private var aiPromptGlowTask: Task<Void, Never>?
+    @State private var isBeautifyingEntry = false
     @FocusState private var isTextEditorFocused: Bool
 
     private let aiWishPromptService = AIWishPromptService()
+    private let creationAssistantService = WishCreationAssistantService()
 
     private var activeCapsules: [WishCapsule] {
         capsules.filter { !$0.hasBeenOpened }
@@ -77,38 +79,48 @@ struct JournalView: View {
             ZStack {
                 NightSkyBackground()
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 22) {
-                        introHeader
+                ScrollViewReader { scrollProxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 22) {
+                            introHeader
 
-                        composer
+                            composer
 
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text("Последние записи")
-                                .font(.headline)
-                                .foregroundStyle(.white)
+                            VStack(alignment: .leading, spacing: 14) {
+                                Text("Последние записи")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
 
-                            if entries.isEmpty {
-                                Text("Сегодня можно начать с малого: что сделало день хотя бы на 1% легче?")
-                                    .foregroundStyle(.white.opacity(0.64))
-                            } else {
-                                ForEach(entrySections) { section in
-                                    VStack(alignment: .leading, spacing: 10) {
-                                        Text(section.title)
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(.white.opacity(0.68))
-                                            .textCase(.uppercase)
+                                if entries.isEmpty {
+                                    Text("Сегодня можно начать с малого: что сделало день хотя бы на 1% легче?")
+                                        .foregroundStyle(.white.opacity(0.64))
+                                } else {
+                                    ForEach(entrySections) { section in
+                                        VStack(alignment: .leading, spacing: 10) {
+                                            Text(section.title)
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundStyle(.white.opacity(0.68))
+                                                .textCase(.uppercase)
 
-                                        ForEach(section.entries) { entry in
-                                            JournalEntryRow(entry: entry, timestampStyle: .timeOnly)
+                                            ForEach(section.entries) { entry in
+                                                JournalEntryRow(entry: entry, timestampStyle: .timeOnly)
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
+                        .padding(20)
+                        .padding(.bottom, isTextEditorFocused ? 170 : 24)
                     }
-                    .padding(20)
-                    .padding(.bottom, 24)
+                    .onChange(of: isTextEditorFocused) { _, isFocused in
+                        guard isFocused else { return }
+                        scrollEntryFieldIntoView(scrollProxy)
+                    }
+                    .onChange(of: text) { _, _ in
+                        guard isTextEditorFocused else { return }
+                        scrollEntryFieldIntoView(scrollProxy)
+                    }
                 }
             }
             .contentShape(Rectangle())
@@ -166,20 +178,37 @@ struct JournalView: View {
 
             promptView
 
-            TextField("Что ты сегодня заметил?", text: $text, axis: .vertical)
-                .lineLimit(4...8)
-                .textFieldStyle(.plain)
-                .padding(16)
-                .background(
-                    isTextEditorFocused ? .white.opacity(0.16) : .white.opacity(0.11),
-                    in: RoundedRectangle(cornerRadius: 16)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(isTextEditorFocused ? .white.opacity(0.24) : .white.opacity(0.08), lineWidth: 1)
-                )
-                .foregroundStyle(.white)
-                .focused($isTextEditorFocused)
+            HStack(alignment: .top, spacing: 10) {
+                TextField("Что ты сегодня заметил?", text: $text, axis: .vertical)
+                    .lineLimit(4...8)
+                    .textFieldStyle(.plain)
+                    .foregroundStyle(.white)
+                    .focused($isTextEditorFocused)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .id("journal-entry-field")
+
+                Button {
+                    beautifyEntry()
+                } label: {
+                    Image(systemName: isBeautifyingEntry ? "wand.and.rays" : "wand.and.stars")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 42, height: 42)
+                        .background(.white.opacity(0.14), in: Circle())
+                }
+                .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isBeautifyingEntry)
+                .opacity(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
+                .accessibilityLabel("Переписать наблюдение красивее")
+            }
+            .padding(16)
+            .background(
+                isTextEditorFocused ? .white.opacity(0.16) : .white.opacity(0.11),
+                in: RoundedRectangle(cornerRadius: 16)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(isTextEditorFocused ? .white.opacity(0.24) : .white.opacity(0.08), lineWidth: 1)
+            )
 
             Button {
                 addEntry()
@@ -298,6 +327,22 @@ struct JournalView: View {
         }
     }
 
+    private func beautifyEntry() {
+        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty, !isBeautifyingEntry else { return }
+
+        isTextEditorFocused = false
+        isBeautifyingEntry = true
+
+        Task {
+            let polished = await creationAssistantService.polishedIntention(clean, feeling: "")
+            await MainActor.run {
+                if let polished { text = polished }
+                isBeautifyingEntry = false
+            }
+        }
+    }
+
     private var promptView: some View {
         HStack(alignment: .top, spacing: 8) {
             if isLoadingAIPrompt {
@@ -382,6 +427,14 @@ struct JournalView: View {
                 withAnimation(.easeOut(duration: 2.4)) {
                     aiPromptGlowAmount = 0
                 }
+            }
+        }
+    }
+
+    private func scrollEntryFieldIntoView(_ scrollProxy: ScrollViewProxy) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            withAnimation(.easeInOut(duration: 0.24)) {
+                scrollProxy.scrollTo("journal-entry-field", anchor: .bottom)
             }
         }
     }

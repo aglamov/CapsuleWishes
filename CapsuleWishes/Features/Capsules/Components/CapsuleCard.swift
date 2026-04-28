@@ -10,10 +10,13 @@ import SwiftUI
 struct CapsuleCard: View {
     let capsule: WishCapsule
     var isHighlighted = false
+    var refreshDate = Date()
 
     var body: some View {
+        let _ = refreshDate
+
         HStack(spacing: 16) {
-            CapsuleOrbView(capsule: capsule, size: 72)
+            CapsuleOrbView(capsule: capsule, size: 72, refreshDate: refreshDate)
                 .opacity(capsule.hasBeenOpened ? 0.58 : 1)
 
             VStack(alignment: .leading, spacing: 6) {
