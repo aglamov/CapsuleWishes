@@ -22,16 +22,19 @@ struct CapsuleDetailView: View {
     @State private var isShowingDeleteConfirmation = false
     @State private var openingStage: CapsuleOpeningStage = .idle
     @State private var openingTask: Task<Void, Never>?
-    @State private var aiEntryPrompt: String?
+    @State private var entryPromptText: String?
+    @State private var entryPromptPresentationID = UUID()
     @State private var isLoadingAIEntryPrompt = false
     @State private var aiEntryPromptGlowAmount = 0.0
     @State private var aiEntryPromptGlowTask: Task<Void, Never>?
+    @State private var isBeautifyingEntry = false
     @State private var selectedFutureLetterSignal: NotificationSignal?
     @State private var isShowingSealingFortune = false
     @State private var didAutoScrollToEntryPanel = false
     @FocusState private var isEntryFieldFocused: Bool
 
     private let aiWishPromptService = AIWishPromptService()
+    private let creationAssistantService = WishCreationAssistantService()
 
     private var entries: [JournalEntry] {
         allEntries.filter { $0.capsuleID == capsule.id }
@@ -44,12 +47,16 @@ struct CapsuleDetailView: View {
             .first
     }
 
-    private var currentEntryPrompt: String {
-        aiEntryPrompt ?? WishPromptLibrary.prompt(
+    private var fallbackEntryPrompt: String {
+        WishPromptLibrary.prompt(
             for: selectedEntryType,
             capsule: capsule,
             recentEntries: entries
         )
+    }
+
+    private var currentEntryPrompt: String {
+        entryPromptText ?? fallbackEntryPrompt
     }
 
     private var promptRequestKey: String {
@@ -141,11 +148,6 @@ struct CapsuleDetailView: View {
                             isShowingSealingFortune = true
                         }
                         .opacity(focusOpacity)
-
-                        if let futureLetterSignal {
-                            futureLetterPanel(futureLetterSignal)
-                                .opacity(focusOpacity)
-                        }
 
                         if showsOpeningPanel {
                             OpeningPanel(isOpening: isOpeningPending) { status in
@@ -265,13 +267,29 @@ struct CapsuleDetailView: View {
 
             promptView
 
-            TextField("Запиши коротко, как есть", text: $entryText, axis: .vertical)
-                .lineLimit(3...6)
-                .textFieldStyle(.plain)
-                .padding(14)
-                .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
-                .foregroundStyle(.white)
-                .focused($isEntryFieldFocused)
+            HStack(alignment: .top, spacing: 10) {
+                TextField("Запиши коротко, как есть", text: $entryText, axis: .vertical)
+                    .lineLimit(3...6)
+                    .textFieldStyle(.plain)
+                    .foregroundStyle(.white)
+                    .focused($isEntryFieldFocused)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button {
+                    beautifyEntry()
+                } label: {
+                    Image(systemName: isBeautifyingEntry ? "wand.and.rays" : "wand.and.stars")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 42, height: 42)
+                        .background(.white.opacity(0.14), in: Circle())
+                }
+                .disabled(entryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isBeautifyingEntry)
+                .opacity(entryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
+                .accessibilityLabel("Переписать наблюдение красивее")
+            }
+            .padding(14)
+            .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
 
             Button {
                 addEntry()
@@ -310,62 +328,75 @@ struct CapsuleDetailView: View {
         )
     }
 
-    private func futureLetterPanel(_ signal: NotificationSignal) -> some View {
-        Button {
-            selectedFutureLetterSignal = signal
-        } label: {
-            HStack(spacing: 14) {
-                Image(systemName: "envelope.open.fill")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .background(.white.opacity(0.12), in: Circle())
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Письмо из будущего")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-
-                    Text("Открыть")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.62))
-                }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.white.opacity(0.42))
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 18))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18)
-                    .stroke(.white.opacity(0.14), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
     private var entriesPanel: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Следы вокруг желания")
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            if entries.isEmpty {
+            if entries.isEmpty && futureLetterSignal == nil {
                 Text("Здесь появятся странности, маленькие радости и шаги, которые будут собираться вокруг капсулы.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.64))
                     .fixedSize(horizontal: false, vertical: true)
             } else {
+                if let futureLetterSignal {
+                    futureLetterTimelineRow(futureLetterSignal)
+                }
+
                 ForEach(entries) { entry in
                     JournalEntryRow(entry: entry)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func futureLetterTimelineRow(_ signal: NotificationSignal) -> some View {
+        Button {
+            selectedFutureLetterSignal = signal
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "envelope.open.fill")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .frame(width: 32, height: 32)
+                    .background(.white.opacity(0.16), in: RoundedRectangle(cornerRadius: 10))
+                    .shadow(color: Color(hex: capsule.colorHex).opacity(0.38), radius: 10)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Письмо из будущего")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
+
+                        Spacer(minLength: 8)
+
+                        Text(signal.scheduledAt.formatted(date: .abbreviated, time: .shortened))
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.48))
+                    }
+
+                    Text("Открыть послание, которое пришло по пути к желанию")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.76))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.38))
+                    .padding(.top, 8)
+            }
+            .padding(14)
+            .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color(hex: capsule.colorHex).opacity(0.22), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Открыть письмо из будущего")
     }
 
     private func addEntry() {
@@ -406,6 +437,9 @@ struct CapsuleDetailView: View {
                 .font(.footnote)
                 .foregroundStyle(.white.opacity(0.76 + aiEntryPromptGlowAmount * 0.24))
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .id(isLoadingAIEntryPrompt ? "loading" : entryPromptPresentationID.uuidString)
+                .transition(.opacity.combined(with: .scale(scale: 0.985, anchor: .leading)))
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 2)
@@ -416,15 +450,17 @@ struct CapsuleDetailView: View {
 
     @MainActor
     private func refreshAIEntryPrompt() async {
-        aiEntryPrompt = nil
+        let libraryPrompt = fallbackEntryPrompt
+        entryPromptText = nil
 
         guard aiWishPromptService.isAvailable else {
             isLoadingAIEntryPrompt = false
+            presentEntryPrompt(libraryPrompt)
             return
         }
 
         isLoadingAIEntryPrompt = true
-        var shouldGlow = false
+        var resolvedPrompt = libraryPrompt
         do {
             let prompt = try await aiWishPromptService.prompt(
                 for: selectedEntryType,
@@ -432,22 +468,29 @@ struct CapsuleDetailView: View {
                 recentEntries: entries
             )
             try Task.checkCancellation()
-            aiEntryPrompt = prompt
-            shouldGlow = true
+            if let prompt {
+                resolvedPrompt = prompt
+            }
         } catch is CancellationError {
             isLoadingAIEntryPrompt = false
             return
         } catch {
             AppLog.ai.error("OpenAI capsule prompt fallback: \(error.localizedDescription, privacy: .public)")
-            aiEntryPrompt = nil
-            shouldGlow = true
+            resolvedPrompt = libraryPrompt
         }
 
-        isLoadingAIEntryPrompt = false
+        presentEntryPrompt(resolvedPrompt)
+    }
 
-        if shouldGlow {
-            glowEntryPrompt()
+    @MainActor
+    private func presentEntryPrompt(_ prompt: String) {
+        withAnimation(.easeInOut(duration: 0.28)) {
+            isLoadingAIEntryPrompt = false
+            entryPromptText = prompt
+            entryPromptPresentationID = UUID()
         }
+
+        glowEntryPrompt()
     }
 
     @MainActor
@@ -465,6 +508,22 @@ struct CapsuleDetailView: View {
                 withAnimation(.easeOut(duration: 2.4)) {
                     aiEntryPromptGlowAmount = 0
                 }
+            }
+        }
+    }
+
+    private func beautifyEntry() {
+        let clean = entryText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty, !isBeautifyingEntry else { return }
+
+        isEntryFieldFocused = false
+        isBeautifyingEntry = true
+
+        Task {
+            let polished = await creationAssistantService.polishedIntention(clean, feeling: "")
+            await MainActor.run {
+                if let polished { entryText = polished }
+                isBeautifyingEntry = false
             }
         }
     }

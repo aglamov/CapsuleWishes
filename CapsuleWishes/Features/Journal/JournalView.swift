@@ -16,7 +16,8 @@ struct JournalView: View {
     @State private var selectedType: JournalEntryType = .sign
     @State private var selectedCapsuleID: UUID?
     @State private var text = ""
-    @State private var aiPrompt: String?
+    @State private var promptText: String?
+    @State private var promptPresentationID = UUID()
     @State private var isIntroExpanded = false
     @State private var isLoadingAIPrompt = false
     @State private var aiPromptGlowAmount = 0.0
@@ -39,12 +40,16 @@ struct JournalView: View {
         return entries.filter { $0.capsuleID == selectedCapsuleID }
     }
 
-    private var currentPrompt: String {
-        aiPrompt ?? WishPromptLibrary.prompt(
+    private var fallbackPrompt: String {
+        WishPromptLibrary.prompt(
             for: selectedType,
             capsule: selectedCapsule,
             recentEntries: selectedCapsuleEntries
         )
+    }
+
+    private var currentPrompt: String {
+        promptText ?? fallbackPrompt
     }
 
     private var promptRequestKey: String {
@@ -306,6 +311,9 @@ struct JournalView: View {
                 .font(.footnote)
                 .foregroundStyle(.white.opacity(0.76 + aiPromptGlowAmount * 0.24))
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .id(isLoadingAIPrompt ? "loading" : promptPresentationID.uuidString)
+                .transition(.opacity.combined(with: .scale(scale: 0.985, anchor: .leading)))
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 2)
@@ -316,15 +324,17 @@ struct JournalView: View {
 
     @MainActor
     private func refreshAIPrompt() async {
-        aiPrompt = nil
+        let libraryPrompt = fallbackPrompt
+        promptText = nil
 
         guard aiWishPromptService.isAvailable, let selectedCapsule else {
             isLoadingAIPrompt = false
+            presentPrompt(libraryPrompt)
             return
         }
 
         isLoadingAIPrompt = true
-        var shouldGlow = false
+        var resolvedPrompt = libraryPrompt
         do {
             let prompt = try await aiWishPromptService.prompt(
                 for: selectedType,
@@ -332,22 +342,29 @@ struct JournalView: View {
                 recentEntries: selectedCapsuleEntries
             )
             try Task.checkCancellation()
-            aiPrompt = prompt
-            shouldGlow = true
+            if let prompt {
+                resolvedPrompt = prompt
+            }
         } catch is CancellationError {
             isLoadingAIPrompt = false
             return
         } catch {
             AppLog.ai.error("OpenAI journal prompt fallback: \(error.localizedDescription, privacy: .public)")
-            aiPrompt = nil
-            shouldGlow = true
+            resolvedPrompt = libraryPrompt
         }
 
-        isLoadingAIPrompt = false
+        presentPrompt(resolvedPrompt)
+    }
 
-        if shouldGlow {
-            glowPrompt()
+    @MainActor
+    private func presentPrompt(_ prompt: String) {
+        withAnimation(.easeInOut(duration: 0.28)) {
+            isLoadingAIPrompt = false
+            promptText = prompt
+            promptPresentationID = UUID()
         }
+
+        glowPrompt()
     }
 
     @MainActor
