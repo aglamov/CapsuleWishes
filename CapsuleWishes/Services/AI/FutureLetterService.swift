@@ -30,16 +30,16 @@ struct FutureLetterService {
 
                 switch decision {
                 case .create(let draft):
-                    AppLog.ai.debug("Future letter created by OpenAI: reason=\(draft.reason, privacy: .public), scheduledAt=\(draft.scheduledAt.formatted(date: .abbreviated, time: .shortened), privacy: .public)")
+                    AppLog.ai.debug("Future letter created by AI backend: reason=\(draft.reason, privacy: .public), scheduledAt=\(draft.scheduledAt.formatted(date: .abbreviated, time: .shortened), privacy: .public)")
                     return draft
                 case .skip(let reason):
-                    AppLog.ai.debug("Future letter skipped by OpenAI: reason=\(reason, privacy: .public)")
+                    AppLog.ai.debug("Future letter skipped by AI backend: reason=\(reason, privacy: .public)")
                     return nil
                 case .malformed:
-                    AppLog.ai.debug("Future letter OpenAI response malformed; using local fallback")
+                    AppLog.ai.debug("Future letter AI backend response malformed; using local fallback")
                 }
             } catch {
-                AppLog.ai.error("OpenAI future letter fallback: \(error.localizedDescription, privacy: .public)")
+                AppLog.ai.error("AI backend future letter fallback: \(error.localizedDescription, privacy: .public)")
             }
         }
 
@@ -91,7 +91,7 @@ struct FutureLetterService {
         Важно: письмо нельзя датировать днем открытия; оно должно прийти раньше и поддержать путь к капсуле.
         """
 
-        AppLog.ai.debug("Future letter OpenAI request: daysUntilOpen=\(daysUntilOpen, privacy: .public)")
+        AppLog.ai.debug("Future letter AI backend request: daysUntilOpen=\(daysUntilOpen, privacy: .public)")
 
         let text = try await client.generateText(
             instructions: instructions,
@@ -99,7 +99,7 @@ struct FutureLetterService {
             maxOutputTokens: 520
         )
 
-        AppLog.ai.debug("Future letter OpenAI response received")
+        AppLog.ai.debug("Future letter AI backend response received")
 
         guard let response = FutureLetterAIResponse.decode(from: text) else {
             return .malformed

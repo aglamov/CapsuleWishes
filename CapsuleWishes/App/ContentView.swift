@@ -63,6 +63,11 @@ struct ContentView: View {
                 selectedTab = .capsules
             }
         }
+        .onChange(of: notificationRouteCenter.requestedJournalEntryType) { _, entryType in
+            if entryType != nil {
+                selectedTab = .journal
+            }
+        }
         .task(id: notificationSyncKey) {
             adaptMorningSignalTimeIfNeeded()
             await syncNotifications()

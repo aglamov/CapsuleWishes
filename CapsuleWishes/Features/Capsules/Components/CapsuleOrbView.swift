@@ -88,15 +88,16 @@ struct CapsuleOrbView: View {
                 } else if reduceMotion || freezesMotion {
                     Circle()
                         .stroke(color.opacity(0.42 * shellStrokeOpacity), lineWidth: max(size * 0.026, 2))
-                        .frame(width: currentCapsuleDiameter, height: currentCapsuleDiameter)
+                        .frame(width: wakeRingStartDiameter, height: wakeRingStartDiameter)
                         .blur(radius: size * 0.012)
                 } else {
                     TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
                         CapsuleOrbWakeRings(
                             color: color,
                             size: size,
-                            startDiameter: currentCapsuleDiameter,
-                            time: timeline.date.timeIntervalSince(openingPhaseStartedAt),
+                            startDiameter: wakeRingStartDiameter,
+                            maxDiameter: wakeRingMaxDiameter,
+                            time: timeline.date.timeIntervalSince(openingPhaseStartedAt) + wakeRingPhaseOffset,
                             intensity: wakeRingIntensity,
                             expansion: wakeRingExpansion,
                             softness: wakeRingSoftness,
@@ -281,7 +282,7 @@ struct CapsuleOrbView: View {
         case .afterglow:
             return 3.4
         default:
-            return 2.45
+            return 4.1
         }
     }
 
@@ -520,6 +521,25 @@ struct CapsuleOrbView: View {
 
     private var currentCapsuleDiameter: CGFloat {
         size * 1.25 * glowScale
+    }
+
+    private var wakeRingStartDiameter: CGFloat {
+        openingPhase.isActive ? currentCapsuleDiameter : size * 1.025
+    }
+
+    private var wakeRingMaxDiameter: CGFloat {
+        if openingPhase.isActive {
+            return wakeRingStartDiameter * (1.65 + CGFloat(wakeRingExpansion - 1) * 0.64)
+        }
+
+        return size * 1.68
+    }
+
+    private var wakeRingPhaseOffset: TimeInterval {
+        guard !openingPhase.isActive else { return 0 }
+
+        let scalarSum = capsule.id.uuidString.unicodeScalars.reduce(0) { $0 + Int($1.value) }
+        return Double(scalarSum % 1000) / 1000 * wakeRingDuration
     }
 
     private var wakeRingExpansion: Double {
@@ -899,6 +919,7 @@ private struct CapsuleOrbWakeRings: View {
     let color: Color
     let size: CGFloat
     let startDiameter: CGFloat
+    let maxDiameter: CGFloat
     let time: TimeInterval
     let intensity: Double
     let expansion: Double
@@ -914,14 +935,12 @@ private struct CapsuleOrbWakeRings: View {
                 Circle()
                     .stroke(color.opacity(ringOpacity(for: progress)), lineWidth: ringWidth(for: progress))
                     .frame(width: startDiameter, height: startDiameter)
-                    .scaleEffect(1 + CGFloat(progress) * 0.62 * CGFloat(expansion))
-                    .blur(radius: size * (0.006 + CGFloat(progress) * 0.020) * CGFloat(softness))
+                    .scaleEffect(ringScale(for: progress))
+                    .blur(radius: ringBlur(for: progress))
             }
         }
-        .frame(
-            width: startDiameter * (1.65 + CGFloat(expansion - 1) * 0.64),
-            height: startDiameter * (1.65 + CGFloat(expansion - 1) * 0.64)
-        )
+        .frame(width: maxDiameter, height: maxDiameter)
+        .clipShape(Circle())
     }
 
     private func ringProgress(for index: Int) -> Double {
@@ -931,12 +950,25 @@ private struct CapsuleOrbWakeRings: View {
     }
 
     private func ringOpacity(for progress: Double) -> Double {
-        let fadeIn = min(progress / 0.16, 1)
+        let fadeIn = min(0.62 + progress / 0.06, 1)
         let fadeOut = max(1 - progress, 0)
-        return 0.56 * intensity * fadeIn * pow(fadeOut, 1.55)
+        return 0.56 * intensity * fadeIn * pow(fadeOut, 1.78)
     }
 
     private func ringWidth(for progress: Double) -> CGFloat {
         max(size * (0.030 + CGFloat(softness - 1) * 0.010 - CGFloat(progress) * 0.010), 1.4)
+    }
+
+    private func ringScale(for progress: Double) -> CGFloat {
+        let requestedScale = 1 + CGFloat(progress) * 0.62 * CGFloat(expansion)
+        let inset = ringWidth(for: progress) + size * 0.018
+        let availableDiameter = max(maxDiameter - inset * 2, startDiameter)
+        let maximumScale = max(availableDiameter / startDiameter, 1)
+        return min(requestedScale, maximumScale)
+    }
+
+    private func ringBlur(for progress: Double) -> CGFloat {
+        let softProgress = CGFloat(progress * progress)
+        return size * (0.004 + softProgress * 0.060) * CGFloat(softness)
     }
 }

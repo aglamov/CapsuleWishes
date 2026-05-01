@@ -14,6 +14,7 @@ final class NotificationRouteCenter: ObservableObject {
     static let shared = NotificationRouteCenter()
 
     @Published var requestedCapsuleID: UUID?
+    @Published var requestedJournalEntryType: JournalEntryType?
 
     private init() { }
 
@@ -21,8 +22,16 @@ final class NotificationRouteCenter: ObservableObject {
         requestedCapsuleID = capsuleID
     }
 
+    func requestJournalEntry(_ type: JournalEntryType) {
+        requestedJournalEntryType = type
+    }
+
     func consumeCapsuleOpenRequest() {
         requestedCapsuleID = nil
+    }
+
+    func consumeJournalEntryRequest() {
+        requestedJournalEntryType = nil
     }
 }
 
@@ -47,7 +56,13 @@ final class AppNotificationDelegate: NSObject, UIApplicationDelegate, UNUserNoti
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        if let capsuleID = capsuleID(from: response.notification.request.content.userInfo) {
+        let userInfo = response.notification.request.content.userInfo
+
+        if signal(from: userInfo) == "morning_dream" {
+            Task { @MainActor in
+                NotificationRouteCenter.shared.requestJournalEntry(.dream)
+            }
+        } else if let capsuleID = capsuleID(from: userInfo) {
             Task { @MainActor in
                 NotificationRouteCenter.shared.requestCapsuleOpen(capsuleID)
             }
@@ -59,5 +74,9 @@ final class AppNotificationDelegate: NSObject, UIApplicationDelegate, UNUserNoti
     private func capsuleID(from userInfo: [AnyHashable: Any]) -> UUID? {
         guard let rawValue = userInfo["capsuleID"] as? String else { return nil }
         return UUID(uuidString: rawValue)
+    }
+
+    private func signal(from userInfo: [AnyHashable: Any]) -> String? {
+        userInfo["signal"] as? String
     }
 }

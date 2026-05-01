@@ -31,7 +31,7 @@ struct WishCreationAssistantService {
 
             return sanitized(text, fallback: Self.defaultWishPrompt)
         } catch {
-            AppLog.ai.error("OpenAI wish prompt fallback: \(error.localizedDescription, privacy: .public)")
+            AppLog.ai.error("AI backend wish prompt fallback: \(error.localizedDescription, privacy: .public)")
             return Self.fallbackWishPrompts.randomElement() ?? Self.defaultWishPrompt
         }
     }
@@ -59,7 +59,7 @@ struct WishCreationAssistantService {
 
             return sanitized(text, fallback: fallbackFeelingPrompt(for: cleanIntention))
         } catch {
-            AppLog.ai.error("OpenAI feeling prompt fallback: \(error.localizedDescription, privacy: .public)")
+            AppLog.ai.error("AI backend feeling prompt fallback: \(error.localizedDescription, privacy: .public)")
             return fallbackFeelingPrompt(for: cleanIntention)
         }
     }
@@ -86,7 +86,7 @@ struct WishCreationAssistantService {
 
             return sanitizedOptional(text)
         } catch {
-            AppLog.ai.error("OpenAI intention polish failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.ai.error("AI backend intention polish failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -113,7 +113,7 @@ struct WishCreationAssistantService {
 
             return twoWordTitle(from: sanitized(text, fallback: fallback), fallback: fallback)
         } catch {
-            AppLog.ai.error("OpenAI capsule title fallback: \(error.localizedDescription, privacy: .public)")
+            AppLog.ai.error("AI backend capsule title fallback: \(error.localizedDescription, privacy: .public)")
             return fallback
         }
     }

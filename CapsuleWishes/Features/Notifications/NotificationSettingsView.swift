@@ -229,7 +229,7 @@ struct NotificationSettingsView: View {
                     .font(.headline)
                     .foregroundStyle(.white)
 
-                Text("Когда включено, подсказки и письма могут создаваться через OpenAI. В OpenAI отправляются только данные из этого приложения, нужные для выбранной функции, и ничего более.")
+                Text("Когда включено, подсказки и письма могут создаваться через защищенный сервер приложения. Отправляются только данные, нужные для выбранной функции, и ничего более.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.66))
                     .fixedSize(horizontal: false, vertical: true)

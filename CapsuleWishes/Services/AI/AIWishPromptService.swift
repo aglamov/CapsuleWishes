@@ -18,7 +18,7 @@ struct AIWishPromptService {
         recentEntries: [JournalEntry]
     ) async throws -> String? {
         guard let configuration = OpenAIConfiguration.current else {
-            AppLog.ai.debug("OpenAI prompt skipped: client is unavailable")
+            AppLog.ai.debug("AI backend prompt skipped: client is unavailable")
             return nil
         }
 
@@ -43,7 +43,7 @@ struct AIWishPromptService {
         \(recentEntries.prefix(6).map { "- \($0.type.title): \($0.text)" }.joined(separator: "\n"))
         """
 
-        AppLog.ai.debug("OpenAI prompt request: type=\(entryType.rawValue, privacy: .public), recentEntries=\(recentEntries.count, privacy: .public)")
+        AppLog.ai.debug("AI backend prompt request: type=\(entryType.rawValue, privacy: .public), recentEntries=\(recentEntries.count, privacy: .public)")
 
         let text = try await client.generateText(
             instructions: instructions,

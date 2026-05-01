@@ -236,3 +236,10 @@ AI should not:
 - create dependency through authoritative predictions.
 
 The app should frame AI suggestions as reflections, never as truth.
+
+Implementation boundary:
+
+- the iOS app must not contain provider API keys or call model providers directly;
+- `CAPSULE_WISHES_AI_ENDPOINT` may point to an HTTPS app-owned backend route, because the URL is not a secret;
+- the backend owns provider credentials, model selection, rate limits, request validation, and logging policy;
+- the current client sends `instructions`, `input`, and `max_output_tokens`, and accepts either `{ "text": "..." }`, `{ "output_text": "..." }`, or an OpenAI-style `output` envelope.

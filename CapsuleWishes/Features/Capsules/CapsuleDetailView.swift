@@ -503,7 +503,7 @@ struct CapsuleDetailView: View {
             isLoadingAIEntryPrompt = false
             return
         } catch {
-            AppLog.ai.error("OpenAI capsule prompt fallback: \(error.localizedDescription, privacy: .public)")
+            AppLog.ai.error("AI backend capsule prompt fallback: \(error.localizedDescription, privacy: .public)")
             resolvedPrompt = libraryPrompt
         }
 

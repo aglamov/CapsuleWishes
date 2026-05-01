@@ -10,6 +10,7 @@ import SwiftUI
 
 struct JournalView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var notificationRouteCenter: NotificationRouteCenter
     @AppStorage(AIUsagePreferences.enabledKey) private var aiFeaturesEnabled = false
     @Query(sort: \WishCapsule.createdAt, order: .reverse) private var capsules: [WishCapsule]
     @Query(sort: \JournalEntry.createdAt, order: .reverse) private var entries: [JournalEntry]
@@ -120,6 +121,14 @@ struct JournalView: View {
                     .onChange(of: text) { _, _ in
                         guard isTextEditorFocused else { return }
                         scrollEntryFieldIntoView(scrollProxy)
+                    }
+                    .onChange(of: notificationRouteCenter.requestedJournalEntryType) { _, entryType in
+                        guard let entryType else { return }
+                        openJournalEntryRequest(entryType, scrollProxy: scrollProxy)
+                    }
+                    .onAppear {
+                        guard let entryType = notificationRouteCenter.requestedJournalEntryType else { return }
+                        openJournalEntryRequest(entryType, scrollProxy: scrollProxy)
                     }
                 }
             }
@@ -327,6 +336,21 @@ struct JournalView: View {
         }
     }
 
+    private func openJournalEntryRequest(_ entryType: JournalEntryType, scrollProxy: ScrollViewProxy) {
+        withAnimation(.easeInOut(duration: 0.22)) {
+            selectedType = entryType
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(180))
+            withAnimation(.easeInOut(duration: 0.28)) {
+                scrollProxy.scrollTo("journal-entry-field", anchor: .center)
+            }
+            isTextEditorFocused = true
+            notificationRouteCenter.consumeJournalEntryRequest()
+        }
+    }
+
     private func beautifyEntry() {
         let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty, !isBeautifyingEntry else { return }
@@ -394,7 +418,7 @@ struct JournalView: View {
             isLoadingAIPrompt = false
             return
         } catch {
-            AppLog.ai.error("OpenAI journal prompt fallback: \(error.localizedDescription, privacy: .public)")
+            AppLog.ai.error("AI backend journal prompt fallback: \(error.localizedDescription, privacy: .public)")
             resolvedPrompt = libraryPrompt
         }
 

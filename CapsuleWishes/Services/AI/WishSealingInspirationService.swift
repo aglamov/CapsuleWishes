@@ -79,11 +79,11 @@ struct WishSealingInspirationService {
 
                 if let response = WishSealingAIResponse.decode(from: text),
                    let inspiration = inspiration(from: response) {
-                    AppLog.ai.debug("Wish sealing inspiration created by OpenAI")
+                    AppLog.ai.debug("Wish sealing inspiration created by AI backend")
                     return inspiration
                 }
             } catch {
-                AppLog.ai.error("OpenAI sealing inspiration fallback: \(error.localizedDescription, privacy: .public)")
+                AppLog.ai.error("AI backend sealing inspiration fallback: \(error.localizedDescription, privacy: .public)")
             }
         }
 
@@ -143,7 +143,7 @@ struct WishSealingInspirationService {
         \(formattedJournalEntries(context.journalEntries))
         """
 
-        AppLog.ai.debug("Wish sealing inspiration OpenAI request")
+        AppLog.ai.debug("Wish sealing inspiration AI backend request")
 
         return try await client.generateText(
             instructions: instructions,
