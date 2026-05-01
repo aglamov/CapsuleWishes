@@ -164,6 +164,7 @@ struct CapsuleDetailView: View {
                             capsule: capsule,
                             showsSealingFortuneButton: sealingFortuneText != nil
                         ) {
+                            AudioFeedbackService.shared.play(.letterOpen)
                             isShowingSealingFortune = true
                         }
                         .opacity(focusOpacity)
@@ -334,6 +335,7 @@ struct CapsuleDetailView: View {
                     .id("capsule-entry-field")
 
                 Button {
+                    AudioFeedbackService.shared.play(.softSelect)
                     beautifyEntry()
                 } label: {
                     Image(systemName: isBeautifyingEntry ? "wand.and.rays" : "wand.and.stars")
@@ -429,6 +431,7 @@ struct CapsuleDetailView: View {
 
     private func futureLetterTimelineRow(_ signal: NotificationSignal) -> some View {
         Button {
+            AudioFeedbackService.shared.play(.letterOpen)
             selectedFutureLetterSignal = signal
         } label: {
             HStack(alignment: .top, spacing: 12) {
@@ -478,6 +481,7 @@ struct CapsuleDetailView: View {
         let trimmed = entryText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
+        AudioFeedbackService.shared.play(.journalSave)
         withAnimation {
             let entry = JournalEntry(capsuleID: capsule.id, type: selectedEntryType, text: trimmed)
             modelContext.insert(entry)
@@ -645,11 +649,13 @@ struct CapsuleDetailView: View {
         isEntryFieldFocused = false
 
         if reduceMotion {
+            AudioFeedbackService.shared.play(.capsuleRelease)
             isLoadingOpeningReflection = true
             capsule.status = status
             capsule.openedAt = Date()
             CapsuleNotificationScheduler.shared.cancelSignals(for: capsule)
             isShowingOpeningReflectionOverlay = true
+            AudioFeedbackService.shared.play(.afterglow)
             return
         }
 
@@ -665,6 +671,7 @@ struct CapsuleDetailView: View {
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
+                AudioFeedbackService.shared.play(.capsuleAwaken)
                 withAnimation(.smooth(duration: 0.82)) {
                     openingStage = .awakening
                 }
@@ -674,6 +681,7 @@ struct CapsuleDetailView: View {
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
+                AudioFeedbackService.shared.play(.capsuleRelease)
                 withAnimation(.smooth(duration: 0.62)) {
                     openingStage = .release
                 }
@@ -694,6 +702,7 @@ struct CapsuleDetailView: View {
                 }
 
                 isShowingOpeningReflectionOverlay = true
+                AudioFeedbackService.shared.play(.afterglow)
             }
 
             await MainActor.run {

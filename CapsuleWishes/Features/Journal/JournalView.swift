@@ -176,6 +176,7 @@ struct JournalView: View {
                             type: type,
                             isSelected: selectedType == type
                         ) {
+                            AudioFeedbackService.shared.play(.softSelect)
                             withAnimation(.easeInOut(duration: 0.18)) {
                                 selectedType = type
                             }
@@ -197,6 +198,7 @@ struct JournalView: View {
                     .id("journal-entry-field")
 
                 Button {
+                    AudioFeedbackService.shared.play(.softSelect)
                     beautifyEntry()
                 } label: {
                     Image(systemName: isBeautifyingEntry ? "wand.and.rays" : "wand.and.stars")
@@ -281,11 +283,13 @@ struct JournalView: View {
 
             Menu {
                 Button("Без привязки") {
+                    AudioFeedbackService.shared.play(.softSelect)
                     selectedCapsuleID = nil
                 }
 
                 ForEach(activeCapsules) { capsule in
                     Button {
+                        AudioFeedbackService.shared.play(.softSelect)
                         selectedCapsuleID = capsule.id
                     } label: {
                         Text(capsule.title)
@@ -329,6 +333,7 @@ struct JournalView: View {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
+        AudioFeedbackService.shared.play(.journalSave)
         withAnimation {
             modelContext.insert(JournalEntry(capsuleID: selectedCapsule?.id, type: selectedType, text: trimmed))
             text = ""

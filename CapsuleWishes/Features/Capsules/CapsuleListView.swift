@@ -179,6 +179,7 @@ struct CapsuleListView: View {
     private func openCapsuleAfterPause(_ capsule: WishCapsule) {
         guard pendingNavigationTask == nil else { return }
 
+        AudioFeedbackService.shared.play(.softSelect)
         withAnimation(.easeInOut(duration: 0.38)) {
             highlightedCapsuleID = capsule.id
         }

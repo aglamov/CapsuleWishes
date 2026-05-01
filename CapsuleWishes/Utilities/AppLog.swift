@@ -10,5 +10,6 @@ import OSLog
 
 enum AppLog {
     static let ai = Logger(subsystem: Bundle.main.bundleIdentifier ?? "CapsuleWishes", category: "AI")
+    static let audio = Logger(subsystem: Bundle.main.bundleIdentifier ?? "CapsuleWishes", category: "Audio")
     static let notifications = Logger(subsystem: Bundle.main.bundleIdentifier ?? "CapsuleWishes", category: "Notifications")
 }

@@ -16,6 +16,7 @@ struct NotificationSettingsView: View {
     @AppStorage(NotificationPreferences.morningDreamSignalHourKey) private var morningDreamSignalHour = MorningSignalTime.defaultValue.hour
     @AppStorage(NotificationPreferences.morningDreamSignalMinuteKey) private var morningDreamSignalMinute = MorningSignalTime.defaultValue.minute
     @AppStorage(AIUsagePreferences.enabledKey) private var aiFeaturesEnabled = false
+    @AppStorage(AudioFeedbackPreferences.enabledKey) private var audioFeedbackEnabled = true
     @Query private var capsules: [WishCapsule]
     @Query(sort: \NotificationSignal.scheduledAt, order: .reverse) private var signals: [NotificationSignal]
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
@@ -49,6 +50,7 @@ struct NotificationSettingsView: View {
                         header
                         authorizationPanel
                         modePicker
+                        audioFeedbackToggle
                         aiUsageToggle
                         morningDreamsToggle
                         signalHistory
@@ -214,6 +216,28 @@ struct NotificationSettingsView: View {
                 }
             }
         }
+        .padding(18)
+        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(.white.opacity(0.12), lineWidth: 1)
+        )
+    }
+
+    private var audioFeedbackToggle: some View {
+        Toggle(isOn: $audioFeedbackEnabled) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Звуки ритуалов")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+
+                Text("Короткие мягкие отклики для запечатывания, открытия капсулы и сохранения записей.")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.66))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .tint(Color(hex: "7EE0B3"))
         .padding(18)
         .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
         .overlay(

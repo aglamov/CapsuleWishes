@@ -161,6 +161,7 @@ struct CreateCapsuleView: View {
             ) {
                 ForEach(CapsulePalette.options, id: \.hex) { option in
                     Button {
+                        AudioFeedbackService.shared.play(.softSelect)
                         selectedColor = option
                     } label: {
                         Circle()
@@ -192,6 +193,7 @@ struct CreateCapsuleView: View {
                 HStack(spacing: 10) {
                     ForEach(symbols) { symbol in
                         Button {
+                            AudioFeedbackService.shared.play(.softSelect)
                             selectedSymbol = symbol.systemName
                         } label: {
                             VStack(spacing: 6) {
@@ -297,6 +299,7 @@ struct CreateCapsuleView: View {
         sealingInspiration = nil
         generatedTitle = ""
         sealingStage = .gathering
+        AudioFeedbackService.shared.play(.capsuleGather)
         sealingTask?.cancel()
 
         sealingTask = Task {
@@ -304,6 +307,7 @@ struct CreateCapsuleView: View {
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
+                AudioFeedbackService.shared.play(.capsuleLaunch)
                 withAnimation(.smooth(duration: 0.90)) {
                     sealingStage = .launching
                 }
@@ -349,6 +353,7 @@ struct CreateCapsuleView: View {
                     planCheckpoints: inspiration.checkpoints
                 )
 
+                AudioFeedbackService.shared.play(.capsuleSeal)
                 withAnimation(.smooth(duration: 0.68)) {
                     sealingStage = .complete
                 }
@@ -439,6 +444,7 @@ struct CreateCapsuleView: View {
         let cleanIntention = intention.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanIntention.isEmpty, !isBeautifyingIntention else { return }
 
+        AudioFeedbackService.shared.play(.softSelect)
         isTextInputFocused = false
         isBeautifyingIntention = true
         beautifyTask?.cancel()
