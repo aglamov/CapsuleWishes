@@ -28,6 +28,8 @@ struct CapsuleDetailView: View {
     @State private var aiEntryPromptGlowAmount = 0.0
     @State private var aiEntryPromptGlowTask: Task<Void, Never>?
     @State private var isBeautifyingEntry = false
+    @State private var isLoadingOpeningReflection = false
+    @State private var isShowingOpeningReflectionOverlay = false
     @State private var selectedFutureLetterSignal: NotificationSignal?
     @State private var isShowingSealingFortune = false
     @State private var didAutoScrollToEntryPanel = false
@@ -35,6 +37,7 @@ struct CapsuleDetailView: View {
     @FocusState private var isEntryFieldFocused: Bool
 
     private let aiWishPromptService = AIWishPromptService()
+    private let openingReflectionService = OpeningReflectionService()
     private let creationAssistantService = WishCreationAssistantService()
     private let readinessTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
@@ -66,6 +69,16 @@ struct CapsuleDetailView: View {
             capsule.id.uuidString,
             selectedEntryType.rawValue,
             aiFeaturesEnabled.description,
+            entries.first?.id.uuidString ?? "empty",
+        ].joined(separator: "-")
+    }
+
+    private var openingReflectionRequestKey: String {
+        [
+            capsule.id.uuidString,
+            capsule.statusRawValue,
+            aiFeaturesEnabled.description,
+            capsule.openingReflectionText?.isEmpty == false ? "saved" : "empty",
             entries.first?.id.uuidString ?? "empty",
         ].joined(separator: "-")
     }
@@ -179,6 +192,8 @@ struct CapsuleDetailView: View {
                     .padding(.bottom, isEntryFieldFocused ? 170 : 32)
                     .opacity(didEnter ? 1 : 0)
                     .scaleEffect(didEnter ? 1 : 0.985)
+                    .blur(radius: isShowingOpeningReflectionOverlay ? 8 : 0)
+                    .opacity(isShowingOpeningReflectionOverlay ? 0.16 : 1)
                 }
                 .onAppear {
                     scrollToEntryPanelIfNeeded(scrollProxy)
@@ -191,6 +206,21 @@ struct CapsuleDetailView: View {
                     guard isEntryFieldFocused else { return }
                     scrollEntryFieldIntoView(scrollProxy)
                 }
+            }
+
+            if isShowingOpeningReflectionOverlay {
+                CapsuleOpeningReflectionOverlay(
+                    reflection: openedReflection,
+                    isLoading: isLoadingOpeningReflection && capsule.openingReflectionText?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false,
+                    capsuleTitle: capsule.title,
+                    colorHex: capsule.colorHex,
+                    symbol: capsule.symbol
+                ) {
+                    withAnimation(.smooth(duration: 0.36)) {
+                        isShowingOpeningReflectionOverlay = false
+                    }
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
         .onAppear {
@@ -237,6 +267,9 @@ struct CapsuleDetailView: View {
         .task(id: promptRequestKey) {
             await refreshAIEntryPrompt()
         }
+        .task(id: openingReflectionRequestKey) {
+            await generateOpeningReflectionIfNeeded()
+        }
         .onReceive(readinessTimer) { date in
             readinessRefreshDate = date
         }
@@ -267,6 +300,11 @@ struct CapsuleDetailView: View {
     private var sealingFortuneText: String? {
         let text = capsule.sealingFortuneText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return text.isEmpty ? nil : text
+    }
+
+    private var openedReflection: OpenedReflection {
+        let savedText = capsule.openingReflectionText?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return OpenedReflection(status: capsule.status, generatedMessage: savedText?.isEmpty == false ? savedText : nil)
     }
 
     private var addEntryPanel: some View {
@@ -329,15 +367,32 @@ struct CapsuleDetailView: View {
     }
 
     private var openedReflectionPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Капсула открыта", systemImage: "sparkles")
+        let reflection = openedReflection
+
+        return VStack(alignment: .leading, spacing: 12) {
+            Label(reflection.title, systemImage: reflection.symbolName)
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            Text("Ты уже сделал важную часть: сохранил желание, дал ему время и вернулся к нему внимательнее. Пусть то, что открылось сейчас, станет не итогом, а мягкой подсказкой для следующего шага.")
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.72))
-                .fixedSize(horizontal: false, vertical: true)
+            if isLoadingOpeningReflection && capsule.openingReflectionText?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .tint(.white)
+                        .controlSize(.regular)
+
+                    Text("Собираю итог этого желания...")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.72))
+                }
+                .padding(.vertical, 2)
+                .transition(.opacity)
+            } else {
+                Text(reflection.message)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.72))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .transition(.opacity.combined(with: .offset(y: 8)))
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
@@ -540,6 +595,35 @@ struct CapsuleDetailView: View {
         }
     }
 
+    @MainActor
+    private func generateOpeningReflectionIfNeeded() async {
+        guard capsule.status != .sealed else { return }
+        guard capsule.openingReflectionText?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false else { return }
+
+        isLoadingOpeningReflection = true
+        var resolvedText: String?
+        do {
+            if openingReflectionService.isAvailable {
+                resolvedText = try await openingReflectionService.reflection(
+                    for: capsule,
+                    status: capsule.status,
+                    entries: entries
+                )
+                try Task.checkCancellation()
+            }
+        } catch is CancellationError {
+            return
+        } catch {
+            AppLog.ai.error("AI backend opening reflection fallback: \(error.localizedDescription, privacy: .public)")
+        }
+
+        let fallbackText = OpenedReflection(status: capsule.status).message
+        withAnimation(.easeInOut(duration: 0.36)) {
+            capsule.openingReflectionText = resolvedText ?? fallbackText
+            isLoadingOpeningReflection = false
+        }
+    }
+
     private func beautifyEntry() {
         let clean = entryText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty, !isBeautifyingEntry else { return }
@@ -561,48 +645,41 @@ struct CapsuleDetailView: View {
         isEntryFieldFocused = false
 
         if reduceMotion {
+            isLoadingOpeningReflection = true
             capsule.status = status
             capsule.openedAt = Date()
             CapsuleNotificationScheduler.shared.cancelSignals(for: capsule)
+            isShowingOpeningReflectionOverlay = true
             return
         }
 
         openingStage = .centering
         openingTask?.cancel()
 
-        withAnimation(.easeInOut(duration: 0.88)) {
+        withAnimation(.easeInOut(duration: 0.34)) {
             scrollProxy.scrollTo("capsule-orb", anchor: .center)
         }
 
         openingTask = Task {
-            try? await Task.sleep(for: .milliseconds(900))
+            try? await Task.sleep(for: .milliseconds(360))
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                withAnimation(.smooth(duration: 2.0)) {
+                withAnimation(.smooth(duration: 0.82)) {
                     openingStage = .awakening
                 }
             }
 
-            try? await Task.sleep(for: .milliseconds(2000))
+            try? await Task.sleep(for: .milliseconds(820))
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                withAnimation(.smooth(duration: 5.1)) {
-                    openingStage = .tension
-                }
-            }
-
-            try? await Task.sleep(for: .milliseconds(5100))
-            guard !Task.isCancelled else { return }
-
-            await MainActor.run {
-                withAnimation(.smooth(duration: 0.78)) {
+                withAnimation(.smooth(duration: 0.62)) {
                     openingStage = .release
                 }
             }
 
-            try? await Task.sleep(for: .milliseconds(780))
+            try? await Task.sleep(for: .milliseconds(620))
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
@@ -610,26 +687,29 @@ struct CapsuleDetailView: View {
                 transaction.disablesAnimations = true
 
                 withTransaction(transaction) {
+                    isLoadingOpeningReflection = true
                     capsule.status = status
                     capsule.openedAt = Date()
                     CapsuleNotificationScheduler.shared.cancelSignals(for: capsule)
                 }
+
+                isShowingOpeningReflectionOverlay = true
             }
 
             await MainActor.run {
                 openingStage = .returning
             }
 
-            try? await Task.sleep(for: .milliseconds(80))
+            try? await Task.sleep(for: .milliseconds(60))
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                withAnimation(.smooth(duration: 1.20)) {
+                withAnimation(.smooth(duration: 0.62)) {
                     openingStage = .idle
                 }
             }
 
-            try? await Task.sleep(for: .milliseconds(1200))
+            try? await Task.sleep(for: .milliseconds(620))
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
@@ -657,10 +737,318 @@ struct CapsuleDetailView: View {
     }
 }
 
+private struct OpenedReflection {
+    let title: String
+    let message: String
+    let symbolName: String
+
+    init(status: CapsuleStatus, generatedMessage: String? = nil) {
+        switch status {
+        case .fulfilled:
+            title = "Желание сбылось"
+            message = generatedMessage ?? "Это желание дошло до берега. Отметь не только факт, но и путь: что помогло ему случиться, что внутри стало спокойнее, и какой маленький след ты хочешь взять с собой дальше."
+            symbolName = "sparkles"
+        case .unfolding:
+            title = "Желание еще сбывается"
+            message = generatedMessage ?? "Похоже, история не закрыта, а продолжает собираться. Капсула уже показала направление: можно вернуться к следам, заметить живые признаки и выбрать один следующий шаг без спешки."
+            symbolName = "leaf.fill"
+        case .changed:
+            title = "Желание сбылось иначе"
+            message = generatedMessage ?? "Иногда желание отвечает не тем предметом, а смыслом под ним. Посмотри, что изменилось в тебе, в обстоятельствах или в самом запросе: возможно, итог оказался точнее первоначальной формулировки."
+            symbolName = "wand.and.stars"
+        case .released:
+            title = "Желание не сбылось"
+            message = generatedMessage ?? "Это тоже честный итог. Желание было важным, даже если мир не сложился в его сторону. Можно поблагодарить его за то, что оно показало, и отпустить без долга продолжать хотеть."
+            symbolName = "hand.raised.fill"
+        case .opened:
+            title = "Капсула открыта"
+            message = generatedMessage ?? "Ты уже сделал важную часть: сохранил желание, дал ему время и вернулся к нему внимательнее. Пусть то, что открылось сейчас, станет не точкой, а мягкой подсказкой для следующего шага."
+            symbolName = "sparkles"
+        case .sealed:
+            title = "Капсула ждет открытия"
+            message = "Когда придет время, здесь появится итог желания."
+            symbolName = "lock.fill"
+        }
+    }
+}
+
+private struct OpeningReflectionService {
+    var isAvailable: Bool {
+        OpenAIConfiguration.current != nil
+    }
+
+    func reflection(
+        for capsule: WishCapsule,
+        status: CapsuleStatus,
+        entries: [JournalEntry]
+    ) async throws -> String? {
+        guard let configuration = OpenAIConfiguration.current else { return nil }
+
+        let client = OpenAIResponsesClient(configuration: configuration)
+        let instructions = """
+        Ты пишешь финальный текст после открытия капсулы желания в приложении CapsuleWishes.
+        Пользователь уже выбрал итог желания: сбылось, еще сбывается, сбылось иначе или не сбылось.
+
+        Задача: бережно подвести итог этому желанию, как будто человек вернулся к своему прошлому запросу и теперь закрывает или продолжает его с ясностью.
+
+        Стиль: русский язык, тепло, взросло, немного поэтично, конкретно к данным пользователя.
+        Нельзя: обещать исполнение, давать диагнозы, звучать как терапевт, стыдить, давить, использовать списки, заголовки, Markdown и кавычки.
+        Если желание не сбылось, не утешай пустыми фразами и не называй это провалом.
+        Если желание еще сбывается, не закрывай его как завершенное.
+        Если сбылось иначе, покажи, что смысл мог измениться.
+
+        Верни только один абзац, 45-75 слов.
+        """
+
+        let input = """
+        Итог желания: \(status.title)
+        Название желания: \(capsule.title)
+        Текст желания: \(capsule.intentionText)
+        Желаемое чувство: \(capsule.desiredFeeling)
+        Дата запечатывания: \(formatted(capsule.sealedAt))
+        Дата открытия: \(formatted(capsule.openedAt ?? Date()))
+
+        Последние записи вокруг желания:
+        \(entries.prefix(8).map { "- \($0.type.title): \($0.text)" }.joined(separator: "\n"))
+        """
+
+        AppLog.ai.debug("AI backend opening reflection request: status=\(status.rawValue, privacy: .public), entries=\(entries.count, privacy: .public)")
+
+        let text = try await client.generateText(
+            instructions: instructions,
+            input: input,
+            maxOutputTokens: 220
+        )
+
+        return sanitized(text)
+    }
+
+    private func sanitized(_ text: String) -> String? {
+        let trimmed = text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "\"“”"))
+
+        guard !trimmed.isEmpty else { return nil }
+        return trimmed
+    }
+
+    private func formatted(_ date: Date) -> String {
+        date.formatted(date: .complete, time: .shortened)
+    }
+}
+
+private struct CapsuleOpeningReflectionOverlay: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let reflection: OpenedReflection
+    let isLoading: Bool
+    let capsuleTitle: String
+    let colorHex: String
+    let symbol: String
+    let onDone: () -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                Color.black.opacity(0.24)
+                    .ignoresSafeArea()
+
+                if reduceMotion {
+                    staticStars(in: proxy.size)
+                } else {
+                    TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
+                        openingField(in: proxy.size, time: timeline.date.timeIntervalSinceReferenceDate)
+                    }
+                }
+
+                ScrollView(showsIndicators: !isLoading) {
+                    VStack(spacing: 22) {
+                        Spacer(minLength: 30)
+
+                        openingOrb
+
+                        VStack(spacing: 8) {
+                            Text(isLoading ? "Капсула слушает итог" : reflection.title)
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .multilineTextAlignment(.center)
+
+                            Text(capsuleTitle)
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.62))
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                        }
+                        .padding(.horizontal, 28)
+
+                        if isLoading {
+                            ProgressView()
+                                .tint(.white)
+                                .controlSize(.regular)
+                                .padding(.top, 6)
+
+                            Text("Собираю итог этого желания...")
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.68))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 28)
+                                .transition(.opacity)
+                        } else {
+                            Text(reflection.message)
+                                .font(.title3.weight(.medium))
+                                .lineSpacing(5)
+                                .multilineTextAlignment(.center)
+                                .foregroundStyle(.white)
+                                .minimumScaleFactor(0.86)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.horizontal, 26)
+                                .transition(.opacity.combined(with: .offset(y: 12)))
+
+                            Button {
+                                onDone()
+                            } label: {
+                                Label("Вернуться к капсуле", systemImage: "checkmark.circle.fill")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(PrimaryCapsuleButtonStyle())
+                            .padding(.horizontal, 26)
+                            .padding(.top, 4)
+                            .transition(.opacity.combined(with: .offset(y: 10)))
+                        }
+
+                        Spacer(minLength: 34)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: proxy.size.height)
+                }
+            }
+        }
+    }
+
+    private var openingOrb: some View {
+        let color = Color(hex: colorHex)
+
+        return ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            .white.opacity(isLoading ? 0.38 : 0.86),
+                            color.opacity(isLoading ? 0.48 : 0.58),
+                            .clear
+                        ],
+                        center: .center,
+                        startRadius: 2,
+                        endRadius: 168
+                    )
+                )
+                .frame(width: 260, height: 260)
+                .scaleEffect(isLoading ? 1.05 : 1.42)
+                .blur(radius: isLoading ? 10 : 18)
+                .blendMode(.screen)
+
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            .white.opacity(0.90),
+                            color.opacity(0.72),
+                            color.opacity(isLoading ? 0.18 : 0.08)
+                        ],
+                        center: .topLeading,
+                        startRadius: 8,
+                        endRadius: 96
+                    )
+                )
+                .frame(width: isLoading ? 132 : 154, height: isLoading ? 132 : 154)
+                .shadow(color: color.opacity(isLoading ? 0.62 : 0.82), radius: isLoading ? 26 : 34)
+                .overlay {
+                    Circle()
+                        .stroke(.white.opacity(0.42), lineWidth: 1)
+                }
+
+            Image(systemName: symbol)
+                .font(.system(size: 48, weight: .semibold))
+                .foregroundStyle(.white.opacity(isLoading ? 0.78 : 1))
+                .scaleEffect(isLoading ? 0.96 : 1.08)
+        }
+        .frame(width: 280, height: 280)
+        .scaleEffect(isLoading ? 1 : 1.05)
+    }
+
+    @ViewBuilder
+    private func openingField(in size: CGSize, time: TimeInterval) -> some View {
+        ForEach(0..<64, id: \.self) { index in
+            let particle = particle(index: index, time: time, in: size)
+
+            Circle()
+                .fill(.white.opacity(particle.opacity))
+                .frame(width: particle.size, height: particle.size)
+                .shadow(color: Color(hex: colorHex).opacity(particle.opacity), radius: particle.size * 2.4)
+                .position(particle.position)
+        }
+    }
+
+    @ViewBuilder
+    private func staticStars(in size: CGSize) -> some View {
+        ForEach(0..<40, id: \.self) { index in
+            Circle()
+                .fill(.white.opacity(0.18 + random(index, salt: 40) * 0.32))
+                .frame(width: 1.8 + random(index, salt: 41) * 3.2)
+                .position(
+                    x: size.width * random(index, salt: 42),
+                    y: size.height * random(index, salt: 43)
+                )
+        }
+    }
+
+    private func particle(index: Int, time: TimeInterval, in size: CGSize) -> OpeningParticle {
+        let center = CGPoint(x: size.width * 0.5, y: size.height * 0.34)
+        let baseAngle = random(index, salt: 1) * .pi * 2
+        let speed = 0.10 + random(index, salt: 2) * 0.24
+        let phase = time * speed + random(index, salt: 3) * .pi * 2
+        let orbit = CGFloat(48 + random(index, salt: 4) * 174)
+        let pulse = CGFloat((sin(phase * 2.0) + 1) * 0.5)
+        let bloom = isLoading ? CGFloat(0.82 + pulse * 0.16) : CGFloat(1.08 + pulse * 0.38)
+        let listeningDrift = isLoading ? CGFloat(sin(phase * 1.7)) * 18 : CGFloat(sin(phase * 1.2)) * 8
+
+        let position = CGPoint(
+            x: center.x + cos(baseAngle + phase) * orbit * bloom,
+            y: center.y + sin(baseAngle * 0.72 + phase) * orbit * 0.64 + listeningDrift
+        )
+        let opacity = (isLoading ? 0.14 : 0.20) + Double(pulse) * (isLoading ? 0.42 : 0.58)
+        let starSize = CGFloat(1.8 + random(index, salt: 5) * 4.8) * (isLoading ? 0.94 : 1.18)
+
+        return OpeningParticle(position: position, size: starSize, opacity: opacity)
+    }
+
+    private func random(_ index: Int, salt: Int) -> Double {
+        var value = UInt64(index &+ 1) &* 0x9E37_79B9_7F4A_7C15
+        value ^= UInt64(salt &+ 211) &* 0xBF58_476D_1CE4_E5B9
+        value ^= value >> 30
+        value &*= 0xBF58_476D_1CE4_E5B9
+        value ^= value >> 27
+        value &*= 0x94D0_49BB_1331_11EB
+        value ^= value >> 31
+
+        return Double(value & 0x00FF_FFFF) / Double(0x0100_0000)
+    }
+}
+
+private struct OpeningParticle {
+    let position: CGPoint
+    let size: CGFloat
+    let opacity: Double
+}
+
 private struct SealingFortuneReadingView: View {
     @Environment(\.dismiss) private var dismiss
     let text: String
     let sealedAt: Date
+
+    private var reading: SealingFortuneReading {
+        SealingFortuneReading(text: text)
+    }
 
     var body: some View {
         NavigationStack {
@@ -682,11 +1070,15 @@ private struct SealingFortuneReadingView: View {
                                 .foregroundStyle(.white)
                                 .fixedSize(horizontal: false, vertical: true)
 
-                            Text(text)
+                            Text(reading.message)
                                 .font(.title3)
                                 .lineSpacing(6)
                                 .foregroundStyle(.white.opacity(0.76))
                                 .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        if !reading.signs.isEmpty {
+                            planSignsView(reading.signs)
                         }
 
                         Text(sealedAt.formatted(date: .complete, time: .shortened))
@@ -708,6 +1100,90 @@ private struct SealingFortuneReadingView: View {
                 }
             }
         }
+    }
+
+    private func planSignsView(_ signs: [SealingFortunePlanSign]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Капсула оставила знаки на пути", systemImage: "bell.badge")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+
+            VStack(alignment: .leading, spacing: 9) {
+                ForEach(signs) { sign in
+                    HStack(alignment: .top, spacing: 8) {
+                        Circle()
+                            .fill(.white.opacity(0.72))
+                            .frame(width: 5, height: 5)
+                            .padding(.top, 7)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(sign.title)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+
+                            if !sign.message.isEmpty {
+                                Text(sign.message)
+                                    .font(.footnote)
+                                    .lineSpacing(3)
+                                    .foregroundStyle(.white.opacity(0.68))
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(.white.opacity(0.14), lineWidth: 1)
+        )
+    }
+}
+
+private struct SealingFortuneReading {
+    let message: String
+    let signs: [SealingFortunePlanSign]
+
+    init(text: String) {
+        let marker = "Капсула оставила знаки на пути:"
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard let markerRange = trimmedText.range(of: marker) else {
+            message = trimmedText
+            signs = []
+            return
+        }
+
+        message = String(trimmedText[..<markerRange.lowerBound])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let signsText = String(trimmedText[markerRange.upperBound...])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        signs = signsText
+            .components(separatedBy: "\n\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .map(SealingFortunePlanSign.init)
+    }
+}
+
+private struct SealingFortunePlanSign: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+
+    init(text: String) {
+        let lines = text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        title = lines.first ?? text
+        message = lines.dropFirst().joined(separator: "\n")
     }
 }
 

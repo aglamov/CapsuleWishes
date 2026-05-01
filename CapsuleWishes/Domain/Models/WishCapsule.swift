@@ -22,6 +22,7 @@ final class WishCapsule {
     var colorHex: String
     var symbol: String
     var sealingFortuneText: String?
+    var openingReflectionText: String?
 
     init(
         id: UUID = UUID(),
@@ -34,7 +35,8 @@ final class WishCapsule {
         status: CapsuleStatus = .sealed,
         colorHex: String,
         symbol: String,
-        sealingFortuneText: String? = nil
+        sealingFortuneText: String? = nil,
+        openingReflectionText: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -47,6 +49,7 @@ final class WishCapsule {
         self.colorHex = colorHex
         self.symbol = symbol
         self.sealingFortuneText = sealingFortuneText
+        self.openingReflectionText = openingReflectionText
     }
 
     var status: CapsuleStatus {

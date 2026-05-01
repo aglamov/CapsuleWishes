@@ -20,9 +20,9 @@ enum CapsuleStatus: String, Codable, CaseIterable {
         case .sealed: "Запечатана"
         case .opened: "Открыта"
         case .fulfilled: "Сбылось"
-        case .unfolding: "Сбывается"
-        case .changed: "Изменилось"
-        case .released: "Отпущено"
+        case .unfolding: "Еще сбывается"
+        case .changed: "Сбылось иначе"
+        case .released: "Не сбылось"
         }
     }
 }

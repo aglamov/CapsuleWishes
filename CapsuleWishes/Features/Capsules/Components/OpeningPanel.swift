@@ -17,16 +17,16 @@ struct OpeningPanel: View {
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            Text("Посмотри на исходное желание и выбери, что с ним произошло. Иногда исполнение выглядит иначе, чем мы представляли.")
+            Text("Посмотри на исходное желание и выбери честный итог. Иногда исполнение приходит точно, иногда меняет форму, а иногда просто освобождает место.")
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.68))
                 .fixedSize(horizontal: false, vertical: true)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 outcomeButton(.fulfilled, title: "Сбылось")
-                outcomeButton(.unfolding, title: "Сбывается")
-                outcomeButton(.changed, title: "Изменилось")
-                outcomeButton(.released, title: "Отпустить")
+                outcomeButton(.unfolding, title: "Еще сбывается")
+                outcomeButton(.changed, title: "Сбылось иначе")
+                outcomeButton(.released, title: "Не сбылось")
             }
         }
         .padding(18)
