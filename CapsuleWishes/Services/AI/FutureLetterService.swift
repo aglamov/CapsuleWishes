@@ -209,10 +209,7 @@ struct FutureLetterService {
         let normalizedDays = allowedDays.contains(requestedDays) ? requestedDays : fallbackSendAfterDays(for: capsule)
         let rawDate = calendar.date(byAdding: .day, value: normalizedDays, to: capsule.sealedAt) ?? capsule.sealedAt
 
-        var components = calendar.dateComponents([.year, .month, .day], from: rawDate)
-        components.hour = 19
-        components.minute = 30
-        var scheduled = calendar.date(from: components) ?? rawDate
+        var scheduled = resonantDate(on: rawDate, for: capsule, salt: "future-letter")
 
         if scheduled >= latestComfortableDate {
             scheduled = fallbackScheduledDateBeforeOpening(for: capsule, latestComfortableDate: latestComfortableDate)
@@ -236,12 +233,59 @@ struct FutureLetterService {
 
         let fallbackDays = fallbackSendAfterDays(for: capsule)
         let fallbackRawDate = calendar.date(byAdding: .day, value: fallbackDays, to: capsule.sealedAt) ?? capsule.sealedAt
-        var components = calendar.dateComponents([.year, .month, .day], from: fallbackRawDate)
-        components.hour = 19
-        components.minute = 30
-        let fallbackDate = calendar.date(from: components) ?? fallbackRawDate
+        let fallbackDate = resonantDate(on: fallbackRawDate, for: capsule, salt: "future-letter-fallback")
 
         return min(fallbackDate, latestComfortableDate)
+    }
+
+    private func resonantDate(on date: Date, for capsule: WishCapsule, salt: String) -> Date {
+        let day = calendar.startOfDay(for: date)
+        let startMinute = 11 * 60
+        let endMinute = 20 * 60 + 45
+        let minute = startMinute + stableMinuteOffset(
+            for: capsule,
+            on: day,
+            salt: salt,
+            availableMinutes: endMinute - startMinute
+        )
+
+        return calendar.date(
+            bySettingHour: minute / 60,
+            minute: minute % 60,
+            second: 0,
+            of: day
+        ) ?? date
+    }
+
+    private func stableMinuteOffset(
+        for capsule: WishCapsule,
+        on day: Date,
+        salt: String,
+        availableMinutes: Int
+    ) -> Int {
+        guard availableMinutes > 0 else { return 0 }
+
+        var seed: UInt64 = 1469598103934665603
+        let uuid = capsule.id.uuid
+        withUnsafeBytes(of: uuid) { bytes in
+            for byte in bytes {
+                seed ^= UInt64(byte)
+                seed &*= 1099511628211
+            }
+        }
+
+        for byte in salt.utf8 {
+            seed ^= UInt64(byte)
+            seed &*= 1099511628211
+        }
+
+        let components = calendar.dateComponents([.year, .month, .day], from: day)
+        for value in [components.year, components.month, components.day].compactMap(\.self) {
+            seed ^= UInt64(value)
+            seed &*= 1099511628211
+        }
+
+        return Int(seed % UInt64(availableMinutes + 1))
     }
 
     private func sanitizedLetter(_ text: String) -> String {

@@ -81,8 +81,8 @@ final class CapsuleNotificationScheduler {
         let spec = NotificationSignalSpec(
             id: Self.openIdentifier(for: capsule.id),
             kind: .capsuleOpen,
-            title: "Тебе пришло письмо из прошлого",
-            body: "Ты писал это себе. Пришло время прочитать.",
+            title: "Пора проверить желание",
+            body: "Капсула открылась. Посмотри, сбылось ли то, что ты загадал.",
             date: date,
             capsuleID: capsule.id,
             userInfo: ["capsuleID": capsule.id.uuidString, "signal": "capsule_open"]
@@ -181,8 +181,8 @@ final class CapsuleNotificationScheduler {
         return NotificationSignalSpec(
             id: Self.openIdentifier(for: capsule.id),
             kind: .capsuleOpen,
-            title: "Тебе пришло письмо из прошлого",
-            body: "Ты писал это себе. Пришло время прочитать.",
+            title: "Пора проверить желание",
+            body: "Капсула открылась. Посмотри, сбылось ли то, что ты загадал.",
             date: date,
             capsuleID: capsule.id,
             userInfo: ["capsuleID": capsule.id.uuidString, "signal": "capsule_open"]
@@ -259,7 +259,12 @@ final class CapsuleNotificationScheduler {
                 kind: .reactivation,
                 title: title,
                 body: body,
-                date: signalDate(on: date, hour: 19),
+                date: resonantDate(
+                    on: date,
+                    salt: "reactivation-\(day)",
+                    startMinute: 12 * 60,
+                    endMinute: 20 * 60 + 30
+                ),
                 capsuleID: nil,
                 userInfo: ["signal": "reactivation", "day": day]
             )
@@ -307,7 +312,13 @@ final class CapsuleNotificationScheduler {
                 kind: .capsuleSoon,
                 title: "Одна из твоих капсул скоро станет ближе",
                 body: "Время уже почти донесло её до тебя.",
-                date: signalDate(on: soonDate, hour: 18),
+                date: resonantDate(
+                    on: soonDate,
+                    capsule: capsule,
+                    salt: "capsule-soon",
+                    startMinute: 12 * 60,
+                    endMinute: 20 * 60
+                ),
                 capsuleID: capsule.id,
                 userInfo: ["capsuleID": capsule.id.uuidString, "signal": "capsule_soon"]
             ))
@@ -324,7 +335,13 @@ final class CapsuleNotificationScheduler {
             kind: .capsuleRevisit,
             title: "Иногда полезно перечитать себя",
             body: "Что в этом желании сегодня звучит иначе?",
-            date: signalDate(on: revisitDate, hour: 19),
+            date: resonantDate(
+                on: revisitDate,
+                capsule: capsule,
+                salt: "capsule-revisit",
+                startMinute: 10 * 60 + 30,
+                endMinute: 20 * 60 + 30
+            ),
             capsuleID: capsule.id,
             userInfo: ["capsuleID": capsule.id.uuidString, "signal": "capsule_revisit"]
         ))
@@ -343,7 +360,13 @@ final class CapsuleNotificationScheduler {
 
         let latestAllowedDate = calendar.date(byAdding: .hour, value: -2, to: capsule.openAt) ?? capsule.openAt
         let scheduledDate = min(rawDate, latestAllowedDate)
-        let preferredDate = signalDate(on: scheduledDate, hour: 19)
+        let preferredDate = resonantDate(
+            on: scheduledDate,
+            capsule: capsule,
+            salt: "plan-checkpoint-\(index)",
+            startMinute: 11 * 60,
+            endMinute: 20 * 60 + 45
+        )
         let finalDate = preferredDate < latestAllowedDate ? preferredDate : scheduledDate
         guard finalDate > Date(), finalDate < capsule.openAt else { return nil }
 
@@ -461,11 +484,61 @@ final class CapsuleNotificationScheduler {
         }
     }
 
-    private func signalDate(on date: Date, hour: Int) -> Date {
-        var components = calendar.dateComponents([.year, .month, .day], from: date)
-        components.hour = hour
-        components.minute = 0
-        return calendar.date(from: components) ?? date
+    private func resonantDate(
+        on date: Date,
+        capsule: WishCapsule? = nil,
+        salt: String,
+        startMinute: Int,
+        endMinute: Int
+    ) -> Date {
+        let day = calendar.startOfDay(for: date)
+        let safeStartMinute = min(startMinute, endMinute)
+        let minute = safeStartMinute + stableMinuteOffset(
+            capsuleID: capsule?.id,
+            on: day,
+            salt: salt,
+            availableMinutes: endMinute - safeStartMinute
+        )
+
+        return calendar.date(
+            bySettingHour: minute / 60,
+            minute: minute % 60,
+            second: 0,
+            of: day
+        ) ?? date
+    }
+
+    private func stableMinuteOffset(
+        capsuleID: UUID?,
+        on day: Date,
+        salt: String,
+        availableMinutes: Int
+    ) -> Int {
+        guard availableMinutes > 0 else { return 0 }
+
+        var seed: UInt64 = 1469598103934665603
+        if let capsuleID {
+            var uuid = capsuleID.uuid
+            withUnsafeBytes(of: &uuid) { bytes in
+                for byte in bytes {
+                    seed ^= UInt64(byte)
+                    seed &*= 1099511628211
+                }
+            }
+        }
+
+        for byte in salt.utf8 {
+            seed ^= UInt64(byte)
+            seed &*= 1099511628211
+        }
+
+        let components = calendar.dateComponents([.year, .month, .day], from: day)
+        for value in [components.year, components.month, components.day].compactMap(\.self) {
+            seed ^= UInt64(value)
+            seed &*= 1099511628211
+        }
+
+        return Int(seed % UInt64(availableMinutes + 1))
     }
 
     private func managedIdentifiers(for capsules: [WishCapsule]) -> [String] {
