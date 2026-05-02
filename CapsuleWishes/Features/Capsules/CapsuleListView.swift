@@ -46,7 +46,7 @@ struct CapsuleListView: View {
                                 }
                             } else {
                                 VStack(spacing: 18) {
-                                    capsuleSection(activeCapsules)
+                                    capsuleSection(activeCapsules, showsConstellationThreads: true)
 
                                     if !openedCapsules.isEmpty {
                                         openedCapsulesDivider
@@ -112,9 +112,9 @@ struct CapsuleListView: View {
         }
     }
 
-    private func capsuleSection(_ sectionCapsules: [WishCapsule]) -> some View {
-        VStack(spacing: 16) {
-            ForEach(sectionCapsules) { capsule in
+    private func capsuleSection(_ sectionCapsules: [WishCapsule], showsConstellationThreads: Bool = false) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(sectionCapsules.enumerated()), id: \.element.id) { index, capsule in
                 Button {
                     openCapsuleAfterPause(capsule)
                 } label: {
@@ -126,6 +126,19 @@ struct CapsuleListView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(pendingNavigationTask != nil)
+
+                if showsConstellationThreads, index < sectionCapsules.count - 1 {
+                    CapsuleConstellationThread(
+                        fromColor: Color(hex: capsule.colorHex),
+                        toColor: Color(hex: sectionCapsules[index + 1].colorHex)
+                    )
+                    .frame(height: 16)
+                    .padding(.horizontal, 28)
+                    .opacity(capsule.hasBeenOpened ? 0.18 : 1)
+                } else if index < sectionCapsules.count - 1 {
+                    Spacer()
+                        .frame(height: 16)
+                }
             }
         }
     }
@@ -233,5 +246,61 @@ struct CapsuleListView: View {
         highlightedCapsuleID = nil
         selectedCapsule = capsule
         notificationRouteCenter.consumeCapsuleOpenRequest()
+    }
+}
+
+private struct CapsuleConstellationThread: View {
+    let fromColor: Color
+    let toColor: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            let startX = threadX(in: proxy.size.width)
+            let endX = threadX(in: proxy.size.width)
+
+            Canvas { context, size in
+                var path = Path()
+                path.move(to: CGPoint(x: startX, y: 0))
+                path.addCurve(
+                    to: CGPoint(x: endX, y: size.height),
+                    control1: CGPoint(x: startX + 18, y: size.height * 0.28),
+                    control2: CGPoint(x: endX - 18, y: size.height * 0.72)
+                )
+
+                context.stroke(
+                    path,
+                    with: .linearGradient(
+                        Gradient(colors: [
+                            fromColor.opacity(0.52),
+                            Color(hex: "FFE3AD").opacity(0.34),
+                            toColor.opacity(0.46)
+                        ]),
+                        startPoint: CGPoint(x: startX, y: 0),
+                        endPoint: CGPoint(x: endX, y: size.height)
+                    ),
+                    style: StrokeStyle(lineWidth: 1.2, lineCap: .round)
+                )
+
+                for sparkle in sparklePoints(startX: startX, endX: endX, height: size.height) {
+                    context.fill(
+                        Path(ellipseIn: CGRect(x: sparkle.x - 1.4, y: sparkle.y - 1.4, width: 2.8, height: 2.8)),
+                        with: .color(.white.opacity(0.34))
+                    )
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private func threadX(in width: CGFloat) -> CGFloat {
+        min(max(33, 24), max(width - 24, 24))
+    }
+
+    private func sparklePoints(startX: CGFloat, endX: CGFloat, height: CGFloat) -> [CGPoint] {
+        [
+            CGPoint(x: startX + (endX - startX) * 0.35, y: height * 0.38),
+            CGPoint(x: startX + (endX - startX) * 0.70, y: height * 0.66)
+        ]
     }
 }

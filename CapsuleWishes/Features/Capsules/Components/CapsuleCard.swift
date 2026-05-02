@@ -20,32 +20,16 @@ struct CapsuleCard: View {
             timeRingOrb(accentColor: accentColor)
 
             VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(capsule.title)
-                        .font(.headline)
-                        .foregroundStyle(titleColor)
-                        .lineLimit(2)
-
-                    if let statusBadge {
-                        Text(statusBadge)
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(badgeTextColor)
-                            .lineLimit(1)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(badgeBackground(accentColor), in: Capsule())
-                            .overlay {
-                                Capsule()
-                                    .stroke(.white.opacity(capsule.isReadyToOpen ? 0.24 : 0.14), lineWidth: 1)
-                            }
-                            .fixedSize()
-                    }
-                }
+                Text(capsule.title)
+                    .font(.headline)
+                    .foregroundStyle(titleColor)
+                    .lineLimit(2)
 
                 Text(subtitle)
                     .font(.subheadline)
                     .foregroundStyle(subtitleColor)
             }
+            .padding(.trailing, statusBadge == nil ? 0 : 58)
 
             Spacer()
 
@@ -78,6 +62,24 @@ struct CapsuleCard: View {
                     lineWidth: isHighlighted ? 1.4 : 1
                 )
         )
+        .overlay(alignment: .topTrailing) {
+            if let statusBadge {
+                Text(statusBadge)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(badgeTextColor)
+                    .lineLimit(1)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(badgeBackground(accentColor), in: Capsule())
+                    .overlay {
+                        Capsule()
+                            .stroke(.white.opacity(capsule.isReadyToOpen ? 0.24 : 0.14), lineWidth: 1)
+                    }
+                    .fixedSize()
+                    .padding(.top, 12)
+                    .padding(.trailing, 14)
+            }
+        }
         .shadow(color: accentColor.opacity(cardGlowOpacity), radius: cardGlowRadius, x: 0, y: 8)
         .animation(.easeInOut(duration: 0.42), value: isHighlighted)
     }
