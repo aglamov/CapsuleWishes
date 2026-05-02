@@ -15,6 +15,8 @@ final class AudioFeedbackService {
     private var players: [AudioCue: AVAudioPlayer] = [:]
 
     private init() {
+        configureAudioSession()
+
         AudioCue.allCases.forEach { cue in
             players[cue] = makePlayer(for: cue)
         }
@@ -52,5 +54,13 @@ final class AudioFeedbackService {
         Bundle.main.url(forResource: cue.fileName, withExtension: "wav", subdirectory: "Resources/Sounds") ??
         Bundle.main.url(forResource: cue.fileName, withExtension: "wav", subdirectory: "Sounds") ??
         Bundle.main.url(forResource: cue.fileName, withExtension: "wav")
+    }
+
+    private func configureAudioSession() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.ambient, options: [.mixWithOthers])
+        } catch {
+            AppLog.audio.error("Could not configure audio session: \(error.localizedDescription, privacy: .public)")
+        }
     }
 }

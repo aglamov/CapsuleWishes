@@ -20,16 +20,10 @@ struct CapsuleCard: View {
                 .opacity(capsule.hasBeenOpened ? 0.58 : 1)
 
             VStack(alignment: .leading, spacing: 6) {
-                Label {
-                    Text(capsule.title)
-                        .lineLimit(2)
-                } icon: {
-                    Image(systemName: capsule.hasBeenOpened ? "lock.open.fill" : "lock.fill")
-                        .font(.caption.bold())
-                        .foregroundStyle(lockColor)
-                }
-                .font(.headline)
-                .foregroundStyle(titleColor)
+                Text(capsule.title)
+                    .font(.headline)
+                    .foregroundStyle(titleColor)
+                    .lineLimit(2)
 
                 Text(subtitle)
                     .font(.subheadline)
@@ -89,15 +83,4 @@ struct CapsuleCard: View {
         .white.opacity(capsule.hasBeenOpened ? 0.44 : 0.66)
     }
 
-    private var lockColor: Color {
-        if capsule.hasBeenOpened {
-            return .white.opacity(0.38)
-        }
-
-        if capsule.isReadyToOpen {
-            return Color(hex: capsule.colorHex).opacity(0.95)
-        }
-
-        return .white.opacity(0.72)
-    }
 }
