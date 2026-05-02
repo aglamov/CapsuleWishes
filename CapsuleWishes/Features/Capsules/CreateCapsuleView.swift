@@ -302,7 +302,7 @@ struct CreateCapsuleView: View {
         sealingInspiration = nil
         generatedTitle = ""
         sealingStage = .gathering
-        AudioFeedbackService.shared.play(.capsuleGather)
+        AudioFeedbackService.shared.play(.capsuleSeal)
         sealingTask?.cancel()
 
         sealingTask = Task {
@@ -310,7 +310,6 @@ struct CreateCapsuleView: View {
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                AudioFeedbackService.shared.play(.capsuleLaunch)
                 withAnimation(.smooth(duration: 0.90)) {
                     sealingStage = .launching
                 }
@@ -356,7 +355,6 @@ struct CreateCapsuleView: View {
                     planCheckpoints: inspiration.checkpoints
                 )
 
-                AudioFeedbackService.shared.play(.capsuleSeal)
                 withAnimation(.smooth(duration: 0.68)) {
                     sealingStage = .complete
                 }

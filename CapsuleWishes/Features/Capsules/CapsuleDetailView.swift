@@ -655,10 +655,10 @@ struct CapsuleDetailView: View {
             capsule.openedAt = Date()
             CapsuleNotificationScheduler.shared.cancelSignals(for: capsule)
             isShowingOpeningReflectionOverlay = true
-            AudioFeedbackService.shared.play(.afterglow)
             return
         }
 
+        AudioFeedbackService.shared.play(.capsuleRelease)
         openingStage = .centering
         openingTask?.cancel()
 
@@ -671,7 +671,6 @@ struct CapsuleDetailView: View {
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                AudioFeedbackService.shared.play(.capsuleAwaken)
                 withAnimation(.smooth(duration: 0.82)) {
                     openingStage = .awakening
                 }
@@ -681,7 +680,6 @@ struct CapsuleDetailView: View {
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                AudioFeedbackService.shared.play(.capsuleRelease)
                 withAnimation(.smooth(duration: 0.62)) {
                     openingStage = .release
                 }
@@ -702,7 +700,6 @@ struct CapsuleDetailView: View {
                 }
 
                 isShowingOpeningReflectionOverlay = true
-                AudioFeedbackService.shared.play(.afterglow)
             }
 
             await MainActor.run {
