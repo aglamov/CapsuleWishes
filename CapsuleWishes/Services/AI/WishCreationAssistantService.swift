@@ -9,7 +9,7 @@ import Foundation
 
 struct WishCreationAssistantService {
     var isAvailable: Bool {
-        OpenAIConfiguration.current != nil
+        OpenAIConfiguration.isAvailable
     }
 
     func wishPrompt() async -> String {
@@ -33,7 +33,7 @@ struct WishCreationAssistantService {
                 maxOutputTokens: 60
             )
 
-            return sanitized(text, fallback: Self.defaultWishPrompt)
+            return AITextSanitizer.value(text, fallback: Self.defaultWishPrompt)
         } catch {
             AppLog.ai.error("AI backend wish prompt fallback: \(error.localizedDescription, privacy: .public)")
             return Self.fallbackWishPrompts.randomElement() ?? Self.defaultWishPrompt
@@ -65,7 +65,7 @@ struct WishCreationAssistantService {
                 maxOutputTokens: 70
             )
 
-            return sanitized(text, fallback: fallbackFeelingPrompt(for: cleanIntention))
+            return AITextSanitizer.value(text, fallback: fallbackFeelingPrompt(for: cleanIntention))
         } catch {
             AppLog.ai.error("AI backend feeling prompt fallback: \(error.localizedDescription, privacy: .public)")
             return fallbackFeelingPrompt(for: cleanIntention)
@@ -99,7 +99,7 @@ struct WishCreationAssistantService {
                 maxOutputTokens: 140
             )
 
-            return sanitizedOptional(text)
+            return AITextSanitizer.optional(text)
         } catch {
             AppLog.ai.error("AI backend intention polish failed: \(error.localizedDescription, privacy: .public)")
             return nil
@@ -133,7 +133,7 @@ struct WishCreationAssistantService {
                 maxOutputTokens: 170
             )
 
-            return sanitizedOptional(text)
+            return AITextSanitizer.optional(text)
         } catch {
             AppLog.ai.error("AI backend observation polish failed: \(error.localizedDescription, privacy: .public)")
             return nil
@@ -167,7 +167,7 @@ struct WishCreationAssistantService {
                 maxOutputTokens: 60
             )
 
-            return twoWordTitle(from: sanitized(text, fallback: fallback), fallback: fallback)
+            return twoWordTitle(from: AITextSanitizer.value(text, fallback: fallback), fallback: fallback)
         } catch {
             AppLog.ai.error("AI backend capsule title fallback: \(error.localizedDescription, privacy: .public)")
             return fallback
@@ -240,19 +240,6 @@ struct WishCreationAssistantService {
         }
 
         return Self.defaultFeelingPrompt
-    }
-
-    private func sanitized(_ text: String, fallback: String) -> String {
-        sanitizedOptional(text) ?? fallback
-    }
-
-    private func sanitizedOptional(_ text: String) -> String? {
-        let trimmed = text
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "\"“”"))
-
-        guard !trimmed.isEmpty else { return nil }
-        return trimmed
     }
 
     private func twoWordTitle(from title: String, fallback: String) -> String {

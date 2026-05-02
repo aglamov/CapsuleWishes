@@ -121,8 +121,7 @@ struct FutureLetterService {
             return .skip(response.reason)
         }
 
-        let letter = sanitizedLetter(response.letter)
-        guard !letter.isEmpty else { return .malformed }
+        guard let letter = AITextSanitizer.optional(response.letter) else { return .malformed }
 
         return .create(FutureLetterDraft(
             shouldCreate: true,
@@ -317,12 +316,6 @@ struct FutureLetterService {
         }
 
         return Int(seed % UInt64(availableMinutes + 1))
-    }
-
-    private func sanitizedLetter(_ text: String) -> String {
-        text
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "\"“”"))
     }
 
     private func formatted(_ date: Date) -> String {

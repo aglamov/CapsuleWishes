@@ -166,7 +166,7 @@ struct WishSealingInspirationService {
     }
 
     private func inspiration(from response: WishSealingAIResponse) -> WishSealingInspiration? {
-        guard let message = sanitized(response.message) else { return nil }
+        guard let message = AITextSanitizer.optional(response.message) else { return nil }
 
         let checkpoints = response.isPlan
             ? response.checkpoints.prefix(3).compactMap(checkpoint)
@@ -174,15 +174,15 @@ struct WishSealingInspirationService {
 
         return WishSealingInspiration(
             message: message,
-            planSummary: response.isPlan ? sanitized(response.planSummary ?? "") : nil,
-            recommendation: response.isPlan ? sanitized(response.recommendation ?? "") : nil,
+            planSummary: response.isPlan ? AITextSanitizer.optional(response.planSummary ?? "") : nil,
+            recommendation: response.isPlan ? AITextSanitizer.optional(response.recommendation ?? "") : nil,
             checkpoints: checkpoints
         )
     }
 
     private func checkpoint(from response: WishSealingAICheckpoint) -> WishPlanCheckpoint? {
-        guard let title = sanitized(response.title),
-              let message = sanitized(response.message)
+        guard let title = AITextSanitizer.optional(response.title),
+              let message = AITextSanitizer.optional(response.message)
         else { return nil }
 
         let allowedDays = [1, 3, 7, 14, 30]
@@ -210,15 +210,6 @@ struct WishSealingInspirationService {
         }
 
         return lines.isEmpty ? AIResponseLanguage.text(ru: "Нет записей дневника.", en: "No journal entries.") : lines.joined(separator: "\n")
-    }
-
-    private func sanitized(_ text: String) -> String? {
-        let trimmed = text
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "\"“”"))
-
-        guard !trimmed.isEmpty else { return nil }
-        return trimmed
     }
 
     private func fallbackInspiration(title: String, intention: String, feeling: String) -> WishSealingInspiration {

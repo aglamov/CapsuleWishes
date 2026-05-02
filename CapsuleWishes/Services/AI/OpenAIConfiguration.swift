@@ -10,6 +10,10 @@ import Foundation
 struct OpenAIConfiguration {
     let endpointURL: URL
 
+    static var isAvailable: Bool {
+        current != nil
+    }
+
     static var current: OpenAIConfiguration? {
         guard UserDefaults.standard.bool(forKey: AIUsagePreferences.enabledKey) else {
             return nil

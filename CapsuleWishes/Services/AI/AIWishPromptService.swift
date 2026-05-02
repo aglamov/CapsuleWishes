@@ -9,7 +9,7 @@ import Foundation
 
 struct AIWishPromptService {
     var isAvailable: Bool {
-        OpenAIConfiguration.current != nil
+        OpenAIConfiguration.isAvailable
     }
 
     func prompt(
@@ -65,15 +65,6 @@ struct AIWishPromptService {
             maxOutputTokens: 140
         )
 
-        return sanitized(text)
-    }
-
-    private func sanitized(_ text: String) -> String? {
-        let trimmed = text
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "\"“”"))
-
-        guard !trimmed.isEmpty else { return nil }
-        return trimmed
+        return AITextSanitizer.optional(text)
     }
 }
