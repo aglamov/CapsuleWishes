@@ -17,12 +17,12 @@ enum CapsuleStatus: String, Codable, CaseIterable {
 
     var title: String {
         switch self {
-        case .sealed: "Запечатана"
-        case .opened: "Открыта"
-        case .fulfilled: "Сбылось"
-        case .unfolding: "Еще сбывается"
-        case .changed: "Сбылось иначе"
-        case .released: "Не сбылось"
+        case .sealed: String(localized: "Запечатана")
+        case .opened: String(localized: "Открыта")
+        case .fulfilled: String(localized: "Сбылось")
+        case .unfolding: String(localized: "Еще сбывается")
+        case .changed: String(localized: "Сбылось иначе")
+        case .released: String(localized: "Не сбылось")
         }
     }
 }

@@ -1,0 +1,2511 @@
+{
+  "sourceLanguage" : "ru",
+  "strings" : {
+    "" : {
+
+    },
+    "Без привязки" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlinked"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без привязки"
+          }
+        }
+      }
+    },
+    "Больше касаний, но без давления." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More touchpoints, without pressure."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Больше касаний, но без давления."
+          }
+        }
+      }
+    },
+    "Будущая капсула" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Future capsule"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Будущая капсула"
+          }
+        }
+      }
+    },
+    "Вернись к капсуле в выбранный день и честно посмотри, как желание изменилось." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Come back to the capsule on the chosen day and honestly notice how the wish has changed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вернись к капсуле в выбранный день и честно посмотри, как желание изменилось."
+          }
+        }
+      }
+    },
+    "Вернуться к капсулам" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to capsules"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вернуться к капсулам"
+          }
+        }
+      }
+    },
+    "Вернуться к капсуле" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to the capsule"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вернуться к капсуле"
+          }
+        }
+      }
+    },
+    "Вовлечение" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engaged"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вовлечение"
+          }
+        }
+      }
+    },
+    "Время открыть" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time to open"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Время открыть"
+          }
+        }
+      }
+    },
+    "Время уже почти донесло её до тебя." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time has almost carried it back to you."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Время уже почти донесло её до тебя."
+          }
+        }
+      }
+    },
+    "Вчера" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yesterday"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вчера"
+          }
+        }
+      }
+    },
+    "Глубокий индиго" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deep indigo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Глубокий индиго"
+          }
+        }
+      }
+    },
+    "Готова открыться" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready to open"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готова открыться"
+          }
+        }
+      }
+    },
+    "Готово" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово"
+          }
+        }
+      }
+    },
+    "для желания, которое хочется держать в поле зрения" : {
+      "comment" : "Meaning of the \"Звезда\" capsule creation symbol.",
+      "isCommentAutoGenerated" : true
+    },
+    "для личного и эмоционально важного желания" : {
+      "comment" : "Meaning of the \"Сердце\" capsule creation symbol.",
+      "isCommentAutoGenerated" : true
+    },
+    "для обещания себе и бережного запечатывания" : {
+      "comment" : "Meaning of the capsule creation symbol \"seal\".",
+      "isCommentAutoGenerated" : true
+    },
+    "для цели, маршрута и выбранного направления" : {
+      "comment" : "Meaning of a capsule creation symbol representing a flag.",
+      "isCommentAutoGenerated" : true
+    },
+    "для целостности, спокойствия и внутренней опоры" : {
+      "comment" : "Meaning of the \"Круг\" capsule creation symbol.",
+      "isCommentAutoGenerated" : true
+    },
+    "для ясности и нового понимания" : {
+      "comment" : "Meaning of the \"Идея\" capsule creation symbol.",
+      "isCommentAutoGenerated" : true
+    },
+    "Дневник" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Journal"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дневник"
+          }
+        }
+      }
+    },
+    "Дневник знаков" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Journal of Signs"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дневник знаков"
+          }
+        }
+      }
+    },
+    "Добавить наблюдение" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add observation"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить наблюдение"
+          }
+        }
+      }
+    },
+    "Еще сбывается" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Still unfolding"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Еще сбывается"
+          }
+        }
+      }
+    },
+    "Желание" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wish"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Желание"
+          }
+        }
+      }
+    },
+    "Желание еще сбывается" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The wish is still unfolding"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Желание еще сбывается"
+          }
+        }
+      }
+    },
+    "Желание не сбылось" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The wish did not come true"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Желание не сбылось"
+          }
+        }
+      }
+    },
+    "Желание сбылось" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The wish came true"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Желание сбылось"
+          }
+        }
+      }
+    },
+    "Желание сбылось иначе" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The wish came true differently"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Желание сбылось иначе"
+          }
+        }
+      }
+    },
+    "Закрыть" : {
+      "comment" : "A button that closes the view.",
+      "isCommentAutoGenerated" : true
+    },
+    "Замечай путь" : {
+      "comment" : "A description of the second feature of the intro view.",
+      "isCommentAutoGenerated" : true
+    },
+    "Запечатай намерение" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seal the intention"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запечатай намерение"
+          }
+        }
+      }
+    },
+    "Запечатай намерение, замечай странности и маленькие радости, а потом открой капсулу в нужный день." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seal an intention, notice odd little joys, then open the capsule on the right day."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запечатай намерение, замечай странности и маленькие радости, а потом открой капсулу в нужный день."
+          }
+        }
+      }
+    },
+    "Запечатана" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sealed"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запечатана"
+          }
+        }
+      }
+    },
+    "Запечатать капсулу" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seal capsule"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запечатать капсулу"
+          }
+        }
+      }
+    },
+    "Записывай следы вокруг желаний" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record traces around your wishes"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Записывай следы вокруг желаний"
+          }
+        }
+      }
+    },
+    "Запиши коротко, как есть" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write it briefly, as it is"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запиши коротко, как есть"
+          }
+        }
+      }
+    },
+    "Заполни это поле, чтобы запечатать капсулу." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fill this field to seal the capsule."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заполни это поле, чтобы запечатать капсулу."
+          }
+        }
+      }
+    },
+    "Запрос уходит во вселенную" : {
+      "comment" : "A status text for the \"launching\" wish sealing stage.",
+      "isCommentAutoGenerated" : true
+    },
+    "Звезда" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Star"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Звезда"
+          }
+        }
+      }
+    },
+    "Звездный белый" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starlit white"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Звездный белый"
+          }
+        }
+      }
+    },
+    "Звуки ритуалов" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ritual sounds"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Звуки ритуалов"
+          }
+        }
+      }
+    },
+    "Здесь желания получают время" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Here, wishes receive time"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Здесь желания получают время"
+          }
+        }
+      }
+    },
+    "Здесь нет ежедневных пинков. Только события, редкие возвращения и моменты, которые действительно имеют смысл." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No daily nudges here. Only events, rare returns, and moments that actually mean something."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Здесь нет ежедневных пинков. Только события, редкие возвращения и моменты, которые действительно имеют смысл."
+          }
+        }
+      }
+    },
+    "Здесь появятся сигналы, которые уже приходили: открытие капсул, мягкие возвращения и утренние сны." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signals that have already arrived will appear here: capsule openings, gentle returns, and morning dreams."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Здесь появятся сигналы, которые уже приходили: открытие капсул, мягкие возвращения и утренние сны."
+          }
+        }
+      }
+    },
+    "Здесь появятся странности, маленькие радости и шаги, которые будут собираться вокруг капсулы." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odd moments, small joys, and steps gathering around the capsule will appear here."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Здесь появятся странности, маленькие радости и шаги, которые будут собираться вокруг капсулы."
+          }
+        }
+      }
+    },
+    "Зеленый рост" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Green growth"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зеленый рост"
+          }
+        }
+      }
+    },
+    "Идея" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idea"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Идея"
+          }
+        }
+      }
+    },
+    "Иногда достаточно просто вернуться и посмотреть." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sometimes it is enough to simply return and look."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Иногда достаточно просто вернуться и посмотреть."
+          }
+        }
+      }
+    },
+    "Иногда желание отвечает не тем предметом, а смыслом под ним. Посмотри, что изменилось в тебе, в обстоятельствах или в самом запросе: возможно, итог оказался точнее первоначальной формулировки." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sometimes a wish answers not with the thing itself, but with the meaning beneath it. Look at what changed in you, in the circumstances, or in the request itself: perhaps the outcome was more precise than the first wording."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Иногда желание отвечает не тем предметом, а смыслом под ним. Посмотри, что изменилось в тебе, в обстоятельствах или в самом запросе: возможно, итог оказался точнее первоначальной формулировки."
+          }
+        }
+      }
+    },
+    "Иногда полезно перечитать себя" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sometimes it helps to reread yourself"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Иногда полезно перечитать себя"
+          }
+        }
+      }
+    },
+    "Интересно, что изменилось с того момента?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What has changed since then?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Интересно, что изменилось с того момента?"
+          }
+        }
+      }
+    },
+    "Использовать ИИ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use AI"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать ИИ"
+          }
+        }
+      }
+    },
+    "Ищу подсказку вокруг этого желания..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking for a prompt around this wish..."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ищу подсказку вокруг этого желания..."
+          }
+        }
+      }
+    },
+    "Кажется, будущий ты хочет кое-что сказать." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It seems your future self has something to say."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кажется, будущий ты хочет кое-что сказать."
+          }
+        }
+      }
+    },
+    "Какая мысль вернулась к тебе рядом с этим желанием?" : {
+      "comment" : "Prompt for a journal entry of type \"Thought\".",
+      "isCommentAutoGenerated" : true
+    },
+    "Какой маленький жест ты сделал в сторону желания?" : {
+      "comment" : "Prompt for a journal entry of type \"Step\".",
+      "isCommentAutoGenerated" : true
+    },
+    "Капсула" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capsule"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсула"
+          }
+        }
+      }
+    },
+    "Капсула близко" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capsule nearby"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсула близко"
+          }
+        }
+      }
+    },
+    "Капсула готова открыться" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The capsule is ready to open"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсула готова открыться"
+          }
+        }
+      }
+    },
+    "Капсула ждет открытия" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The capsule is waiting to open"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсула ждет открытия"
+          }
+        }
+      }
+    },
+    "Капсула желания" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wish Capsule"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсула желания"
+          }
+        }
+      }
+    },
+    "Капсула запечатана" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capsule sealed"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсула запечатана"
+          }
+        }
+      }
+    },
+    "Капсула запечатывается" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sealing capsule"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсула запечатывается"
+          }
+        }
+      }
+    },
+    "Капсула не обещает чудо по расписанию. Она помогает бережно сформулировать желание, прожить с ним несколько дней и потом увидеть, что изменилось внутри и вокруг." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The capsule does not promise a miracle on schedule. It helps you gently name a wish, live with it for a few days, and then see what changed inside and around you."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсула не обещает чудо по расписанию. Она помогает бережно сформулировать желание, прожить с ним несколько дней и потом увидеть, что изменилось внутри и вокруг."
+          }
+        }
+      }
+    },
+    "Капсула оставила знаки на пути" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The capsule left signs along the way"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсула оставила знаки на пути"
+          }
+        }
+      }
+    },
+    "Капсула открылась. Посмотри, сбылось ли то, что ты загадал." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The capsule has opened. See whether the wish you made came true."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсула открылась. Посмотри, сбылось ли то, что ты загадал."
+          }
+        }
+      }
+    },
+    "Капсула открыта" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capsule opened"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсула открыта"
+          }
+        }
+      }
+    },
+    "Капсула слушает итог" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The capsule is listening to the outcome"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсула слушает итог"
+          }
+        }
+      }
+    },
+    "Капсула собирает свет вокруг желания" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The capsule is gathering light around the wish"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсула собирает свет вокруг желания"
+          }
+        }
+      }
+    },
+    "Капсула уже хранит твой запрос к миру. Иногда именно такие внезапные желания оказываются заветными. Удалить ее навсегда?" : {
+
+    },
+    "Капсулы" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capsules"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсулы"
+          }
+        }
+      }
+    },
+    "Капсулы смогут вернуться в нужный момент." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capsules can return at the right moment."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Капсулы смогут вернуться в нужный момент."
+          }
+        }
+      }
+    },
+    "Когда включено, подсказки и письма могут создаваться через защищенный сервер приложения. Отправляются только данные, нужные для выбранной функции, и ничего более." : {
+      "comment" : "A description of how the app will use AI when enabled.",
+      "isCommentAutoGenerated" : true
+    },
+    "Когда выключено, приложение использует локальные шаблонные выражения." : {
+      "comment" : "A footnote explaining that when \"Use AI\" is disabled, the app will use local templates.",
+      "isCommentAutoGenerated" : true
+    },
+    "Когда желание названо, вокруг него начинают появляться следы: странные совпадения, возвращающиеся мысли и сны. Записывай то, что происходит вокруг и внутри тебя, и маленькие шаги, которые ты сделал навстречу желанию. Иногда именно так путь становится видимым." : {
+      "comment" : "A longer explanation of the journal feature, displayed when the \"?\" button is tapped.",
+      "isCommentAutoGenerated" : true
+    },
+    "Когда придет время, здесь появится итог желания." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When the time comes, the wish outcome will appear here."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Когда придет время, здесь появится итог желания."
+          }
+        }
+      }
+    },
+    "Коралловый импульс" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coral impulse"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Коралловый импульс"
+          }
+        }
+      }
+    },
+    "Короткие мягкие отклики для запечатывания, открытия капсулы и сохранения записей." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Short, soft responses for sealing, opening a capsule, and saving entries."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Короткие мягкие отклики для запечатывания, открытия капсулы и сохранения записей."
+          }
+        }
+      }
+    },
+    "Круг" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Circle"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Круг"
+          }
+        }
+      }
+    },
+    "Лунный голубой" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moon blue"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лунный голубой"
+          }
+        }
+      }
+    },
+    "Можно продолжать пользоваться приложением без внешних сигналов." : {
+      "comment" : "A message that informs the user that they can continue using the app without external signals.",
+      "isCommentAutoGenerated" : true
+    },
+    "Мысль" : {
+      "comment" : "Description of a journal entry type when the entry is a thought.",
+      "isCommentAutoGenerated" : true
+    },
+    "Мягко" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soft"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мягко"
+          }
+        }
+      }
+    },
+    "Мягкое возвращение" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gentle return"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мягкое возвращение"
+          }
+        }
+      }
+    },
+    "Настроить сигналы" : {
+      "comment" : "A toolbar item label that translates to \"Set up notifications\".",
+      "isCommentAutoGenerated" : true
+    },
+    "Начни с одного желания. Не самого правильного, а самого живого." : {
+      "comment" : "A description below the title of the button that allows the user to create a capsule.",
+      "isCommentAutoGenerated" : true
+    },
+    "Не обязательно формулировать идеально. Иногда желание становится яснее уже после того, как его бережно записали." : {
+      "comment" : "A description under the title of the \"New Capsule\" view, encouraging users to write down their wishes.",
+      "isCommentAutoGenerated" : true
+    },
+    "Не сбылось" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Did not come true"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не сбылось"
+          }
+        }
+      }
+    },
+    "Невидимые механизмы приходят в движение" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invisible mechanisms are beginning to move"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Невидимые механизмы приходят в движение"
+          }
+        }
+      }
+    },
+    "Но оно всё ещё здесь." : {
+      "comment" : "Body text of a notification signal that reminds the user that their future is still present.",
+      "isCommentAutoGenerated" : true
+    },
+    "Новая капсула" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New capsule"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новая капсула"
+          }
+        }
+      }
+    },
+    "Один мягкий утренний сигнал, если хочется сделать это личным ритуалом." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One gentle morning signal, if you want to make it a personal ritual."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Один мягкий утренний сигнал, если хочется сделать это личным ритуалом."
+          }
+        }
+      }
+    },
+    "Одна из твоих капсул скоро станет ближе" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One of your capsules will soon move closer"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Одна из твоих капсул скоро станет ближе"
+          }
+        }
+      }
+    },
+    "Одна мысль может прозвучать иначе спустя неделю." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A single thought can sound different after a week."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Одна мысль может прозвучать иначе спустя неделю."
+          }
+        }
+      }
+    },
+    "Ожидают" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upcoming"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ожидают"
+          }
+        }
+      }
+    },
+    "Опиши желание и чувство, которое стоит за ним." : {
+
+    },
+    "Оставить" : {
+      "comment" : "A button that cancels the deletion of a capsule.",
+      "isCommentAutoGenerated" : true
+    },
+    "Открой позже" : {
+      "comment" : "A description of the final step in the capsule creation process.",
+      "isCommentAutoGenerated" : true
+    },
+    "Открыта" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opened"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыта"
+          }
+        }
+      }
+    },
+    "Открытие капсул останется внутри приложения, пока уведомления запрещены в системных настройках." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capsule openings will stay inside the app while notifications are disabled in iOS settings."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открытие капсул останется внутри приложения, пока уведомления запрещены в системных настройках."
+          }
+        }
+      }
+    },
+    "Открытие капсулы" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capsule opening"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открытие капсулы"
+          }
+        }
+      }
+    },
+    "Открытие: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens: %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открытие: %@"
+          }
+        }
+      }
+    },
+    "Открытые" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opened"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открытые"
+          }
+        }
+      }
+    },
+    "Открыть капсулу" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open capsule"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть капсулу"
+          }
+        }
+      }
+    },
+    "Открыть письмо" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open letter"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть письмо"
+          }
+        }
+      }
+    },
+    "Открыть письмо из будущего" : {
+      "comment" : "A button label that translates to \"Open the letter from the future\" in English.",
+      "isCommentAutoGenerated" : true
+    },
+    "Открыть позже" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open later"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть позже"
+          }
+        }
+      }
+    },
+    "Открыть послание при запечатывании" : {
+      "comment" : "A button label that appears when the \"Add Time\" button is pressed, instructing the user to open the capsule to reveal the fortune.",
+      "isCommentAutoGenerated" : true
+    },
+    "Открыть послание, которое пришло по пути к желанию" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open the message that arrived on the way to the wish"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть послание, которое пришло по пути к желанию"
+          }
+        }
+      }
+    },
+    "Первая капсула ждет" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The first capsule is waiting"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Первая капсула ждет"
+          }
+        }
+      }
+    },
+    "Переписать желание красивее" : {
+      "comment" : "A button label that translates to \"Rewrite your wish more beautifully\".",
+      "isCommentAutoGenerated" : true
+    },
+    "Переписать наблюдение красивее" : {
+      "comment" : "A button that, when tapped, beautifies the user's journal entry.",
+      "isCommentAutoGenerated" : true
+    },
+    "Перечитать себя" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reread yourself"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перечитать себя"
+          }
+        }
+      }
+    },
+    "Печать" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seal"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Печать"
+          }
+        }
+      }
+    },
+    "Письмо" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Letter"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Письмо"
+          }
+        }
+      }
+    },
+    "Письмо из будущего" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Letter from the future"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Письмо из будущего"
+          }
+        }
+      }
+    },
+    "Поймай его, пока он не исчез." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catch it before it disappears."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поймай его, пока он не исчез."
+          }
+        }
+      }
+    },
+    "Пора проверить желание" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time to check the wish"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пора проверить желание"
+          }
+        }
+      }
+    },
+    "Послание" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Message"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Послание"
+          }
+        }
+      }
+    },
+    "Послание при запечатывании" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Message from sealing"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Послание при запечатывании"
+          }
+        }
+      }
+    },
+    "Последние записи" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent entries"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Последние записи"
+          }
+        }
+      }
+    },
+    "Посмотри на исходное желание и выбери честный итог. Иногда исполнение приходит точно, иногда меняет форму, а иногда просто освобождает место." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Look at the original wish and choose an honest outcome. Sometimes fulfillment arrives exactly, sometimes it changes shape, and sometimes it simply frees space."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Посмотри на исходное желание и выбери честный итог. Иногда исполнение приходит точно, иногда меняет форму, а иногда просто освобождает место."
+          }
+        }
+      }
+    },
+    "Похоже, история не закрыта, а продолжает собираться. Капсула уже показала направление: можно вернуться к следам, заметить живые признаки и выбрать один следующий шаг без спешки." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It seems the story is not closed, but still coming together. The capsule has already shown a direction: you can return to the traces, notice living signs, and choose one next step without rushing."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Похоже, история не закрыта, а продолжает собираться. Капсула уже показала направление: можно вернуться к следам, заметить живые признаки и выбрать один следующий шаг без спешки."
+          }
+        }
+      }
+    },
+    "Примерное утро" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approximate morning"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Примерное утро"
+          }
+        }
+      }
+    },
+    "Пусть время говорит тихо" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let time speak softly"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пусть время говорит тихо"
+          }
+        }
+      }
+    },
+    "Разрешение понадобится, чтобы капсула вернулась в нужный момент." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permission is needed so the capsule can return at the right moment."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешение понадобится, чтобы капсула вернулась в нужный момент."
+          }
+        }
+      }
+    },
+    "Разрешить сигналы" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow signals"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить сигналы"
+          }
+        }
+      }
+    },
+    "Редкие возвращения и точные сигналы." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rare returns and precise signals."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Редкие возвращения и точные сигналы."
+          }
+        }
+      }
+    },
+    "Режим" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим"
+          }
+        }
+      }
+    },
+    "Розовое сияние" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rose glow"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Розовое сияние"
+          }
+        }
+      }
+    },
+    "Сбылось" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Came true"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбылось"
+          }
+        }
+      }
+    },
+    "Сбылось иначе" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Came true differently"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбылось иначе"
+          }
+        }
+      }
+    },
+    "Северное сияние" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Northern glow"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Северное сияние"
+          }
+        }
+      }
+    },
+    "Сегодня" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сегодня"
+          }
+        }
+      }
+    },
+    "Сегодня можно начать с малого: что сделало день хотя бы на 1% легче?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today can start small: what made the day at least 1% lighter?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сегодня можно начать с малого: что сделало день хотя бы на 1% легче?"
+          }
+        }
+      }
+    },
+    "Сейчас: %@. Будет мягко подстраиваться по первому утреннему открытию приложения." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Now: %@. It will gently adjust based on your first morning app opening."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сейчас: %@. Будет мягко подстраиваться по первому утреннему открытию приложения."
+          }
+        }
+      }
+    },
+    "Сердце" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heart"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сердце"
+          }
+        }
+      }
+    },
+    "Сигнал" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signal"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сигнал"
+          }
+        }
+      }
+    },
+    "Сигналы" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signals"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сигналы"
+          }
+        }
+      }
+    },
+    "Сигналы включены" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signals are on"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сигналы включены"
+          }
+        }
+      }
+    },
+    "Сигналы выключены в настройках iOS" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signals are disabled in iOS settings"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сигналы выключены в настройках iOS"
+          }
+        }
+      }
+    },
+    "Сигналы ещё не включены" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signals are not on yet"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сигналы ещё не включены"
+          }
+        }
+      }
+    },
+    "Символ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Symbol"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Символ"
+          }
+        }
+      }
+    },
+    "Сиреневый свет" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lilac light"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сиреневый свет"
+          }
+        }
+      }
+    },
+    "Следы вокруг желания" : {
+      "comment" : "A label displayed above the list of journal entries.",
+      "isCommentAutoGenerated" : true
+    },
+    "Следы сигналов" : {
+      "comment" : "A label displayed above the section that lists the user's past and upcoming signal recordings.",
+      "isCommentAutoGenerated" : true
+    },
+    "Сначала посмотреть приложение" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Look around first"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала посмотреть приложение"
+          }
+        }
+      }
+    },
+    "Собираю итог этого желания..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gathering the outcome of this wish..."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Собираю итог этого желания..."
+          }
+        }
+      }
+    },
+    "Создать капсулу" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create capsule"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создать капсулу"
+          }
+        }
+      }
+    },
+    "Создать первую капсулу" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create first capsule"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создать первую капсулу"
+          }
+        }
+      }
+    },
+    "Сон" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dream"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сон"
+          }
+        }
+      }
+    },
+    "Сон ещё рядом" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The dream is still nearby"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сон ещё рядом"
+          }
+        }
+      }
+    },
+    "Сохранить" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить"
+          }
+        }
+      }
+    },
+    "Сохранить запись" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save entry"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить запись"
+          }
+        }
+      }
+    },
+    "Сохраняй сны, знаки, мысли и маленькие шаги в дневнике." : {
+
+    },
+    "Статус сигналов неизвестен" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signal status is unknown"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Статус сигналов неизвестен"
+          }
+        }
+      }
+    },
+    "Странность" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oddity"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Странность"
+          }
+        }
+      }
+    },
+    "Твоё будущее не торопит тебя" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your future is not rushing you"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Твоё будущее не торопит тебя"
+          }
+        }
+      }
+    },
+    "Теплое золото" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warm gold"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Теплое золото"
+          }
+        }
+      }
+    },
+    "Тип записи" : {
+      "comment" : "A label describing the type of entry to be added.",
+      "isCommentAutoGenerated" : true
+    },
+    "Тихая мята" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quiet mint"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тихая мята"
+          }
+        }
+      }
+    },
+    "Тихий лиловый" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quiet lilac"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тихий лиловый"
+          }
+        }
+      }
+    },
+    "Тихое место для желаний" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A quiet place for wishes"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тихое место для желаний"
+          }
+        }
+      }
+    },
+    "Тишина" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quiet"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тишина"
+          }
+        }
+      }
+    },
+    "Только момент открытия капсул." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only capsule opening moments."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Только момент открытия капсул."
+          }
+        }
+      }
+    },
+    "Точка плана" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan point"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Точка плана"
+          }
+        }
+      }
+    },
+    "Ты оставил здесь что-то важное" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You left something important here"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ты оставил здесь что-то важное"
+          }
+        }
+      }
+    },
+    "Ты уже сделал важную часть: сохранил желание, дал ему время и вернулся к нему внимательнее. Пусть то, что открылось сейчас, станет не точкой, а мягкой подсказкой для следующего шага." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have already done the important part: saved the wish, gave it time, and returned to it with more attention. Let what opened now become not a full stop, but a gentle hint for the next step."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ты уже сделал важную часть: сохранил желание, дал ему время и вернулся к нему внимательнее. Пусть то, что открылось сейчас, станет не точкой, а мягкой подсказкой для следующего шага."
+          }
+        }
+      }
+    },
+    "Удалить" : {
+      "comment" : "A button label that deletes a stored wish.",
+      "isCommentAutoGenerated" : true
+    },
+    "Удалить капсулу" : {
+      "comment" : "A confirmation alert title that means \"Delete Capsule\".",
+      "isCommentAutoGenerated" : true
+    },
+    "Удалить капсулу?" : {
+      "comment" : "A title for an alert that asks the user to delete a capsule.",
+      "isCommentAutoGenerated" : true
+    },
+    "Уже приходило" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already arrived"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уже приходило"
+          }
+        }
+      }
+    },
+    "Утренние сны" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Morning dreams"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Утренние сны"
+          }
+        }
+      }
+    },
+    "Утренний сон" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Morning dream"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Утренний сон"
+          }
+        }
+      }
+    },
+    "Флаг" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flag"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Флаг"
+          }
+        }
+      }
+    },
+    "Цвет капсулы" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capsule color"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цвет капсулы"
+          }
+        }
+      }
+    },
+    "Что в этом желании сегодня звучит иначе?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What sounds different in this wish today?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Что в этом желании сегодня звучит иначе?"
+          }
+        }
+      }
+    },
+    "Что запомнилось из сна, образа или полусна?" : {
+      "comment" : "Prompt for a journal entry of type \"dream\".",
+      "isCommentAutoGenerated" : true
+    },
+    "Что сегодня показалось случайным, но почему-то задержалось внутри?" : {
+      "comment" : "Prompt for a journal entry of type .sign.",
+      "isCommentAutoGenerated" : true
+    },
+    "Что ты сегодня заметил?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What did you notice today?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Что ты сегодня заметил?"
+          }
+        }
+      }
+    },
+    "Чувство" : {
+
+    },
+    "Шаг" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Step"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Шаг"
+          }
+        }
+      }
+    },
+    "Это желание дошло до берега. Отметь не только факт, но и путь: что помогло ему случиться, что внутри стало спокойнее, и какой маленький след ты хочешь взять с собой дальше." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This wish reached the shore. Notice not only the fact, but the path: what helped it happen, what grew calmer inside, and what small trace you want to carry forward."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это желание дошло до берега. Отметь не только факт, но и путь: что помогло ему случиться, что внутри стало спокойнее, и какой маленький след ты хочешь взять с собой дальше."
+          }
+        }
+      }
+    },
+    "Это тоже честный итог. Желание было важным, даже если мир не сложился в его сторону. Можно поблагодарить его за то, что оно показало, и отпустить без долга продолжать хотеть." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is also an honest outcome. The wish mattered, even if the world did not move toward it. You can thank it for what it showed you and let it go without owing it more wanting."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это тоже честный итог. Желание было важным, даже если мир не сложился в его сторону. Можно поблагодарить его за то, что оно показало, и отпустить без долга продолжать хотеть."
+          }
+        }
+      }
+    },
+    "Янтарная искра" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amber spark"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Янтарная искра"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.1"
+}

@@ -22,10 +22,14 @@ struct WishCreationAssistantService {
             let text = try await client.generateText(
                 instructions: """
                 Ты пишешь плейсхолдер для поля желания в приложении CapsuleWishes.
-                Верни одну короткую мягкую фразу на русском, которая помогает человеку записать личное желание.
+                \(AIResponseLanguage.instruction)
+                Верни одну короткую мягкую фразу, которая помогает человеку записать личное желание.
                 Без кавычек, без Markdown, без обращения к ИИ, до 76 символов.
                 """,
-                input: "Сгенерируй фоновую подсказку для пустого поля желания.",
+                input: AIResponseLanguage.text(
+                    ru: "Сгенерируй фоновую подсказку для пустого поля желания.",
+                    en: "Generate a background prompt for an empty wish field."
+                ),
                 maxOutputTokens: 60
             )
 
@@ -49,11 +53,15 @@ struct WishCreationAssistantService {
             let text = try await client.generateText(
                 instructions: """
                 Ты пишешь плейсхолдер для поля чувства в приложении CapsuleWishes.
+                \(AIResponseLanguage.instruction)
                 По желанию пользователя предложи фразу, какое чувство он может хотеть испытать.
-                Верни одну короткую фразу на русском, без кавычек и Markdown, до 64 символов.
+                Верни одну короткую фразу, без кавычек и Markdown, до 64 символов.
                 Не утверждай, что это точный ответ: пусть звучит как мягкая подсказка.
                 """,
-                input: "Желание пользователя: \(cleanIntention)",
+                input: AIResponseLanguage.text(
+                    ru: "Желание пользователя: \(cleanIntention)",
+                    en: "User wish: \(cleanIntention)"
+                ),
                 maxOutputTokens: 70
             )
 
@@ -73,20 +81,61 @@ struct WishCreationAssistantService {
             let text = try await client.generateText(
                 instructions: """
                 Ты бережно переписываешь желание для приложения CapsuleWishes.
+                \(AIResponseLanguage.instruction)
                 Сохрани смысл пользователя, не добавляй новых фактов, не обещай исполнение.
                 Сделай формулировку ясной, красивой, личной и живой.
-                Верни только текст желания на русском, 1-2 предложения, без кавычек и Markdown.
+                Верни только текст желания, 1-2 предложения, без кавычек и Markdown.
                 """,
-                input: """
-                Желание: \(cleanIntention)
-                Желаемое чувство: \(feeling.trimmingCharacters(in: .whitespacesAndNewlines))
-                """,
+                input: AIResponseLanguage.text(
+                    ru: """
+                    Желание: \(cleanIntention)
+                    Желаемое чувство: \(feeling.trimmingCharacters(in: .whitespacesAndNewlines))
+                    """,
+                    en: """
+                    Wish: \(cleanIntention)
+                    Desired feeling: \(feeling.trimmingCharacters(in: .whitespacesAndNewlines))
+                    """
+                ),
                 maxOutputTokens: 140
             )
 
             return sanitizedOptional(text)
         } catch {
             AppLog.ai.error("AI backend intention polish failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    func polishedObservation(_ observation: String, entryType: JournalEntryType) async -> String? {
+        let cleanObservation = observation.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanObservation.isEmpty, let configuration = OpenAIConfiguration.current else { return nil }
+
+        do {
+            let client = OpenAIResponsesClient(configuration: configuration)
+            let text = try await client.generateText(
+                instructions: """
+                Ты бережно переписываешь дневниковое наблюдение для приложения CapsuleWishes.
+                \(AIResponseLanguage.instruction)
+                Это не формулировка желания и не совет. Не превращай запись в цель, план, обещание или вывод.
+                Сохрани факты, живые детали, сомнения и тон пользователя. Можно связать обрывочные фразы в ясный текст, но нельзя добавлять события, причины или эмоции, которых не было.
+                Верни только текст наблюдения, 1-3 коротких предложения, без кавычек и Markdown.
+                """,
+                input: AIResponseLanguage.text(
+                    ru: """
+                    Категория наблюдения: \(entryType.title)
+                    Текст пользователя: \(cleanObservation)
+                    """,
+                    en: """
+                    Observation category: \(entryType.title)
+                    User text: \(cleanObservation)
+                    """
+                ),
+                maxOutputTokens: 170
+            )
+
+            return sanitizedOptional(text)
+        } catch {
+            AppLog.ai.error("AI backend observation polish failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -100,14 +149,21 @@ struct WishCreationAssistantService {
             let text = try await client.generateText(
                 instructions: """
                 Ты называешь капсулу желания в приложении CapsuleWishes.
-                Верни короткое поэтичное название на русском, строго 2 слова.
+                \(AIResponseLanguage.instruction)
+                Верни короткое поэтичное название, строго 2 слова.
                 Название должно отражать желание, но не быть громким лозунгом.
                 Без кавычек, без Markdown, без эмодзи.
                 """,
-                input: """
-                Желание: \(intention.trimmingCharacters(in: .whitespacesAndNewlines))
-                Желаемое чувство: \(feeling.trimmingCharacters(in: .whitespacesAndNewlines))
-                """,
+                input: AIResponseLanguage.text(
+                    ru: """
+                    Желание: \(intention.trimmingCharacters(in: .whitespacesAndNewlines))
+                    Желаемое чувство: \(feeling.trimmingCharacters(in: .whitespacesAndNewlines))
+                    """,
+                    en: """
+                    Wish: \(intention.trimmingCharacters(in: .whitespacesAndNewlines))
+                    Desired feeling: \(feeling.trimmingCharacters(in: .whitespacesAndNewlines))
+                    """
+                ),
                 maxOutputTokens: 60
             )
 
@@ -124,30 +180,30 @@ struct WishCreationAssistantService {
         let text = [cleanIntention, cleanFeeling].joined(separator: " ").lowercased()
 
         if text.contains("дом") || text.contains("уют") {
-            return "Теплое место"
+            return AIResponseLanguage.text(ru: "Теплое место", en: "Warm Place")
         }
 
         if text.contains("работ") || text.contains("дело") || text.contains("проект") {
-            return "Живое дело"
+            return AIResponseLanguage.text(ru: "Живое дело", en: "Living Work")
         }
 
         if text.contains("любов") || text.contains("отнош") || text.contains("близ") {
-            return "Близкое сердце"
+            return AIResponseLanguage.text(ru: "Близкое сердце", en: "Close Heart")
         }
 
         if text.contains("путеше") || text.contains("море") || text.contains("город") {
-            return "Своя дорога"
+            return AIResponseLanguage.text(ru: "Своя дорога", en: "Own Road")
         }
 
         if text.contains("здоров") || text.contains("тело") || text.contains("сил") {
-            return "Возвращение силы"
+            return AIResponseLanguage.text(ru: "Возвращение силы", en: "Returning Strength")
         }
 
         if !cleanFeeling.isEmpty {
             return titleFromFeeling(cleanFeeling)
         }
 
-        return "Тихое желание"
+        return AIResponseLanguage.text(ru: "Тихое желание", en: "Quiet Wish")
     }
 
     private func titleFromFeeling(_ feeling: String) -> String {
@@ -158,29 +214,29 @@ struct WishCreationAssistantService {
             .lowercased()
 
         guard let firstWord, !firstWord.isEmpty else {
-            return "Тихое желание"
+            return AIResponseLanguage.text(ru: "Тихое желание", en: "Quiet Wish")
         }
 
-        return "Капсула \(firstWord)"
+        return AIResponseLanguage.text(ru: "Капсула \(firstWord)", en: "\(firstWord.capitalized) Capsule")
     }
 
     private func fallbackFeelingPrompt(for intention: String) -> String {
         let text = intention.lowercased()
 
         if text.contains("дом") || text.contains("уют") {
-            return "Например: безопасность, тепло, свое место"
+            return AIResponseLanguage.text(ru: "Например: безопасность, тепло, свое место", en: "For example: safety, warmth, a place of my own")
         }
 
         if text.contains("работ") || text.contains("проект") || text.contains("дело") {
-            return "Например: ясность, смелость, спокойная уверенность"
+            return AIResponseLanguage.text(ru: "Например: ясность, смелость, спокойная уверенность", en: "For example: clarity, courage, calm confidence")
         }
 
         if text.contains("любов") || text.contains("отнош") || text.contains("близ") {
-            return "Например: близость, принятие, живой отклик"
+            return AIResponseLanguage.text(ru: "Например: близость, принятие, живой отклик", en: "For example: closeness, acceptance, a living response")
         }
 
         if text.contains("путеше") || text.contains("море") || text.contains("город") {
-            return "Например: свобода, удивление, простор"
+            return AIResponseLanguage.text(ru: "Например: свобода, удивление, простор", en: "For example: freedom, wonder, spaciousness")
         }
 
         return Self.defaultFeelingPrompt
@@ -212,13 +268,26 @@ struct WishCreationAssistantService {
         return words.prefix(2).joined(separator: " ")
     }
 
-    private static let defaultWishPrompt = "Например: хочу почувствовать, что моя жизнь снова принадлежит мне"
-    private static let defaultFeelingPrompt = "Например: свободу, нежность, уверенность или покой"
+    private static var defaultWishPrompt: String {
+        AIResponseLanguage.text(
+            ru: "Например: хочу почувствовать, что моя жизнь снова принадлежит мне",
+            en: "For example: I want to feel that my life belongs to me again"
+        )
+    }
 
-    private static let fallbackWishPrompts = [
-        "Например: хочу мягко приблизиться к тому, что давно зовет",
-        "Запиши желание так, как оно звучит внутри, без идеальной формы",
-        "Например: хочу выбрать путь, от которого внутри становится светлее",
-        "Что ты хочешь сохранить для будущего себя?"
-    ]
+    private static var defaultFeelingPrompt: String {
+        AIResponseLanguage.text(
+            ru: "Например: свободу, нежность, уверенность или покой",
+            en: "For example: freedom, tenderness, confidence, or peace"
+        )
+    }
+
+    private static var fallbackWishPrompts: [String] {
+        [
+            AIResponseLanguage.text(ru: "Например: хочу мягко приблизиться к тому, что давно зовет", en: "For example: I want to gently move closer to what has long been calling"),
+            AIResponseLanguage.text(ru: "Запиши желание так, как оно звучит внутри, без идеальной формы", en: "Write the wish as it sounds inside, without making it perfect"),
+            AIResponseLanguage.text(ru: "Например: хочу выбрать путь, от которого внутри становится светлее", en: "For example: I want to choose a path that makes things feel lighter inside"),
+            AIResponseLanguage.text(ru: "Что ты хочешь сохранить для будущего себя?", en: "What do you want to save for your future self?")
+        ]
+    }
 }

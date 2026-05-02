@@ -68,19 +68,19 @@ enum NotificationSignalKind: String, CaseIterable {
     var title: String {
         switch self {
         case .capsuleOpen:
-            "Открытие капсулы"
+            String(localized: "Открытие капсулы")
         case .capsuleSoon:
-            "Капсула близко"
+            String(localized: "Капсула близко")
         case .capsuleRevisit:
-            "Перечитать себя"
+            String(localized: "Перечитать себя")
         case .futureLetter:
-            "Письмо из будущего"
+            String(localized: "Письмо из будущего")
         case .wishPlanCheckpoint:
-            "Точка плана"
+            String(localized: "Точка плана")
         case .reactivation:
-            "Мягкое возвращение"
+            String(localized: "Мягкое возвращение")
         case .morningDream:
-            "Утренний сон"
+            String(localized: "Утренний сон")
         }
     }
 

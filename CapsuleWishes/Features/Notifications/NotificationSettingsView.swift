@@ -208,7 +208,12 @@ struct NotificationSettingsView: View {
                         Image(systemName: "wand.and.stars")
                             .font(.caption.weight(.semibold))
 
-                        Text("Сейчас: \(morningSignalTime.title). Будет мягко подстраиваться по первому утреннему открытию приложения.")
+                        Text(
+                            String(
+                                format: String(localized: "Сейчас: %@. Будет мягко подстраиваться по первому утреннему открытию приложения."),
+                                morningSignalTime.title
+                            )
+                        )
                             .font(.footnote)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -294,7 +299,7 @@ struct NotificationSettingsView: View {
         }
     }
 
-    private func signalSection(title: String, signals: [NotificationSignal]) -> some View {
+    private func signalSection(title: LocalizedStringKey, signals: [NotificationSignal]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
@@ -380,7 +385,7 @@ struct NotificationSettingsView: View {
 
     private func displayMessage(for signal: NotificationSignal) -> String {
         if signal.kind == .futureLetter {
-            return "Открыть письмо"
+            return String(localized: "Открыть письмо")
         }
 
         return signal.message
@@ -389,26 +394,26 @@ struct NotificationSettingsView: View {
     private var authorizationTitle: String {
         switch authorizationStatus {
         case .authorized, .provisional, .ephemeral:
-            "Сигналы включены"
+            String(localized: "Сигналы включены")
         case .denied:
-            "Сигналы выключены в настройках iOS"
+            String(localized: "Сигналы выключены в настройках iOS")
         case .notDetermined:
-            "Сигналы ещё не включены"
+            String(localized: "Сигналы ещё не включены")
         @unknown default:
-            "Статус сигналов неизвестен"
+            String(localized: "Статус сигналов неизвестен")
         }
     }
 
     private var authorizationDescription: String {
         switch authorizationStatus {
         case .authorized, .provisional, .ephemeral:
-            "Капсулы смогут вернуться в нужный момент."
+            String(localized: "Капсулы смогут вернуться в нужный момент.")
         case .denied:
-            "Открытие капсул останется внутри приложения, пока уведомления запрещены в системных настройках."
+            String(localized: "Открытие капсул останется внутри приложения, пока уведомления запрещены в системных настройках.")
         case .notDetermined:
-            "Разрешение понадобится, чтобы капсула вернулась в нужный момент."
+            String(localized: "Разрешение понадобится, чтобы капсула вернулась в нужный момент.")
         @unknown default:
-            "Можно продолжать пользоваться приложением без внешних сигналов."
+            String(localized: "Можно продолжать пользоваться приложением без внешних сигналов.")
         }
     }
 

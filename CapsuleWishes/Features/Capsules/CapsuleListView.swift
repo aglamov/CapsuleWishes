@@ -10,6 +10,7 @@ import SwiftUI
 
 struct CapsuleListView: View {
     @EnvironmentObject private var notificationRouteCenter: NotificationRouteCenter
+    @AppStorage("hasSeenCapsuleIntro") private var hasSeenCapsuleIntro = false
     @Query(sort: \WishCapsule.openAt, order: .forward) private var capsules: [WishCapsule]
     @State private var isCreatingCapsule = false
     @State private var isShowingNotificationSettings = false
@@ -24,48 +25,62 @@ struct CapsuleListView: View {
             ZStack {
                 NightSkyBackground()
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        header
+                if shouldShowIntro {
+                    CapsuleIntroView {
+                        withAnimation(.smooth(duration: 0.34)) {
+                            hasSeenCapsuleIntro = true
+                        }
+                    } createAction: {
+                        hasSeenCapsuleIntro = true
+                        isCreatingCapsule = true
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 24) {
+                            header
 
-                        if capsules.isEmpty {
-                            EmptyCapsulesView {
-                                isCreatingCapsule = true
-                            }
-                        } else {
-                            VStack(spacing: 18) {
-                                capsuleSection(activeCapsules)
+                            if capsules.isEmpty {
+                                EmptyCapsulesView {
+                                    isCreatingCapsule = true
+                                }
+                            } else {
+                                VStack(spacing: 18) {
+                                    capsuleSection(activeCapsules)
 
-                                if !openedCapsules.isEmpty {
-                                    openedCapsulesDivider
-                                    capsuleSection(openedCapsules)
+                                    if !openedCapsules.isEmpty {
+                                        openedCapsulesDivider
+                                        capsuleSection(openedCapsules)
+                                    }
                                 }
                             }
                         }
+                        .padding(20)
+                        .padding(.bottom, 24)
                     }
-                    .padding(20)
-                    .padding(.bottom, 24)
                 }
             }
             .navigationTitle("Капсула желания")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        isShowingNotificationSettings = true
-                    } label: {
-                        Image(systemName: "bell")
+                if !shouldShowIntro {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            isShowingNotificationSettings = true
+                        } label: {
+                            Image(systemName: "bell")
+                        }
+                        .accessibilityLabel("Настроить сигналы")
                     }
-                    .accessibilityLabel("Настроить сигналы")
-                }
 
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isCreatingCapsule = true
-                    } label: {
-                        Image(systemName: "plus")
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            isCreatingCapsule = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .accessibilityLabel("Создать капсулу")
                     }
-                    .accessibilityLabel("Создать капсулу")
                 }
             }
             .sheet(isPresented: $isCreatingCapsule) {
@@ -147,6 +162,10 @@ struct CapsuleListView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.top, 12)
+    }
+
+    private var shouldShowIntro: Bool {
+        !hasSeenCapsuleIntro && notificationRouteCenter.requestedCapsuleID == nil
     }
 
     private var activeCapsules: [WishCapsule] {

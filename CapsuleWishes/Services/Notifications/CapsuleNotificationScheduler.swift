@@ -81,8 +81,8 @@ final class CapsuleNotificationScheduler {
         let spec = NotificationSignalSpec(
             id: Self.openIdentifier(for: capsule.id),
             kind: .capsuleOpen,
-            title: "Пора проверить желание",
-            body: "Капсула открылась. Посмотри, сбылось ли то, что ты загадал.",
+            title: String(localized: "Пора проверить желание"),
+            body: String(localized: "Капсула открылась. Посмотри, сбылось ли то, что ты загадал."),
             date: date,
             capsuleID: capsule.id,
             userInfo: ["capsuleID": capsule.id.uuidString, "signal": "capsule_open"]
@@ -181,8 +181,8 @@ final class CapsuleNotificationScheduler {
         return NotificationSignalSpec(
             id: Self.openIdentifier(for: capsule.id),
             kind: .capsuleOpen,
-            title: "Пора проверить желание",
-            body: "Капсула открылась. Посмотри, сбылось ли то, что ты загадал.",
+            title: String(localized: "Пора проверить желание"),
+            body: String(localized: "Капсула открылась. Посмотри, сбылось ли то, что ты загадал."),
             date: date,
             capsuleID: capsule.id,
             userInfo: ["capsuleID": capsule.id.uuidString, "signal": "capsule_open"]
@@ -246,9 +246,9 @@ final class CapsuleNotificationScheduler {
     private func reactivationSignalSpecs() -> [NotificationSignalSpec] {
         let now = Date()
         let messages: [(Int, String, String)] = [
-            (3, "Ты оставил здесь что-то важное", "Иногда достаточно просто вернуться и посмотреть."),
-            (7, "Интересно, что изменилось с того момента?", "Одна мысль может прозвучать иначе спустя неделю."),
-            (14, "Твоё будущее не торопит тебя", "Но оно всё ещё здесь."),
+            (3, String(localized: "Ты оставил здесь что-то важное"), String(localized: "Иногда достаточно просто вернуться и посмотреть.")),
+            (7, String(localized: "Интересно, что изменилось с того момента?"), String(localized: "Одна мысль может прозвучать иначе спустя неделю.")),
+            (14, String(localized: "Твоё будущее не торопит тебя"), String(localized: "Но оно всё ещё здесь.")),
         ]
 
         return messages.compactMap { day, title, body in
@@ -282,8 +282,8 @@ final class CapsuleNotificationScheduler {
         return NotificationSignalSpec(
             id: "signal.morningDream",
             kind: .morningDream,
-            title: "Сон ещё рядом",
-            body: "Поймай его, пока он не исчез.",
+            title: String(localized: "Сон ещё рядом"),
+            body: String(localized: "Поймай его, пока он не исчез."),
             date: nextDate,
             capsuleID: nil,
             userInfo: ["signal": "morning_dream"],
@@ -310,8 +310,8 @@ final class CapsuleNotificationScheduler {
             specs.append(NotificationSignalSpec(
                 id: Self.soonIdentifier(for: capsule.id),
                 kind: .capsuleSoon,
-                title: "Одна из твоих капсул скоро станет ближе",
-                body: "Время уже почти донесло её до тебя.",
+                title: String(localized: "Одна из твоих капсул скоро станет ближе"),
+                body: String(localized: "Время уже почти донесло её до тебя."),
                 date: resonantDate(
                     on: soonDate,
                     capsule: capsule,
@@ -333,8 +333,8 @@ final class CapsuleNotificationScheduler {
         specs.append(NotificationSignalSpec(
             id: Self.revisitIdentifier(for: capsule.id),
             kind: .capsuleRevisit,
-            title: "Иногда полезно перечитать себя",
-            body: "Что в этом желании сегодня звучит иначе?",
+            title: String(localized: "Иногда полезно перечитать себя"),
+            body: String(localized: "Что в этом желании сегодня звучит иначе?"),
             date: resonantDate(
                 on: revisitDate,
                 capsule: capsule,
@@ -430,7 +430,7 @@ final class CapsuleNotificationScheduler {
 
     private func notificationBody(for spec: NotificationSignalSpec) -> String {
         if spec.kind == .futureLetter {
-            return "Кажется, будущий ты хочет кое-что сказать."
+            return String(localized: "Кажется, будущий ты хочет кое-что сказать.")
         }
 
         return spec.body

@@ -37,7 +37,7 @@ struct OpeningPanel: View {
         )
     }
 
-    private func outcomeButton(_ status: CapsuleStatus, title: String) -> some View {
+    private func outcomeButton(_ status: CapsuleStatus, title: LocalizedStringKey) -> some View {
         Button {
             onOutcome(status)
         } label: {

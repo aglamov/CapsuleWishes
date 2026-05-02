@@ -58,7 +58,7 @@ struct CapsuleCard: View {
 
     private var subtitle: String {
         if capsule.isReadyToOpen {
-            return "Готова открыться"
+            return String(localized: "Готова открыться")
         }
 
         if capsule.status != .sealed {
@@ -66,7 +66,10 @@ struct CapsuleCard: View {
             return "\(capsule.status.title) · открыта \(openedDate)"
         }
 
-        return "Открытие: \(capsule.openAt.formatted(date: .abbreviated, time: .omitted))"
+        return String(
+            format: String(localized: "Открытие: %@"),
+            capsule.openAt.formatted(date: .abbreviated, time: .omitted)
+        )
     }
 
     private var backgroundOpacity: Double {

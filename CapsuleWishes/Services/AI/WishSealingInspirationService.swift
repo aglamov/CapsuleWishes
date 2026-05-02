@@ -26,7 +26,7 @@ struct WishSealingInspiration {
             .map { "\($0.title)\n\($0.message)" }
             .joined(separator: "\n\n")
 
-        return [fortuneText, "Капсула оставила знаки на пути:\n\n\(checkpointText)"]
+        return [fortuneText, "\(AIResponseLanguage.text(ru: "Капсула оставила знаки на пути", en: "The capsule left signs along the way")):\n\n\(checkpointText)"]
             .filter { !$0.isEmpty }
             .joined(separator: "\n\n")
     }
@@ -100,6 +100,7 @@ struct WishSealingInspirationService {
     ) async throws -> String {
         let instructions = """
         Ты анализируешь желание после запечатывания капсулы в приложении CapsuleWishes.
+        \(AIResponseLanguage.jsonInstruction)
         Сначала определи, выглядит ли желание как реализуемый план: есть ли в тексте конкретный результат, шаги, срок, проект, обучение, переезд, запуск, покупка, привычка или действие.
         Если это скорее мечта, состояние или образ будущего, не притворяйся, что это план.
         Если это план, дай вдохновляющий вывод и мягкие практичные рекомендации, как реализовать желание без давления.
@@ -121,7 +122,6 @@ struct WishSealingInspirationService {
         }
 
         Ограничения:
-        - русский язык.
         - message: 1-2 коротких вдохновляющих предложения в стилистике предсказания, мистично и тепло, но без гарантии исполнения.
         - planSummary: только если isPlan=true, 1 короткое образное предложение с сутью маршрута.
         - recommendation: только если isPlan=true, 1 короткое предложение с реалистичным следующим шагом.
@@ -131,17 +131,30 @@ struct WishSealingInspirationService {
         - без коучинговых клише, списков в строках и медицинских/финансовых/юридических советов.
         """
 
-        let input = """
-        Название желания: \(title)
-        Текст желания: \(intention)
-        Желаемое чувство: \(feeling)
+        let input = AIResponseLanguage.text(
+            ru: """
+            Название желания: \(title)
+            Текст желания: \(intention)
+            Желаемое чувство: \(feeling)
 
-        Мягкий контекст других желаний:
-        \(formattedRelatedWishes(context.relatedWishes))
+            Мягкий контекст других желаний:
+            \(formattedRelatedWishes(context.relatedWishes))
 
-        Мягкий контекст дневника:
-        \(formattedJournalEntries(context.journalEntries))
-        """
+            Мягкий контекст дневника:
+            \(formattedJournalEntries(context.journalEntries))
+            """,
+            en: """
+            Wish title: \(title)
+            Wish text: \(intention)
+            Desired feeling: \(feeling)
+
+            Gentle context from other wishes:
+            \(formattedRelatedWishes(context.relatedWishes))
+
+            Gentle journal context:
+            \(formattedJournalEntries(context.journalEntries))
+            """
+        )
 
         AppLog.ai.debug("Wish sealing inspiration AI backend request")
 
@@ -184,10 +197,11 @@ struct WishSealingInspirationService {
 
     private func formattedRelatedWishes(_ wishes: [RelatedWishContext]) -> String {
         let lines = wishes.prefix(5).map { wish in
-            "- \(wish.title) [\(wish.status)]: \(wish.intention) \(wish.feeling.isEmpty ? "" : "Желаемое чувство: \(wish.feeling)")"
+            let feelingLabel = AIResponseLanguage.text(ru: "Желаемое чувство", en: "Desired feeling")
+            return "- \(wish.title) [\(wish.status)]: \(wish.intention) \(wish.feeling.isEmpty ? "" : "\(feelingLabel): \(wish.feeling)")"
         }
 
-        return lines.isEmpty ? "Нет других желаний." : lines.joined(separator: "\n")
+        return lines.isEmpty ? AIResponseLanguage.text(ru: "Нет других желаний.", en: "No other wishes.") : lines.joined(separator: "\n")
     }
 
     private func formattedJournalEntries(_ entries: [JournalEntryContext]) -> String {
@@ -195,7 +209,7 @@ struct WishSealingInspirationService {
             "- \(entry.type): \(entry.text)"
         }
 
-        return lines.isEmpty ? "Нет записей дневника." : lines.joined(separator: "\n")
+        return lines.isEmpty ? AIResponseLanguage.text(ru: "Нет записей дневника.", en: "No journal entries.") : lines.joined(separator: "\n")
     }
 
     private func sanitized(_ text: String) -> String? {
@@ -213,19 +227,25 @@ struct WishSealingInspirationService {
 
         guard looksLikePlan(title: title, intention: intention) else {
             let message = cleanFeeling.isEmpty
-                ? "Запрос «\(cleanTitle)» уже вышел за пределы этой минуты. Пусть ближайшие дни принесут тебе не громкий знак, а тихую ясность: где сделать первый честный шаг."
-                : "Запрос «\(cleanTitle)» отправлен в большое темное небо. Пусть чувство \(cleanFeeling.lowercased()) начнет находить к тебе дорогу через маленькие совпадения, смелые решения и спокойные шаги."
+                ? AIResponseLanguage.text(
+                    ru: "Запрос «\(cleanTitle)» уже вышел за пределы этой минуты. Пусть ближайшие дни принесут тебе не громкий знак, а тихую ясность: где сделать первый честный шаг.",
+                    en: "The wish \"\(cleanTitle)\" has already moved beyond this minute. May the coming days bring you not a loud sign, but quiet clarity about the first honest step."
+                )
+                : AIResponseLanguage.text(
+                    ru: "Запрос «\(cleanTitle)» отправлен в большое темное небо. Пусть чувство \(cleanFeeling.lowercased()) начнет находить к тебе дорогу через маленькие совпадения, смелые решения и спокойные шаги.",
+                    en: "The wish \"\(cleanTitle)\" has been sent into the wide dark sky. May the feeling of \(cleanFeeling.lowercased()) begin finding its way to you through small coincidences, brave choices, and calm steps."
+                )
             return WishSealingInspiration(message: message, planSummary: nil, recommendation: nil, checkpoints: [])
         }
 
         return WishSealingInspiration(
-            message: "Там, где желание получает имя, дорога начинает узнавать твои шаги.",
-            planSummary: "Внутри этого запроса уже спрятан маршрут из нескольких спокойных действий.",
-            recommendation: "Начни с малого знака на земле: выбери один следующий шаг и время для него.",
+            message: AIResponseLanguage.text(ru: "Там, где желание получает имя, дорога начинает узнавать твои шаги.", en: "Where a wish receives a name, the road begins to recognize your steps."),
+            planSummary: AIResponseLanguage.text(ru: "Внутри этого запроса уже спрятан маршрут из нескольких спокойных действий.", en: "A route of several calm actions is already hidden inside this request."),
+            recommendation: AIResponseLanguage.text(ru: "Начни с малого знака на земле: выбери один следующий шаг и время для него.", en: "Start with one small sign on the ground: choose the next step and a time for it."),
             checkpoints: [
-                WishPlanCheckpoint(title: "Первый шаг", message: "Выбери одно действие, которое приблизит желание без лишней подготовки.", afterDays: 1),
-                WishPlanCheckpoint(title: "Проверка маршрута", message: "Посмотри, что уже сдвинулось, и выбери следующий честный шаг.", afterDays: 3),
-                WishPlanCheckpoint(title: "Точка опоры", message: "Закрепи то, что работает, и убери один лишний источник трения.", afterDays: 7),
+                WishPlanCheckpoint(title: AIResponseLanguage.text(ru: "Первый шаг", en: "First step"), message: AIResponseLanguage.text(ru: "Выбери одно действие, которое приблизит желание без лишней подготовки.", en: "Choose one action that moves the wish closer without extra preparation."), afterDays: 1),
+                WishPlanCheckpoint(title: AIResponseLanguage.text(ru: "Проверка маршрута", en: "Route check"), message: AIResponseLanguage.text(ru: "Посмотри, что уже сдвинулось, и выбери следующий честный шаг.", en: "Notice what has already shifted and choose the next honest step."), afterDays: 3),
+                WishPlanCheckpoint(title: AIResponseLanguage.text(ru: "Точка опоры", en: "Anchor point"), message: AIResponseLanguage.text(ru: "Закрепи то, что работает, и убери один лишний источник трения.", en: "Keep what works and remove one unnecessary source of friction."), afterDays: 7),
             ]
         )
     }

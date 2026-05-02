@@ -83,7 +83,10 @@ struct CreateCapsuleView: View {
                         Button {
                             sealCapsule()
                         } label: {
-                            Label(sealingStage.isActive ? "Капсула запечатывается" : "Запечатать капсулу", systemImage: "lock.fill")
+                            Label(
+                                sealingStage.isActive ? String(localized: "Капсула запечатывается") : String(localized: "Запечатать капсулу"),
+                                systemImage: "lock.fill"
+                            )
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(PrimaryCapsuleButtonStyle())
@@ -99,7 +102,7 @@ struct CreateCapsuleView: View {
                 if sealingStage.isActive {
                     WishSealingOverlay(
                         stage: sealingStage,
-                        title: generatedTitle.isEmpty ? "Будущая капсула" : generatedTitle,
+                        title: generatedTitle.isEmpty ? String(localized: "Будущая капсула") : generatedTitle,
                         colorHex: selectedColor.hex,
                         symbol: selectedSymbol,
                         inspiration: sealingInspiration
@@ -237,7 +240,7 @@ struct CreateCapsuleView: View {
     }
 
     private func field(
-        _ title: String,
+        _ title: LocalizedStringKey,
         text: Binding<String>,
         prompt: String,
         lines: Int = 1,
@@ -512,13 +515,13 @@ private enum WishSealingStage: Equatable {
         case .idle:
             return ""
         case .gathering:
-            return "Капсула собирает свет вокруг желания"
+            return String(localized: "Капсула собирает свет вокруг желания")
         case .launching:
-            return "Запрос уходит во вселенную"
+            return String(localized: "Запрос уходит во вселенную")
         case .listening:
-            return "Невидимые механизмы приходят в движение"
+            return String(localized: "Невидимые механизмы приходят в движение")
         case .complete:
-            return "Капсула запечатана"
+            return String(localized: "Капсула запечатана")
         }
     }
 }
@@ -535,12 +538,12 @@ private struct CapsuleCreationSymbol: Identifiable {
     }
 
     static let library = [
-        CapsuleCreationSymbol(systemName: "star", title: "Звезда", meaning: "для желания, которое хочется держать в поле зрения"),
-        CapsuleCreationSymbol(systemName: "heart", title: "Сердце", meaning: "для личного и эмоционально важного желания"),
-        CapsuleCreationSymbol(systemName: "flag", title: "Флаг", meaning: "для цели, маршрута и выбранного направления"),
-        CapsuleCreationSymbol(systemName: "lightbulb", title: "Идея", meaning: "для ясности и нового понимания"),
-        CapsuleCreationSymbol(systemName: "circle", title: "Круг", meaning: "для целостности, спокойствия и внутренней опоры"),
-        CapsuleCreationSymbol(systemName: "seal", title: "Печать", meaning: "для обещания себе и бережного запечатывания")
+        CapsuleCreationSymbol(systemName: "star", title: String(localized: "Звезда"), meaning: String(localized: "для желания, которое хочется держать в поле зрения")),
+        CapsuleCreationSymbol(systemName: "heart", title: String(localized: "Сердце"), meaning: String(localized: "для личного и эмоционально важного желания")),
+        CapsuleCreationSymbol(systemName: "flag", title: String(localized: "Флаг"), meaning: String(localized: "для цели, маршрута и выбранного направления")),
+        CapsuleCreationSymbol(systemName: "lightbulb", title: String(localized: "Идея"), meaning: String(localized: "для ясности и нового понимания")),
+        CapsuleCreationSymbol(systemName: "circle", title: String(localized: "Круг"), meaning: String(localized: "для целостности, спокойствия и внутренней опоры")),
+        CapsuleCreationSymbol(systemName: "seal", title: String(localized: "Печать"), meaning: String(localized: "для обещания себе и бережного запечатывания"))
     ]
 }
 

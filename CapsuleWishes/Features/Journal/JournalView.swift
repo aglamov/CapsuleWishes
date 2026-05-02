@@ -305,7 +305,7 @@ struct JournalView: View {
                             .font(.subheadline.weight(.semibold))
                     }
 
-                    Text(selectedCapsule?.title ?? "Без привязки")
+                    Text(selectedCapsule?.title ?? String(localized: "Без привязки"))
                         .font(.headline)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
@@ -364,7 +364,7 @@ struct JournalView: View {
         isBeautifyingEntry = true
 
         Task {
-            let polished = await creationAssistantService.polishedIntention(clean, feeling: "")
+            let polished = await creationAssistantService.polishedObservation(clean, entryType: selectedType)
             await MainActor.run {
                 if let polished { text = polished }
                 isBeautifyingEntry = false
@@ -381,7 +381,7 @@ struct JournalView: View {
                     .padding(.top, 1)
             }
 
-            Text(isLoadingAIPrompt ? "Ищу подсказку вокруг этого желания..." : currentPrompt)
+            Text(isLoadingAIPrompt ? String(localized: "Ищу подсказку вокруг этого желания...") : currentPrompt)
                 .font(.footnote)
                 .foregroundStyle(.white.opacity(0.76 + aiPromptGlowAmount * 0.24))
                 .fixedSize(horizontal: false, vertical: true)
@@ -479,11 +479,11 @@ private struct JournalEntryDaySection: Identifiable {
         let calendar = Calendar.current
 
         if calendar.isDateInToday(date) {
-            return "Сегодня"
+            return String(localized: "Сегодня")
         }
 
         if calendar.isDateInYesterday(date) {
-            return "Вчера"
+            return String(localized: "Вчера")
         }
 
         return date.formatted(date: .long, time: .omitted)

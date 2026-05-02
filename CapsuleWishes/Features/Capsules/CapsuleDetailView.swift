@@ -520,7 +520,7 @@ struct CapsuleDetailView: View {
                     .padding(.top, 1)
             }
 
-            Text(isLoadingAIEntryPrompt ? "Ищу подсказку вокруг этого желания..." : currentEntryPrompt)
+            Text(isLoadingAIEntryPrompt ? String(localized: "Ищу подсказку вокруг этого желания...") : currentEntryPrompt)
                 .font(.footnote)
                 .foregroundStyle(.white.opacity(0.76 + aiEntryPromptGlowAmount * 0.24))
                 .fixedSize(horizontal: false, vertical: true)
@@ -636,7 +636,7 @@ struct CapsuleDetailView: View {
         isBeautifyingEntry = true
 
         Task {
-            let polished = await creationAssistantService.polishedIntention(clean, feeling: "")
+            let polished = await creationAssistantService.polishedObservation(clean, entryType: selectedEntryType)
             await MainActor.run {
                 if let polished { entryText = polished }
                 isBeautifyingEntry = false
@@ -754,28 +754,28 @@ private struct OpenedReflection {
     init(status: CapsuleStatus, generatedMessage: String? = nil) {
         switch status {
         case .fulfilled:
-            title = "Желание сбылось"
-            message = generatedMessage ?? "Это желание дошло до берега. Отметь не только факт, но и путь: что помогло ему случиться, что внутри стало спокойнее, и какой маленький след ты хочешь взять с собой дальше."
+            title = String(localized: "Желание сбылось")
+            message = generatedMessage ?? String(localized: "Это желание дошло до берега. Отметь не только факт, но и путь: что помогло ему случиться, что внутри стало спокойнее, и какой маленький след ты хочешь взять с собой дальше.")
             symbolName = "sparkles"
         case .unfolding:
-            title = "Желание еще сбывается"
-            message = generatedMessage ?? "Похоже, история не закрыта, а продолжает собираться. Капсула уже показала направление: можно вернуться к следам, заметить живые признаки и выбрать один следующий шаг без спешки."
+            title = String(localized: "Желание еще сбывается")
+            message = generatedMessage ?? String(localized: "Похоже, история не закрыта, а продолжает собираться. Капсула уже показала направление: можно вернуться к следам, заметить живые признаки и выбрать один следующий шаг без спешки.")
             symbolName = "leaf.fill"
         case .changed:
-            title = "Желание сбылось иначе"
-            message = generatedMessage ?? "Иногда желание отвечает не тем предметом, а смыслом под ним. Посмотри, что изменилось в тебе, в обстоятельствах или в самом запросе: возможно, итог оказался точнее первоначальной формулировки."
+            title = String(localized: "Желание сбылось иначе")
+            message = generatedMessage ?? String(localized: "Иногда желание отвечает не тем предметом, а смыслом под ним. Посмотри, что изменилось в тебе, в обстоятельствах или в самом запросе: возможно, итог оказался точнее первоначальной формулировки.")
             symbolName = "wand.and.stars"
         case .released:
-            title = "Желание не сбылось"
-            message = generatedMessage ?? "Это тоже честный итог. Желание было важным, даже если мир не сложился в его сторону. Можно поблагодарить его за то, что оно показало, и отпустить без долга продолжать хотеть."
+            title = String(localized: "Желание не сбылось")
+            message = generatedMessage ?? String(localized: "Это тоже честный итог. Желание было важным, даже если мир не сложился в его сторону. Можно поблагодарить его за то, что оно показало, и отпустить без долга продолжать хотеть.")
             symbolName = "hand.raised.fill"
         case .opened:
-            title = "Капсула открыта"
-            message = generatedMessage ?? "Ты уже сделал важную часть: сохранил желание, дал ему время и вернулся к нему внимательнее. Пусть то, что открылось сейчас, станет не точкой, а мягкой подсказкой для следующего шага."
+            title = String(localized: "Капсула открыта")
+            message = generatedMessage ?? String(localized: "Ты уже сделал важную часть: сохранил желание, дал ему время и вернулся к нему внимательнее. Пусть то, что открылось сейчас, станет не точкой, а мягкой подсказкой для следующего шага.")
             symbolName = "sparkles"
         case .sealed:
-            title = "Капсула ждет открытия"
-            message = "Когда придет время, здесь появится итог желания."
+            title = String(localized: "Капсула ждет открытия")
+            message = String(localized: "Когда придет время, здесь появится итог желания.")
             symbolName = "lock.fill"
         }
     }
@@ -796,11 +796,12 @@ private struct OpeningReflectionService {
         let client = OpenAIResponsesClient(configuration: configuration)
         let instructions = """
         Ты пишешь финальный текст после открытия капсулы желания в приложении CapsuleWishes.
+        \(AIResponseLanguage.instruction)
         Пользователь уже выбрал итог желания: сбылось, еще сбывается, сбылось иначе или не сбылось.
 
         Задача: бережно подвести итог этому желанию, как будто человек вернулся к своему прошлому запросу и теперь закрывает или продолжает его с ясностью.
 
-        Стиль: русский язык, тепло, взросло, немного поэтично, конкретно к данным пользователя.
+        Стиль: тепло, взросло, немного поэтично, конкретно к данным пользователя.
         Нельзя: обещать исполнение, давать диагнозы, звучать как терапевт, стыдить, давить, использовать списки, заголовки, Markdown и кавычки.
         Если желание не сбылось, не утешай пустыми фразами и не называй это провалом.
         Если желание еще сбывается, не закрывай его как завершенное.
@@ -809,17 +810,30 @@ private struct OpeningReflectionService {
         Верни только один абзац, 45-75 слов.
         """
 
-        let input = """
-        Итог желания: \(status.title)
-        Название желания: \(capsule.title)
-        Текст желания: \(capsule.intentionText)
-        Желаемое чувство: \(capsule.desiredFeeling)
-        Дата запечатывания: \(formatted(capsule.sealedAt))
-        Дата открытия: \(formatted(capsule.openedAt ?? Date()))
+        let input = AIResponseLanguage.text(
+            ru: """
+            Итог желания: \(status.title)
+            Название желания: \(capsule.title)
+            Текст желания: \(capsule.intentionText)
+            Желаемое чувство: \(capsule.desiredFeeling)
+            Дата запечатывания: \(formatted(capsule.sealedAt))
+            Дата открытия: \(formatted(capsule.openedAt ?? Date()))
 
-        Последние записи вокруг желания:
-        \(entries.prefix(8).map { "- \($0.type.title): \($0.text)" }.joined(separator: "\n"))
-        """
+            Последние записи вокруг желания:
+            \(entries.prefix(8).map { "- \($0.type.title): \($0.text)" }.joined(separator: "\n"))
+            """,
+            en: """
+            Wish outcome: \(status.title)
+            Wish title: \(capsule.title)
+            Wish text: \(capsule.intentionText)
+            Desired feeling: \(capsule.desiredFeeling)
+            Sealed date: \(formatted(capsule.sealedAt))
+            Opening date: \(formatted(capsule.openedAt ?? Date()))
+
+            Recent entries around the wish:
+            \(entries.prefix(8).map { "- \($0.type.title): \($0.text)" }.joined(separator: "\n"))
+            """
+        )
 
         AppLog.ai.debug("AI backend opening reflection request: status=\(status.rawValue, privacy: .public), entries=\(entries.count, privacy: .public)")
 
@@ -877,7 +891,7 @@ private struct CapsuleOpeningReflectionOverlay: View {
                         openingOrb
 
                         VStack(spacing: 8) {
-                            Text(isLoading ? "Капсула слушает итог" : reflection.title)
+                            Text(isLoading ? String(localized: "Капсула слушает итог") : reflection.title)
                                 .font(.headline)
                                 .foregroundStyle(.white)
                                 .multilineTextAlignment(.center)
@@ -1157,10 +1171,12 @@ private struct SealingFortuneReading {
     let signs: [SealingFortunePlanSign]
 
     init(text: String) {
-        let marker = "Капсула оставила знаки на пути:"
         let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard let markerRange = trimmedText.range(of: marker) else {
+        guard let markerRange = Self.signsMarkers
+            .compactMap({ trimmedText.range(of: $0) })
+            .first
+        else {
             message = trimmedText
             signs = []
             return
@@ -1178,6 +1194,11 @@ private struct SealingFortuneReading {
             .filter { !$0.isEmpty }
             .map(SealingFortunePlanSign.init)
     }
+
+    private static let signsMarkers = [
+        "Капсула оставила знаки на пути:",
+        "The capsule left signs along the way:",
+    ]
 }
 
 private struct SealingFortunePlanSign: Identifiable {

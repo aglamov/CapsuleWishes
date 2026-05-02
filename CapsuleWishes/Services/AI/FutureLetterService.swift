@@ -55,6 +55,7 @@ struct FutureLetterService {
     private func aiDraft(for capsule: WishCapsule, client: OpenAIResponsesClient) async throws -> FutureLetterAIDecision {
         let instructions = """
         Ты создаешь письмо из будущего для приложения CapsuleWishes.
+        \(AIResponseLanguage.jsonInstruction)
         Это эмоциональное письмо от самого пользователя из момента, где его желание стало реальнее.
         Сначала реши, нужно ли письмо: не создавай его для бытовых задач, коротких errands и маленьких целей на завтра.
         Создавай письмо для личных, эмоциональных, долгосрочных или трансформационных желаний.
@@ -72,7 +73,7 @@ struct FutureLetterService {
         - письмо должно прийти заметно раньше даты открытия капсулы.
         - если до открытия меньше недели, выбирай 1.
         - если до открытия меньше трех дней, обычно верни shouldCreate=false, кроме очень эмоциональных желаний.
-        - письмо на русском, от первого лица будущего "я".
+        - письмо от первого лица будущего "я".
         - 170-260 слов.
         - спокойно, тепло, конкретно, без коучинговых клише.
         - не обещай гарантированный результат буквально.
@@ -81,15 +82,26 @@ struct FutureLetterService {
 
         let daysUntilOpen = calendar.dateComponents([.day], from: capsule.sealedAt, to: capsule.openAt).day ?? 0
 
-        let input = """
-        Название желания: \(capsule.title)
-        Текст желания: \(capsule.intentionText)
-        Желаемое чувство: \(capsule.desiredFeeling)
-        Дата запечатывания: \(formatted(capsule.sealedAt))
-        Дата открытия: \(formatted(capsule.openAt))
-        Дней до открытия: \(daysUntilOpen)
-        Важно: письмо нельзя датировать днем открытия; оно должно прийти раньше и поддержать путь к капсуле.
-        """
+        let input = AIResponseLanguage.text(
+            ru: """
+            Название желания: \(capsule.title)
+            Текст желания: \(capsule.intentionText)
+            Желаемое чувство: \(capsule.desiredFeeling)
+            Дата запечатывания: \(formatted(capsule.sealedAt))
+            Дата открытия: \(formatted(capsule.openAt))
+            Дней до открытия: \(daysUntilOpen)
+            Важно: письмо нельзя датировать днем открытия; оно должно прийти раньше и поддержать путь к капсуле.
+            """,
+            en: """
+            Wish title: \(capsule.title)
+            Wish text: \(capsule.intentionText)
+            Desired feeling: \(capsule.desiredFeeling)
+            Sealed date: \(formatted(capsule.sealedAt))
+            Opening date: \(formatted(capsule.openAt))
+            Days until opening: \(daysUntilOpen)
+            Important: the letter cannot be dated on the opening day; it must arrive earlier and support the path toward the capsule.
+            """
+        )
 
         AppLog.ai.debug("Future letter AI backend request: daysUntilOpen=\(daysUntilOpen, privacy: .public)")
 
@@ -115,7 +127,7 @@ struct FutureLetterService {
         return .create(FutureLetterDraft(
             shouldCreate: true,
             reason: response.reason,
-            title: "Тебе письмо из будущего",
+            title: AIResponseLanguage.text(ru: "Тебе письмо из будущего", en: "A letter from your future"),
             letter: letter,
             scheduledAt: scheduledDate(for: capsule, requestedDays: response.sendAfterDays)
         ))
@@ -126,31 +138,50 @@ struct FutureLetterService {
 
         let feeling = capsule.desiredFeeling.trimmingCharacters(in: .whitespacesAndNewlines)
         let feelingLine = feeling.isEmpty
-            ? "Главное изменилось не снаружи, а внутри: стало тише, яснее и чуть свободнее."
-            : "Ты хотел почувствовать \(feeling.lowercased()). И знаешь, это чувство действительно стало появляться чаще."
+            ? AIResponseLanguage.text(ru: "Главное изменилось не снаружи, а внутри: стало тише, яснее и чуть свободнее.", en: "The main change did not happen outside, but inside: things became quieter, clearer, and a little freer.")
+            : AIResponseLanguage.text(ru: "Ты хотел почувствовать \(feeling.lowercased()). И знаешь, это чувство действительно стало появляться чаще.", en: "You wanted to feel \(feeling.lowercased()). And you know, that feeling really did start appearing more often.")
 
-        let letter = """
-        Привет.
+        let letter = AIResponseLanguage.text(
+            ru: """
+            Привет.
 
-        Пишу тебе из момента, о котором ты сейчас только думаешь. Я помню, как это желание звучало в голове: \(capsule.title.lowercased()). Тогда оно могло казаться слишком большим, слишком хрупким или просто далеким.
+            Пишу тебе из момента, о котором ты сейчас только думаешь. Я помню, как это желание звучало в голове: \(capsule.title.lowercased()). Тогда оно могло казаться слишком большим, слишком хрупким или просто далеким.
 
-        Но ты не отложил его в сторону.
+            Но ты не отложил его в сторону.
 
-        Не все получилось одним рывком. Были дни, когда хотелось снова сделать вид, что это не так важно. Были маленькие шаги, которые почти не ощущались как движение. И все же именно они начали менять траекторию.
+            Не все получилось одним рывком. Были дни, когда хотелось снова сделать вид, что это не так важно. Были маленькие шаги, которые почти не ощущались как движение. И все же именно они начали менять траекторию.
 
-        \(feelingLine)
+            \(feelingLine)
 
-        Сейчас я смотрю назад и вижу не идеальную историю, а человека, который продолжил. Ты не обязан был каждый день быть уверенным. Достаточно было возвращаться к этому желанию и делать следующий честный шаг.
+            Сейчас я смотрю назад и вижу не идеальную историю, а человека, который продолжил. Ты не обязан был каждый день быть уверенным. Достаточно было возвращаться к этому желанию и делать следующий честный шаг.
 
-        Если коротко: то, что сейчас кажется будущим, уже начало происходить.
+            Если коротко: то, что сейчас кажется будущим, уже начало происходить.
 
-        И да, ты справился бережнее и сильнее, чем сам от себя ожидал.
-        """
+            И да, ты справился бережнее и сильнее, чем сам от себя ожидал.
+            """,
+            en: """
+            Hi.
+
+            I am writing to you from a moment you are only imagining right now. I remember how this wish sounded in your head: \(capsule.title.lowercased()). Back then it may have felt too big, too fragile, or simply far away.
+
+            But you did not put it aside.
+
+            It did not happen in one single push. There were days when it was tempting to pretend it did not matter that much. There were small steps that barely felt like movement. And still, those were the ones that started changing the trajectory.
+
+            \(feelingLine)
+
+            Looking back now, I do not see a perfect story. I see a person who continued. You did not have to be certain every day. It was enough to return to this wish and take the next honest step.
+
+            In short: what feels like the future right now has already begun.
+
+            And yes, you handled it more gently and more strongly than you expected from yourself.
+            """
+        )
 
         return FutureLetterDraft(
             shouldCreate: true,
             reason: "local_emotional_wish",
-            title: "Тебе письмо из будущего",
+            title: AIResponseLanguage.text(ru: "Тебе письмо из будущего", en: "A letter from your future"),
             letter: letter,
             scheduledAt: scheduledDate(for: capsule, requestedDays: fallbackSendAfterDays(for: capsule))
         )

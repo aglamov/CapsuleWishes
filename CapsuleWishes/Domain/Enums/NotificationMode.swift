@@ -17,22 +17,22 @@ enum NotificationMode: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .quiet:
-            "Тишина"
+            String(localized: "Тишина")
         case .soft:
-            "Мягко"
+            String(localized: "Мягко")
         case .engaged:
-            "Вовлечение"
+            String(localized: "Вовлечение")
         }
     }
 
     var description: String {
         switch self {
         case .quiet:
-            "Только момент открытия капсул."
+            String(localized: "Только момент открытия капсул.")
         case .soft:
-            "Редкие возвращения и точные сигналы."
+            String(localized: "Редкие возвращения и точные сигналы.")
         case .engaged:
-            "Больше касаний, но без давления."
+            String(localized: "Больше касаний, но без давления.")
         }
     }
 }
