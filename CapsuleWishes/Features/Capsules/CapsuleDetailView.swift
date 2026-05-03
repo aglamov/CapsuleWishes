@@ -137,14 +137,7 @@ struct CapsuleDetailView: View {
             ScrollViewReader { scrollProxy in
                 ScrollView {
                     VStack(spacing: 22) {
-                        CapsuleOrbView(
-                            capsule: capsule,
-                            size: 168,
-                            isInteractive: true,
-                            freezesMotion: freezesCapsuleMotion,
-                            openingPhase: orbOpeningPhase,
-                            refreshDate: readinessRefreshDate
-                        )
+                        capsuleOrbStage
                         .id("capsule-orb")
                         .padding(.top, 28)
 
@@ -284,18 +277,155 @@ struct CapsuleDetailView: View {
         }
     }
 
+    private var capsuleOrbStage: some View {
+        let accentColor = Color(hex: capsule.colorHex)
+
+        return ZStack {
+            ZStack {
+                Circle()
+                    .stroke(.white.opacity(capsule.hasBeenOpened ? 0.08 : 0.13), lineWidth: 5)
+                    .frame(width: 304, height: 304)
+                    .opacity(focusOpacity)
+
+                Circle()
+                    .trim(from: 0, to: detailTimeProgress)
+                    .stroke(
+                        AngularGradient(
+                            colors: [
+                                accentColor.opacity(0.42),
+                                Color(hex: "FFD89A").opacity(capsule.isReadyToOpen ? 0.96 : 0.74),
+                                accentColor.opacity(0.84)
+                            ],
+                            center: .center
+                        ),
+                        style: StrokeStyle(lineWidth: capsule.isReadyToOpen ? 6 : 5, lineCap: .round)
+                    )
+                    .frame(width: 304, height: 304)
+                    .rotationEffect(.degrees(-90))
+                    .shadow(color: accentColor.opacity(capsule.isReadyToOpen ? 0.62 : 0.26), radius: capsule.isReadyToOpen ? 16 : 9)
+                    .opacity(focusOpacity)
+
+                CapsuleOrbView(
+                    capsule: capsule,
+                    size: 168,
+                    isInteractive: true,
+                    freezesMotion: freezesCapsuleMotion,
+                    openingPhase: orbOpeningPhase,
+                    refreshDate: readinessRefreshDate
+                )
+            }
+            .frame(width: 326, height: 326)
+            .overlay {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                accentColor.opacity(capsule.isReadyToOpen ? 0.20 : 0.12),
+                                .clear
+                            ],
+                            center: .center,
+                            startRadius: 108,
+                            endRadius: 184
+                        )
+                    )
+                    .blendMode(.screen)
+                    .opacity(focusOpacity)
+                    .allowsHitTesting(false)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(capsule.title), \(statusText)")
+        }
+        .frame(maxWidth: .infinity, minHeight: 326)
+        .overlay(alignment: .topTrailing) {
+            if let statusBadge {
+                Text(statusBadge)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(badgeTextColor)
+                    .lineLimit(1)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(badgeBackground(accentColor), in: Capsule())
+                    .overlay {
+                        Capsule()
+                            .stroke(.white.opacity(capsule.isReadyToOpen ? 0.24 : 0.14), lineWidth: 1)
+                    }
+                    .fixedSize()
+                    .padding(.top, 0)
+                    .padding(.trailing, 0)
+                    .opacity(focusOpacity)
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+
     private var statusText: String {
         _ = readinessRefreshDate
 
         if capsule.status == .sealed && capsule.isReadyToOpen {
-            return "Капсула готова открыться"
+            return String(localized: "Капсула готова открыться")
         }
 
         if capsule.status == .sealed {
-            return "Откроется \(capsule.openAt.formatted(date: .abbreviated, time: .omitted))"
+            return String(
+                format: String(localized: "Откроется %@"),
+                capsule.openAt.formatted(date: .abbreviated, time: .omitted)
+            )
         }
 
         return capsule.status.title
+    }
+
+    private var statusBadge: String? {
+        if capsule.isReadyToOpen {
+            return String(localized: "Готова")
+        }
+
+        if capsule.hasBeenOpened {
+            return nil
+        }
+
+        if daysUntilOpening <= 7 {
+            return String(localized: "Скоро")
+        }
+
+        return nil
+    }
+
+    private var detailTimeProgress: CGFloat {
+        if capsule.hasBeenOpened || capsule.isReadyToOpen {
+            return 1
+        }
+
+        let total = capsule.openAt.timeIntervalSince(capsule.sealedAt)
+        guard total > 0 else { return 1 }
+
+        let elapsed = readinessRefreshDate.timeIntervalSince(capsule.sealedAt)
+        return CGFloat(min(max(elapsed / total, 0), 1))
+    }
+
+    private var daysUntilOpening: Int {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: readinessRefreshDate)
+        let openingDay = calendar.startOfDay(for: capsule.openAt)
+        return max(calendar.dateComponents([.day], from: today, to: openingDay).day ?? 0, 0)
+    }
+
+    private var badgeTextColor: Color {
+        capsule.isReadyToOpen ? Color(hex: "24170B") : .white.opacity(0.88)
+    }
+
+    private func badgeBackground(_ accentColor: Color) -> some ShapeStyle {
+        if capsule.isReadyToOpen {
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [Color(hex: "FFE7B8"), Color(hex: "F2A85E")],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+        }
+
+        return AnyShapeStyle(accentColor.opacity(0.26))
     }
 
     private var sealingFortuneText: String? {

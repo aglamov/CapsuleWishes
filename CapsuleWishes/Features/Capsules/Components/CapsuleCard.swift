@@ -122,7 +122,11 @@ struct CapsuleCard: View {
 
         if capsule.status != .sealed {
             let openedDate = (capsule.openedAt ?? capsule.openAt).formatted(date: .abbreviated, time: .omitted)
-            return "\(capsule.status.title) · открыта \(openedDate)"
+            return String(
+                format: String(localized: "%@ · открыта %@"),
+                capsule.status.title,
+                openedDate
+            )
         }
 
         return String(
