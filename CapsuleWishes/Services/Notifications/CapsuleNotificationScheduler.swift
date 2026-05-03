@@ -413,7 +413,7 @@ final class CapsuleNotificationScheduler {
         let content = UNMutableNotificationContent()
         content.title = spec.title
         content.body = notificationBody(for: spec)
-        content.sound = .default
+        content.sound = UNNotificationSound(named: UNNotificationSoundName("notification_soft.caf"))
         content.userInfo = spec.userInfo
 
         let trigger: UNNotificationTrigger
