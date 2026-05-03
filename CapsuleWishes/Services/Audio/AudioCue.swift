@@ -10,6 +10,7 @@ enum AudioCue: String, CaseIterable {
     case capsuleRelease
     case journalSave
     case letterOpen
+    case sealingFortuneOpen
     case softSelect
 
     var fileName: String {
@@ -22,6 +23,8 @@ enum AudioCue: String, CaseIterable {
             return "journal_save"
         case .letterOpen:
             return "letter_open"
+        case .sealingFortuneOpen:
+            return "sealing_fortune_open"
         case .softSelect:
             return "soft_select"
         }
@@ -33,7 +36,7 @@ enum AudioCue: String, CaseIterable {
             return 0.42
         case .capsuleSeal:
             return 0.34
-        case .journalSave, .letterOpen:
+        case .journalSave, .letterOpen, .sealingFortuneOpen:
             return 0.30
         case .softSelect:
             return 0.18

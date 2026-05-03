@@ -157,7 +157,7 @@ struct CapsuleDetailView: View {
                             capsule: capsule,
                             showsSealingFortuneButton: sealingFortuneText != nil
                         ) {
-                            AudioFeedbackService.shared.play(.letterOpen)
+                            AudioFeedbackService.shared.play(.sealingFortuneOpen)
                             isShowingSealingFortune = true
                         }
                         .opacity(focusOpacity)
