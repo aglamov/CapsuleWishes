@@ -1077,6 +1077,7 @@
       }
     },
     "Капсула запечатывается" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

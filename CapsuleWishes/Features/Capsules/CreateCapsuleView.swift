@@ -41,14 +41,14 @@ struct CreateCapsuleView: View {
                 NightSkyBackground()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 22) {
-                        VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 18) {
+                        VStack(alignment: .leading, spacing: 6) {
                             Text("Новая капсула")
-                                .font(.largeTitle.bold())
+                                .font(.title.bold())
                                 .foregroundStyle(.white)
 
                             Text("Не обязательно формулировать идеально. Иногда желание становится яснее уже после того, как его бережно записали.")
-                                .font(.body)
+                                .font(.callout)
                                 .foregroundStyle(.white.opacity(0.72))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -66,7 +66,7 @@ struct CreateCapsuleView: View {
                                 "Чувство",
                                 text: $feeling,
                                 prompt: feelingPrompt,
-                                lines: 2,
+                                lines: 1,
                                 showsValidation: didAttemptSeal && feeling.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                             )
                         }
@@ -74,26 +74,14 @@ struct CreateCapsuleView: View {
                         DatePicker("Открыть капсулу", selection: $openAt, displayedComponents: .date)
                             .datePickerStyle(.compact)
                             .foregroundStyle(.white)
-                            .padding(14)
+                            .padding(12)
                             .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
 
                         colorPicker
                         symbolPicker
-
-                        Button {
-                            sealCapsule()
-                        } label: {
-                            Label(
-                                sealingStage.isActive ? String(localized: "Капсула запечатывается") : String(localized: "Запечатать капсулу"),
-                                systemImage: "lock.fill"
-                            )
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(PrimaryCapsuleButtonStyle())
-                        .disabled(sealingStage.isActive)
                     }
                     .padding(20)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 96)
                     .opacity(sealingStage.isActive ? 0.10 : 1)
                     .scaleEffect(sealingStage.isActive ? 0.985 : 1)
                     .blur(radius: sealingStage.isActive ? 12 : 0)
@@ -113,19 +101,41 @@ struct CreateCapsuleView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 }
             }
+            .overlay(alignment: .topTrailing) {
+                closeButton
+                    .padding(.top, 8)
+                    .padding(.trailing, 16)
+                    .opacity(sealingStage.isActive && sealingStage != .complete ? 0 : 1)
+            }
             .contentShape(Rectangle())
             .onTapGesture {
                 isTextInputFocused = false
             }
             .animation(.smooth(duration: 1.05), value: sealingStage)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Закрыть") {
-                        sealingTask?.cancel()
-                        dismiss()
+            .toolbar(.hidden, for: .navigationBar)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if !isTextInputFocused && !sealingStage.isActive {
+                    Button {
+                        sealCapsule()
+                    } label: {
+                        Label("Запечатать капсулу", systemImage: "lock.fill")
+                        .frame(maxWidth: .infinity)
                     }
-                    .foregroundStyle(.white)
-                    .disabled(sealingStage.isActive && sealingStage != .complete)
+                    .buttonStyle(PrimaryCapsuleButtonStyle())
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    .padding(.bottom, 8)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color.black.opacity(0),
+                                Color.black.opacity(0.58)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .ignoresSafeArea()
+                    )
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -152,6 +162,25 @@ struct CreateCapsuleView: View {
         !feeling.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var closeButton: some View {
+        Button {
+            sealingTask?.cancel()
+            dismiss()
+        } label: {
+            Image(systemName: "xmark")
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 34, height: 34)
+                .background(.white.opacity(0.13), in: Circle())
+                .overlay {
+                    Circle()
+                        .stroke(.white.opacity(0.16), lineWidth: 1)
+                }
+        }
+        .disabled(sealingStage.isActive && sealingStage != .complete)
+        .accessibilityLabel("Закрыть")
+    }
+
     private var colorPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Цвет капсулы")
@@ -159,9 +188,9 @@ struct CreateCapsuleView: View {
                 .foregroundStyle(.white)
 
             LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 42, maximum: 42), spacing: 14)],
+                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6),
                 alignment: .leading,
-                spacing: 14
+                spacing: 10
             ) {
                 ForEach(CapsulePalette.options, id: \.hex) { option in
                     Button {
@@ -170,7 +199,7 @@ struct CreateCapsuleView: View {
                     } label: {
                         Circle()
                             .fill(Color(hex: option.hex))
-                            .frame(width: 42, height: 42)
+                            .frame(width: 36, height: 36)
                             .overlay {
                                 if selectedColor.hex == option.hex {
                                     Image(systemName: "checkmark")
@@ -178,8 +207,9 @@ struct CreateCapsuleView: View {
                                         .foregroundStyle(.white)
                                 }
                             }
-                            .shadow(color: Color(hex: option.hex).opacity(0.65), radius: 12)
+                            .shadow(color: Color(hex: option.hex).opacity(0.65), radius: 9)
                     }
+                    .frame(maxWidth: .infinity)
                     .accessibilityLabel(option.name)
                 }
             }
@@ -193,33 +223,27 @@ struct CreateCapsuleView: View {
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(symbols) { symbol in
-                        Button {
-                            AudioFeedbackService.shared.play(.softSelect)
-                            selectedSymbol = symbol.systemName
-                        } label: {
-                            VStack(spacing: 6) {
-                                Image(systemName: symbol.systemName)
-                                    .font(.title3)
-                                    .foregroundStyle(.white)
-                                    .frame(width: 42, height: 34)
-
-                                Text(symbol.title)
-                                    .font(.caption2.weight(.medium))
-                                    .foregroundStyle(.white.opacity(0.72))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.78)
-                            }
-                            .frame(width: 68, height: 64)
+            HStack(spacing: 8) {
+                ForEach(symbols) { symbol in
+                    Button {
+                        AudioFeedbackService.shared.play(.softSelect)
+                        selectedSymbol = symbol.systemName
+                    } label: {
+                        Image(systemName: symbol.systemName)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 46)
                             .background(
                                 selectedSymbol == symbol.systemName ? .white.opacity(0.22) : .white.opacity(0.08),
                                 in: RoundedRectangle(cornerRadius: 12)
                             )
-                        }
-                        .accessibilityLabel(symbol.accessibilityLabel)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(selectedSymbol == symbol.systemName ? .white.opacity(0.36) : .white.opacity(0.10), lineWidth: 1)
+                            }
                     }
+                    .accessibilityLabel(symbol.accessibilityLabel)
                 }
             }
         }
@@ -259,24 +283,25 @@ struct CreateCapsuleView: View {
                         Text(prompt)
                             .font(.body)
                             .foregroundStyle(.white.opacity(0.48))
+                            .lineLimit(lines == 1 ? 1 : max(lines, 3))
                             .fixedSize(horizontal: false, vertical: true)
                             .allowsHitTesting(false)
                     }
 
                     TextField("", text: text, axis: .vertical)
-                        .lineLimit(lines...max(lines, 6))
+                        .lineLimit(lines...lines)
                         .textFieldStyle(.plain)
                         .foregroundStyle(.white)
                         .focused($isTextInputFocused)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: lines == 1 ? 22 : CGFloat(lines) * 24)
+                .frame(minHeight: CGFloat(lines) * 22)
 
                 if let trailingAction {
                     trailingAction
                 }
             }
-            .padding(14)
+            .padding(12)
             .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
             .overlay {
                 RoundedRectangle(cornerRadius: 14)
