@@ -23,6 +23,11 @@ struct FutureLetterService {
     }
 
     func draft(for capsule: WishCapsule) async -> FutureLetterDraft? {
+        guard isLongDistanceEnoughForLetter(capsule) else {
+            AppLog.ai.debug("Future letter skipped: opening horizon is too short")
+            return nil
+        }
+
         if let configuration = OpenAIConfiguration.current {
             do {
                 let client = OpenAIResponsesClient(configuration: configuration)
@@ -57,22 +62,25 @@ struct FutureLetterService {
         Ты создаешь письмо из будущего для приложения CapsuleWishes.
         \(AIResponseLanguage.jsonInstruction)
         Это эмоциональное письмо от самого пользователя из момента, где его желание стало реальнее.
-        Сначала реши, нужно ли письмо: не создавай его для бытовых задач, коротких errands и маленьких целей на завтра.
-        Создавай письмо для личных, эмоциональных, долгосрочных или трансформационных желаний.
+        Сначала реши, нужно ли письмо: не создавай его для бытовых задач, коротких errands, коротких сроков и маленьких целей на ближайшие дни.
+        Создавай письмо только для личных, эмоциональных, важных, долгосрочных или трансформационных желаний, где поддержка в пути действительно уместна.
 
         Верни только JSON без Markdown:
         {
           "shouldCreate": true,
           "reason": "short_snake_case",
+          "importanceScore": 0.82,
           "sendAfterDays": 3,
           "letter": "..."
         }
 
         Ограничения:
-        - sendAfterDays: 1, 3, 7 или 14, это количество дней после запечатывания, а не дата открытия.
+        - importanceScore: число от 0 до 1, где 1 — очень важное личное или трансформационное желание.
+        - sendAfterDays: 3, 7 или 14, это количество дней после запечатывания, а не дата открытия.
         - письмо должно прийти заметно раньше даты открытия капсулы.
-        - если до открытия меньше недели, выбирай 1.
-        - если до открытия меньше трех дней, обычно верни shouldCreate=false, кроме очень эмоциональных желаний.
+        - если до открытия меньше 7 дней, верни shouldCreate=false.
+        - если importanceScore ниже 0.65, верни shouldCreate=false.
+        - если письмо попадет почти в день открытия или рядом с ним, верни shouldCreate=false.
         - письмо от первого лица будущего "я".
         - 170-260 слов.
         - спокойно, тепло, конкретно, без коучинговых клише.
@@ -80,7 +88,7 @@ struct FutureLetterService {
         - не используй списки, заголовки и кавычки.
         """
 
-        let daysUntilOpen = calendar.dateComponents([.day], from: capsule.sealedAt, to: capsule.openAt).day ?? 0
+        let daysUntilOpen = daysBetween(capsule.sealedAt, and: capsule.openAt)
 
         let input = AIResponseLanguage.text(
             ru: """
@@ -119,6 +127,10 @@ struct FutureLetterService {
 
         guard response.shouldCreate else {
             return .skip(response.reason)
+        }
+
+        guard response.importanceScore ?? 0.75 >= 0.65 else {
+            return .skip("importance_too_low")
         }
 
         guard let letter = AITextSanitizer.optional(response.letter) else { return .malformed }
@@ -187,11 +199,12 @@ struct FutureLetterService {
     }
 
     private func shouldCreateFallbackLetter(for capsule: WishCapsule) -> Bool {
+        guard isLongDistanceEnoughForLetter(capsule) else { return false }
+
         let text = [capsule.title, capsule.intentionText, capsule.desiredFeeling]
             .joined(separator: " ")
             .lowercased()
 
-        let daysUntilOpen = calendar.dateComponents([.day], from: capsule.sealedAt, to: capsule.openAt).day ?? 0
         let tinyTaskWords = [
             "купить", "оплатить", "позвонить", "написать", "отправить", "забрать",
             "сходить", "убраться", "сдать отчет", "встреча", "задача"
@@ -202,21 +215,24 @@ struct FutureLetterService {
             "жизн", "творч", "семь", "нов"
         ]
 
-        if daysUntilOpen <= 2 && tinyTaskWords.contains(where: text.contains) {
+        if tinyTaskWords.contains(where: text.contains) {
             return false
         }
 
-        return daysUntilOpen >= 5 || emotionalWords.contains(where: text.contains)
+        return emotionalWords.contains(where: text.contains)
+    }
+
+    private func isLongDistanceEnoughForLetter(_ capsule: WishCapsule) -> Bool {
+        let daysUntilOpen = daysBetween(capsule.sealedAt, and: capsule.openAt)
+        return daysUntilOpen >= 7
     }
 
     private func fallbackSendAfterDays(for capsule: WishCapsule) -> Int {
-        let daysUntilOpen = calendar.dateComponents([.day], from: capsule.sealedAt, to: capsule.openAt).day ?? 0
+        let daysUntilOpen = daysBetween(capsule.sealedAt, and: capsule.openAt)
 
         switch daysUntilOpen {
-        case ..<4:
-            return 1
-        case 4..<15:
-            return 1
+        case ..<15:
+            return 3
         case 15..<61:
             return 3
         case 61..<181:
@@ -235,7 +251,7 @@ struct FutureLetterService {
             return calendar.date(byAdding: .minute, value: 30, to: now) ?? now
         }
 
-        let allowedDays = [1, 3, 7, 14]
+        let allowedDays = [3, 7, 14]
         let normalizedDays = allowedDays.contains(requestedDays) ? requestedDays : fallbackSendAfterDays(for: capsule)
         let rawDate = calendar.date(byAdding: .day, value: normalizedDays, to: capsule.sealedAt) ?? capsule.sealedAt
 
@@ -255,7 +271,7 @@ struct FutureLetterService {
 
     private func fallbackScheduledDateBeforeOpening(for capsule: WishCapsule, latestComfortableDate: Date) -> Date {
         let now = Date()
-        let daysUntilOpen = calendar.dateComponents([.day], from: capsule.sealedAt, to: capsule.openAt).day ?? 0
+        let daysUntilOpen = daysBetween(capsule.sealedAt, and: capsule.openAt)
 
         if daysUntilOpen <= 3 {
             return calendar.date(byAdding: .hour, value: 2, to: now) ?? now
@@ -321,6 +337,14 @@ struct FutureLetterService {
     private func formatted(_ date: Date) -> String {
         date.formatted(date: .complete, time: .omitted)
     }
+
+    private func daysBetween(_ startDate: Date, and endDate: Date) -> Int {
+        calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: startDate),
+            to: calendar.startOfDay(for: endDate)
+        ).day ?? 0
+    }
 }
 
 private enum FutureLetterAIDecision {
@@ -332,6 +356,7 @@ private enum FutureLetterAIDecision {
 private struct FutureLetterAIResponse: Decodable {
     let shouldCreate: Bool
     let reason: String
+    let importanceScore: Double?
     let sendAfterDays: Int
     let letter: String
 

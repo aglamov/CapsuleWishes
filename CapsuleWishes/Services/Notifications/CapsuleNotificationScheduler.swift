@@ -57,13 +57,13 @@ final class CapsuleNotificationScheduler {
 
         center.removePendingNotificationRequests(withIdentifiers: managedIdentifiers(for: capsules) + customSignalIdentifiers)
 
-        let specs = signalSpecs(
+        let specs = deconflictedSignalSpecs(signalSpecs(
             capsules: sealedCapsules,
             allCapsules: capsules,
             mode: mode,
             morningDreamsEnabled: morningDreamsEnabled,
             morningDreamSignalTime: morningDreamSignalTime
-        ) + customSignalSpecs(customSignals, existingCapsuleIDs: capsuleIDs)
+        ) + customSignalSpecs(customSignals, existingCapsuleIDs: capsuleIDs))
 
         updateLedger(with: specs, existingCapsuleIDs: capsuleIDs, modelContext: modelContext)
 
@@ -74,11 +74,12 @@ final class CapsuleNotificationScheduler {
         }
     }
 
-    func scheduleOpeningSignal(for capsule: WishCapsule) {
+    @MainActor
+    func scheduleOpeningSignal(for capsule: WishCapsule, modelContext: ModelContext? = nil) {
         let morningSignalTime = storedMorningSignalTime()
         guard let date = openingSignalDate(for: capsule, morningSignalTime: morningSignalTime) else { return }
 
-        let spec = NotificationSignalSpec(
+        let rawSpec = NotificationSignalSpec(
             id: Self.openIdentifier(for: capsule.id),
             kind: .capsuleOpen,
             title: String(localized: "Пора проверить желание"),
@@ -87,6 +88,13 @@ final class CapsuleNotificationScheduler {
             capsuleID: capsule.id,
             userInfo: ["capsuleID": capsule.id.uuidString, "signal": "capsule_open"]
         )
+
+        let spec = deconflictedSignalSpecs(
+            [rawSpec],
+            existingSignals: existingSignals(from: modelContext)
+        )[0]
+
+        updateLedger(with: [spec], modelContext: modelContext)
         addNotification(for: spec)
     }
 
@@ -101,7 +109,7 @@ final class CapsuleNotificationScheduler {
             return
         }
 
-        let spec = NotificationSignalSpec(
+        let rawSpec = NotificationSignalSpec(
             id: Self.futureLetterIdentifier(for: capsule.id),
             kind: .futureLetter,
             title: draft.title,
@@ -110,6 +118,10 @@ final class CapsuleNotificationScheduler {
             capsuleID: capsule.id,
             userInfo: ["capsuleID": capsule.id.uuidString, "signal": "future_letter", "reason": draft.reason]
         )
+        let spec = deconflictedSignalSpecs(
+            [rawSpec],
+            existingSignals: existingSignals(from: modelContext)
+        )[0]
 
         updateLedger(with: [spec], modelContext: modelContext)
         addNotification(for: spec)
@@ -125,9 +137,13 @@ final class CapsuleNotificationScheduler {
     ) {
         guard capsule.status == .sealed, !checkpoints.isEmpty else { return }
 
-        let specs = checkpoints.prefix(3).enumerated().compactMap { index, checkpoint in
+        let rawSpecs = checkpoints.prefix(3).enumerated().compactMap { index, checkpoint in
             planCheckpointSpec(checkpoint, index: index, for: capsule)
         }
+        let specs = deconflictedSignalSpecs(
+            rawSpecs,
+            existingSignals: existingSignals(from: modelContext)
+        )
 
         guard !specs.isEmpty else { return }
 
@@ -428,6 +444,64 @@ final class CapsuleNotificationScheduler {
         center.add(UNNotificationRequest(identifier: spec.id, content: content, trigger: trigger))
     }
 
+    private func deconflictedSignalSpecs(
+        _ specs: [NotificationSignalSpec],
+        existingSignals: [NotificationSignal] = []
+    ) -> [NotificationSignalSpec] {
+        let incomingIDs = Set(specs.map(\.id))
+        var usedKeys = Set(existingSignals.compactMap { signal -> String? in
+            guard !incomingIDs.contains(signal.identifier),
+                  !signal.isCancelled,
+                  signal.scheduledAt > Date()
+            else { return nil }
+
+            return minuteKey(for: signal.scheduledAt)
+        })
+
+        return specs.map { spec in
+            guard !spec.repeatsDaily else { return spec }
+
+            var adjustedSpec = spec
+            var adjustedDate = spec.date
+            var key = minuteKey(for: adjustedDate)
+
+            while usedKeys.contains(key) {
+                guard let nextDate = calendar.date(byAdding: .minute, value: 15, to: adjustedDate) else { break }
+                adjustedDate = nextDate
+                key = minuteKey(for: adjustedDate)
+            }
+
+            usedKeys.insert(key)
+            adjustedSpec.date = adjustedDate
+            return adjustedSpec
+        }
+    }
+
+    private func minuteKey(for date: Date) -> String {
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        return [
+            components.year,
+            components.month,
+            components.day,
+            components.hour,
+            components.minute,
+        ]
+            .map { String($0 ?? 0) }
+            .joined(separator: ".")
+    }
+
+    @MainActor
+    private func existingSignals(from modelContext: ModelContext?) -> [NotificationSignal] {
+        guard let modelContext else { return [] }
+
+        do {
+            return try modelContext.fetch(FetchDescriptor<NotificationSignal>())
+        } catch {
+            AppLog.notifications.error("Notification deconflict fetch failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
     private func notificationBody(for spec: NotificationSignalSpec) -> String {
         if spec.kind == .futureLetter {
             return String(localized: "Кажется, будущий ты хочет кое-что сказать.")
@@ -610,7 +684,7 @@ private struct NotificationSignalSpec {
     let kind: NotificationSignalKind
     let title: String
     let body: String
-    let date: Date
+    var date: Date
     let capsuleID: UUID?
     let userInfo: [AnyHashable: Any]
     var repeatsDaily = false

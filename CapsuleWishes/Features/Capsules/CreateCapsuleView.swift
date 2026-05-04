@@ -338,6 +338,7 @@ struct CreateCapsuleView: View {
                 title: titleForCapsule,
                 intention: trimmedIntention,
                 feeling: trimmedFeeling,
+                openAt: openAt,
                 context: sealingContext(
                     title: titleForCapsule,
                     intention: trimmedIntention
@@ -401,7 +402,12 @@ struct CreateCapsuleView: View {
             }
 
             guard await CapsuleNotificationScheduler.shared.requestAuthorizationIfNeeded() else { return }
-            CapsuleNotificationScheduler.shared.scheduleOpeningSignal(for: capsule)
+            await MainActor.run {
+                CapsuleNotificationScheduler.shared.scheduleOpeningSignal(
+                    for: capsule,
+                    modelContext: modelContext
+                )
+            }
         }
     }
 
