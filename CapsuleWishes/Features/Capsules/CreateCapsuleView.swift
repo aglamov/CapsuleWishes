@@ -567,6 +567,7 @@ private struct WishSealingOverlay: View {
                             openAt: openAt,
                             isWaitingForInspiration: stage == .listening,
                             isComplete: stage == .complete,
+                            showsFinalMessage: revealsInspiration,
                             startedAt: ritualStartedAt
                         )
                         .frame(height: min(max(proxy.size.height * 0.52, 360), 460))
@@ -671,6 +672,7 @@ private struct CapsuleSealingRitualView: View {
     let openAt: Date
     let isWaitingForInspiration: Bool
     let isComplete: Bool
+    let showsFinalMessage: Bool
     let startedAt: Date
 
     private let ritualDuration: TimeInterval = 7.2
@@ -862,22 +864,18 @@ private struct CapsuleSealingRitualView: View {
         return ZStack {
             VStack(spacing: 3) {
                 Text(countdownText(to: openAt, from: now))
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(.white.opacity(0.92))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
 
                 Text("до открытия")
-                    .font(.caption2.weight(.medium))
+                    .font(.caption.weight(.medium))
                     .foregroundStyle(.white.opacity(0.58))
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
-            .background(.white.opacity(0.10 * reveal), in: Capsule())
-            .overlay {
-                Capsule()
-                    .stroke(.white.opacity(0.18 * reveal), lineWidth: 1)
-            }
-            .position(x: center.x, y: center.y - capsuleSize * 0.82)
+            .frame(width: capsuleSize * 2.0)
+            .position(x: center.x, y: center.y - capsuleSize * 1.08)
             .opacity(reveal)
             .scaleEffect(0.92 + reveal * 0.08)
 
@@ -909,12 +907,8 @@ private struct CapsuleSealingRitualView: View {
     }
 
     private func statusText(for progress: Double) -> String {
-        if isComplete {
+        if showsFinalMessage {
             return String(localized: "Капсула запечатана")
-        }
-
-        if isWaitingForInspiration && progress >= 0.94 {
-            return String(localized: "Слушаем тихий ответ будущего")
         }
 
         switch progress {
@@ -922,25 +916,25 @@ private struct CapsuleSealingRitualView: View {
             return String(localized: "Капсула собирает свет вокруг желания")
         case ..<0.68:
             return String(localized: "Желание принимает форму")
-        case ..<0.92:
-            return String(localized: "Запечатываем до назначенного дня")
         default:
-            return String(localized: "Капсула запечатана")
+            return String(localized: "Запечатываем до назначенного дня")
         }
     }
 
     private func countdownText(to targetDate: Date, from currentDate: Date) -> String {
-        let remaining = max(0, Int(targetDate.timeIntervalSince(currentDate)))
-        let days = remaining / 86_400
-        let hours = (remaining % 86_400) / 3_600
-        let minutes = (remaining % 3_600) / 60
-        let seconds = remaining % 60
+        let remaining = max(0, targetDate.timeIntervalSince(currentDate))
+        let wholeSeconds = Int(remaining)
+        let days = wholeSeconds / 86_400
+        let hours = (wholeSeconds % 86_400) / 3_600
+        let minutes = (wholeSeconds % 3_600) / 60
+        let seconds = wholeSeconds % 60
+        let milliseconds = Int((remaining - Double(wholeSeconds)) * 1_000)
 
         if days > 0 {
-            return String(format: "%02d:%02d:%02d:%02d", days, hours, minutes, seconds)
+            return String(format: "%02d:%02d:%02d:%02d.%03d", days, hours, minutes, seconds, milliseconds)
         }
 
-        return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+        return String(format: "%02d:%02d:%02d.%03d", hours, minutes, seconds, milliseconds)
     }
 
     private func textParticle(index: Int, size: CGSize, center: CGPoint, progress: Double) -> SealingParticle {
