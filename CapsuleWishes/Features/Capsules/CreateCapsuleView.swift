@@ -105,6 +105,7 @@ struct CreateCapsuleView: View {
                         title: generatedTitle.isEmpty ? String(localized: "Будущая капсула") : generatedTitle,
                         colorHex: selectedColor.hex,
                         symbol: selectedSymbol,
+                        openAt: Calendar.current.startOfDay(for: openAt),
                         inspiration: sealingInspiration
                     ) {
                         dismiss()
@@ -545,6 +546,7 @@ private struct WishSealingOverlay: View {
     let title: String
     let colorHex: String
     let symbol: String
+    let openAt: Date
     let inspiration: WishSealingInspiration?
     let onDone: () -> Void
 
@@ -562,6 +564,7 @@ private struct WishSealingOverlay: View {
                             title: title,
                             colorHex: colorHex,
                             symbol: symbol,
+                            openAt: openAt,
                             isWaitingForInspiration: stage == .listening,
                             isComplete: stage == .complete,
                             startedAt: ritualStartedAt
@@ -665,6 +668,7 @@ private struct CapsuleSealingRitualView: View {
     let title: String
     let colorHex: String
     let symbol: String
+    let openAt: Date
     let isWaitingForInspiration: Bool
     let isComplete: Bool
     let startedAt: Date
@@ -674,20 +678,20 @@ private struct CapsuleSealingRitualView: View {
     var body: some View {
         GeometryReader { proxy in
             if reduceMotion {
-                scene(in: proxy.size, progress: isComplete ? 1 : 0.86, time: 0)
+                scene(in: proxy.size, progress: isComplete ? 1 : 0.86, time: 0, now: Date())
             } else {
                 TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
                     let elapsed = timeline.date.timeIntervalSince(startedAt)
                     let progress = min(max(elapsed / ritualDuration, 0), 1)
 
-                    scene(in: proxy.size, progress: progress, time: elapsed)
+                    scene(in: proxy.size, progress: progress, time: elapsed, now: timeline.date)
                 }
             }
         }
         .allowsHitTesting(false)
     }
 
-    private func scene(in size: CGSize, progress: Double, time: TimeInterval) -> some View {
+    private func scene(in size: CGSize, progress: Double, time: TimeInterval, now: Date) -> some View {
         let color = Color(hex: colorHex)
         let center = CGPoint(x: size.width * 0.5, y: size.height * 0.42)
         let capsuleSize = min(size.width * 0.44, 172)
@@ -697,7 +701,7 @@ private struct CapsuleSealingRitualView: View {
             originParticles(color: color, size: size, center: center, progress: progress)
             formingCapsule(color: color, center: center, capsuleSize: capsuleSize, progress: progress, time: time)
             sealingRing(color: color, center: center, capsuleSize: capsuleSize, progress: progress, time: time)
-            timerSeal(color: color, center: center, capsuleSize: capsuleSize, progress: progress)
+            countdownSeal(color: color, center: center, capsuleSize: capsuleSize, progress: progress, now: now)
             statusBlock(progress: progress)
                 .position(x: size.width * 0.5, y: min(size.height - 46, center.y + capsuleSize * 0.86 + 58))
         }
@@ -852,22 +856,36 @@ private struct CapsuleSealingRitualView: View {
         .position(center)
     }
 
-    private func timerSeal(color: Color, center: CGPoint, capsuleSize: CGFloat, progress: Double) -> some View {
+    private func countdownSeal(color: Color, center: CGPoint, capsuleSize: CGFloat, progress: Double, now: Date) -> some View {
         let reveal = phase(progress, from: 0.90, to: 0.98)
 
         return ZStack {
-            Image(systemName: "timer")
-                .font(.system(size: capsuleSize * 0.16, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.88 * reveal))
-                .frame(width: capsuleSize * 0.30, height: capsuleSize * 0.30)
-                .background(.white.opacity(0.12 * reveal), in: Circle())
-                .position(x: center.x + capsuleSize * 0.41, y: center.y - capsuleSize * 0.40)
-                .scaleEffect(0.76 + reveal * 0.24)
+            VStack(spacing: 3) {
+                Text(countdownText(to: openAt, from: now))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.white.opacity(0.92))
+
+                Text("до открытия")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.58))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(.white.opacity(0.10 * reveal), in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(.white.opacity(0.18 * reveal), lineWidth: 1)
+            }
+            .position(x: center.x, y: center.y - capsuleSize * 0.82)
+            .opacity(reveal)
+            .scaleEffect(0.92 + reveal * 0.08)
 
             Circle()
                 .stroke(color.mix(with: .white, by: 0.45).opacity(0.28 * reveal), lineWidth: 1)
                 .frame(width: capsuleSize * 1.26, height: capsuleSize * 1.26)
                 .position(center)
+                .scaleEffect(0.76 + reveal * 0.24)
         }
         .allowsHitTesting(false)
     }
@@ -892,7 +910,7 @@ private struct CapsuleSealingRitualView: View {
 
     private func statusText(for progress: Double) -> String {
         if isComplete {
-            return String(localized: "Таймер запущен")
+            return String(localized: "Капсула запечатана")
         }
 
         if isWaitingForInspiration && progress >= 0.94 {
@@ -907,8 +925,22 @@ private struct CapsuleSealingRitualView: View {
         case ..<0.92:
             return String(localized: "Запечатываем до назначенного дня")
         default:
-            return String(localized: "Таймер запущен")
+            return String(localized: "Капсула запечатана")
         }
+    }
+
+    private func countdownText(to targetDate: Date, from currentDate: Date) -> String {
+        let remaining = max(0, Int(targetDate.timeIntervalSince(currentDate)))
+        let days = remaining / 86_400
+        let hours = (remaining % 86_400) / 3_600
+        let minutes = (remaining % 3_600) / 60
+        let seconds = remaining % 60
+
+        if days > 0 {
+            return String(format: "%02d:%02d:%02d:%02d", days, hours, minutes, seconds)
+        }
+
+        return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
     }
 
     private func textParticle(index: Int, size: CGSize, center: CGPoint, progress: Double) -> SealingParticle {
