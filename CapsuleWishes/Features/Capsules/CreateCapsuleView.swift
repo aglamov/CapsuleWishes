@@ -94,9 +94,9 @@ struct CreateCapsuleView: View {
                     }
                     .padding(20)
                     .padding(.bottom, 24)
-                    .opacity(sealingStage.isActive ? 0.16 : 1)
-                    .scaleEffect(sealingStage.isActive ? 0.97 : 1)
-                    .blur(radius: sealingStage.isActive ? 8 : 0)
+                    .opacity(sealingStage.isActive ? 0.10 : 1)
+                    .scaleEffect(sealingStage.isActive ? 0.985 : 1)
+                    .blur(radius: sealingStage.isActive ? 12 : 0)
                 }
 
                 if sealingStage.isActive {
@@ -116,7 +116,7 @@ struct CreateCapsuleView: View {
             .onTapGesture {
                 isTextInputFocused = false
             }
-            .animation(.smooth(duration: 0.42), value: sealingStage)
+            .animation(.smooth(duration: 1.05), value: sealingStage)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Закрыть") {
@@ -514,20 +514,6 @@ private enum WishSealingStage: Equatable {
         self != .idle
     }
 
-    var statusText: String {
-        switch self {
-        case .idle:
-            return ""
-        case .gathering:
-            return String(localized: "Капсула собирает свет вокруг желания")
-        case .launching:
-            return String(localized: "Запрос уходит во вселенную")
-        case .listening:
-            return String(localized: "Невидимые механизмы приходят в движение")
-        case .complete:
-            return String(localized: "Капсула запечатана")
-        }
-    }
 }
 
 private struct CapsuleCreationSymbol: Identifiable {
@@ -552,7 +538,8 @@ private struct CapsuleCreationSymbol: Identifiable {
 }
 
 private struct WishSealingOverlay: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var ritualStartedAt = Date()
+    @State private var revealsInspiration = false
 
     let stage: WishSealingStage
     let title: String
@@ -564,38 +551,24 @@ private struct WishSealingOverlay: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                Color.black.opacity(0.24)
+                Color.black.opacity(0.34)
                     .ignoresSafeArea()
-
-                if reduceMotion {
-                    staticStars(in: proxy.size)
-                } else {
-                    TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
-                        sealingField(in: proxy.size, time: timeline.date.timeIntervalSinceReferenceDate)
-                    }
-                }
 
                 ScrollView(showsIndicators: stage == .complete) {
                     VStack(spacing: 22) {
                         Spacer(minLength: 30)
 
-                        sealingOrb
+                        CapsuleSealingRitualView(
+                            title: title,
+                            colorHex: colorHex,
+                            symbol: symbol,
+                            isWaitingForInspiration: stage == .listening,
+                            isComplete: stage == .complete,
+                            startedAt: ritualStartedAt
+                        )
+                        .frame(height: min(max(proxy.size.height * 0.52, 360), 460))
 
-                        VStack(spacing: 8) {
-                            Text(stage.statusText)
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .multilineTextAlignment(.center)
-
-                            Text(title)
-                                .font(.subheadline)
-                                .foregroundStyle(.white.opacity(0.62))
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                        }
-                        .padding(.horizontal, 28)
-
-                        if let inspiration, stage == .complete {
+                        if let inspiration, stage == .complete, revealsInspiration {
                             VStack(spacing: 14) {
                                 Text(inspiration.fortuneText)
                                     .font(.title3.weight(.medium))
@@ -622,17 +595,26 @@ private struct WishSealingOverlay: View {
                             .padding(.horizontal, 26)
                             .padding(.top, 4)
                             .transition(.opacity.combined(with: .offset(y: 10)))
-                        } else {
-                            ProgressView()
-                                .tint(.white)
-                                .controlSize(.regular)
-                                .padding(.top, 6)
                         }
 
                         Spacer(minLength: 34)
                     }
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: proxy.size.height)
+                }
+            }
+        }
+        .onAppear {
+            ritualStartedAt = Date()
+            revealsInspiration = false
+        }
+        .task {
+            try? await Task.sleep(for: .milliseconds(7200))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                withAnimation(.smooth(duration: 0.52)) {
+                    revealsInspiration = true
                 }
             }
         }
@@ -675,132 +657,320 @@ private struct WishSealingOverlay: View {
         )
     }
 
-    private var sealingOrb: some View {
+}
+
+private struct CapsuleSealingRitualView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let title: String
+    let colorHex: String
+    let symbol: String
+    let isWaitingForInspiration: Bool
+    let isComplete: Bool
+    let startedAt: Date
+
+    private let ritualDuration: TimeInterval = 7.2
+
+    var body: some View {
+        GeometryReader { proxy in
+            if reduceMotion {
+                scene(in: proxy.size, progress: isComplete ? 1 : 0.86, time: 0)
+            } else {
+                TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
+                    let elapsed = timeline.date.timeIntervalSince(startedAt)
+                    let progress = min(max(elapsed / ritualDuration, 0), 1)
+
+                    scene(in: proxy.size, progress: progress, time: elapsed)
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func scene(in size: CGSize, progress: Double, time: TimeInterval) -> some View {
         let color = Color(hex: colorHex)
+        let center = CGPoint(x: size.width * 0.5, y: size.height * 0.42)
+        let capsuleSize = min(size.width * 0.44, 172)
+
+        return ZStack {
+            ritualBackdrop(color: color, size: size, center: center, progress: progress, time: time)
+            originParticles(color: color, size: size, center: center, progress: progress)
+            formingCapsule(color: color, center: center, capsuleSize: capsuleSize, progress: progress, time: time)
+            sealingRing(color: color, center: center, capsuleSize: capsuleSize, progress: progress, time: time)
+            timerSeal(color: color, center: center, capsuleSize: capsuleSize, progress: progress)
+            statusBlock(progress: progress)
+                .position(x: size.width * 0.5, y: min(size.height - 46, center.y + capsuleSize * 0.86 + 58))
+        }
+    }
+
+    private func ritualBackdrop(color: Color, size: CGSize, center: CGPoint, progress: Double, time: TimeInterval) -> some View {
+        ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            color.opacity(0.22 + phase(progress, from: 0.58, to: 1) * 0.08),
+                            Color(hex: "111E3A").opacity(0.16),
+                            .clear
+                        ],
+                        center: .center,
+                        startRadius: 2,
+                        endRadius: min(size.width, size.height) * 0.62
+                    )
+                )
+                .frame(width: min(size.width, size.height) * 1.24, height: min(size.width, size.height) * 1.24)
+                .position(center)
+                .blur(radius: 18)
+
+            ForEach(0..<38, id: \.self) { index in
+                let star = ambientStar(index: index, size: size, time: time)
+
+                Circle()
+                    .fill(.white.opacity(star.opacity))
+                    .frame(width: star.size, height: star.size)
+                    .position(star.position)
+            }
+        }
+    }
+
+    private func originParticles(color: Color, size: CGSize, center: CGPoint, progress: Double) -> some View {
+        ZStack {
+            ForEach(0..<72, id: \.self) { index in
+                let particle = textParticle(index: index, size: size, center: center, progress: progress)
+
+                Circle()
+                    .fill((index.isMultiple(of: 3) ? color : .white).opacity(particle.opacity))
+                    .frame(width: particle.size, height: particle.size)
+                    .shadow(color: color.opacity(particle.opacity * 0.72), radius: particle.size * 2.1)
+                    .position(particle.position)
+            }
+        }
+    }
+
+    private func formingCapsule(color: Color, center: CGPoint, capsuleSize: CGFloat, progress: Double, time: TimeInterval) -> some View {
+        let core = phase(progress, from: 0.10, to: 0.38)
+        let gather = phase(progress, from: 0.18, to: 0.50)
+        let solid = phase(progress, from: 0.42, to: 0.64)
+        let boundary = phase(progress, from: 0.66, to: 0.80)
+        let symbolReveal = phase(progress, from: 0.74, to: 0.92)
+        let sealFlash = pulse(progress, center: 0.88, width: 0.045)
+        let breathing = reduceMotion ? 0 : sin(time * 2.1) * 0.018
+        let glowSize = capsuleSize * (0.56 + gather * 1.08 - solid * 0.34)
+        let activeSize = capsuleSize * (0.78 + solid * 0.22)
 
         return ZStack {
             Circle()
                 .fill(
                     RadialGradient(
                         colors: [
-                            .white.opacity(stage == .complete ? 0.86 : 0.42),
-                            color.opacity(stage == .launching ? 0.80 : 0.52),
+                            .white.opacity(0.78 * core + sealFlash * 0.22),
+                            color.opacity(0.62 * core + 0.16 + gather * 0.18),
                             .clear
                         ],
                         center: .center,
-                        startRadius: 2,
-                        endRadius: 168
+                        startRadius: 1,
+                        endRadius: glowSize * 0.76
                     )
                 )
-                .frame(width: 260, height: 260)
-                .scaleEffect(glowScale)
-                .blur(radius: stage == .complete ? 18 : 10)
+                .frame(width: glowSize * 2.0, height: glowSize * 2.0)
+                .scaleEffect(0.82 + gather * 0.18 + sealFlash * 0.12)
+                .blur(radius: 24 - solid * 12)
+                .opacity(0.34 + core * 0.58)
                 .blendMode(.screen)
 
             Circle()
                 .fill(
                     RadialGradient(
                         colors: [
-                            .white.opacity(0.92),
-                            color.opacity(0.88),
-                            color.opacity(0.22)
+                            .white.opacity(0.78 + solid * 0.14),
+                            color.mix(with: .white, by: 0.22).opacity(0.72 + solid * 0.14),
+                            color.opacity(0.22 + solid * 0.44)
                         ],
                         center: .topLeading,
-                        startRadius: 8,
-                        endRadius: 96
+                        startRadius: 5,
+                        endRadius: activeSize * 0.70
                     )
                 )
-                .frame(width: orbSize, height: orbSize)
-                .shadow(color: color.opacity(0.86), radius: 34)
+                .frame(width: activeSize, height: activeSize)
+                .opacity(solid)
+                .blur(radius: (1 - boundary) * 8)
+                .shadow(color: color.opacity(0.32 + solid * 0.58), radius: 18 + solid * 20)
                 .overlay {
                     Circle()
-                        .stroke(.white.opacity(0.45), lineWidth: 1)
+                        .stroke(.white.opacity(boundary * 0.48 + sealFlash * 0.36), lineWidth: 0.8 + boundary * 0.6 + sealFlash * 1.8)
+                        .blur(radius: sealFlash * 1.6)
                 }
 
+            Circle()
+                .trim(from: 0.05, to: 0.34)
+                .stroke(.white.opacity(0.22 * boundary), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                .frame(width: activeSize * 0.82, height: activeSize * 0.82)
+                .rotationEffect(.degrees(-34 + time * 12))
+                .blendMode(.screen)
+
             Image(systemName: symbol)
-                .font(.system(size: 48, weight: .semibold))
-                .foregroundStyle(.white.opacity(stage == .complete ? 1 : 0.88))
-                .scaleEffect(stage == .launching ? 1.34 : 1)
+                .font(.system(size: capsuleSize * 0.30, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.18 + symbolReveal * 0.78 + sealFlash * 0.18))
+                .scaleEffect(0.78 + symbolReveal * 0.22 + sealFlash * 0.18)
+                .shadow(color: .white.opacity(sealFlash * 0.68), radius: 14)
         }
-        .frame(width: 280, height: 280)
-        .scaleEffect(stage == .complete ? 1.05 : 1)
+        .scaleEffect(1 + breathing + sealFlash * 0.06)
+        .position(center)
     }
 
-    private var orbSize: CGFloat {
-        switch stage {
-        case .idle:
-            return 126
-        case .gathering:
-            return 146
-        case .launching:
-            return 112
-        case .listening:
-            return 132
-        case .complete:
-            return 154
-        }
-    }
+    private func sealingRing(color: Color, center: CGPoint, capsuleSize: CGFloat, progress: Double, time: TimeInterval) -> some View {
+        let seal = phase(progress, from: 0.68, to: 0.88)
+        let flash = pulse(progress, center: 0.88, width: 0.045)
+        let radius = capsuleSize * 1.10
 
-    private var glowScale: CGFloat {
-        switch stage {
-        case .idle:
-            return 0.8
-        case .gathering:
-            return 1.0
-        case .launching:
-            return 1.65
-        case .listening:
-            return 1.24
-        case .complete:
-            return 1.42
-        }
-    }
-
-    @ViewBuilder
-    private func sealingField(in size: CGSize, time: TimeInterval) -> some View {
-        ForEach(0..<72, id: \.self) { index in
-            let particle = particle(index: index, time: time, in: size)
-
+        return ZStack {
             Circle()
-                .fill(.white.opacity(particle.opacity))
-                .frame(width: particle.size, height: particle.size)
-                .shadow(color: Color(hex: colorHex).opacity(particle.opacity), radius: particle.size * 2.4)
-                .position(particle.position)
-        }
-    }
-
-    @ViewBuilder
-    private func staticStars(in size: CGSize) -> some View {
-        ForEach(0..<44, id: \.self) { index in
-            Circle()
-                .fill(.white.opacity(0.20 + random(index, salt: 40) * 0.34))
-                .frame(width: 1.8 + random(index, salt: 41) * 3.2)
-                .position(
-                    x: size.width * random(index, salt: 42),
-                    y: size.height * random(index, salt: 43)
+                .trim(from: 0, to: seal)
+                .stroke(
+                    AngularGradient(
+                        colors: [
+                            .white.opacity(0.92),
+                            color.opacity(0.84),
+                            .white.opacity(0.92)
+                        ],
+                        center: .center
+                    ),
+                    style: StrokeStyle(lineWidth: 2.4 + flash * 2.2, lineCap: .round)
                 )
+                .frame(width: radius, height: radius)
+                .rotationEffect(.degrees(-90))
+                .opacity(seal)
+                .blur(radius: flash * 0.8)
+
+            Circle()
+                .stroke(.white.opacity(flash * 0.72), lineWidth: 2)
+                .frame(width: radius, height: radius)
+                .scaleEffect(1 + flash * 0.12)
+                .blur(radius: 1 + flash * 5)
+                .blendMode(.screen)
+        }
+        .position(center)
+    }
+
+    private func timerSeal(color: Color, center: CGPoint, capsuleSize: CGFloat, progress: Double) -> some View {
+        let reveal = phase(progress, from: 0.90, to: 0.98)
+
+        return ZStack {
+            Image(systemName: "timer")
+                .font(.system(size: capsuleSize * 0.16, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.88 * reveal))
+                .frame(width: capsuleSize * 0.30, height: capsuleSize * 0.30)
+                .background(.white.opacity(0.12 * reveal), in: Circle())
+                .position(x: center.x + capsuleSize * 0.41, y: center.y - capsuleSize * 0.40)
+                .scaleEffect(0.76 + reveal * 0.24)
+
+            Circle()
+                .stroke(color.mix(with: .white, by: 0.45).opacity(0.28 * reveal), lineWidth: 1)
+                .frame(width: capsuleSize * 1.26, height: capsuleSize * 1.26)
+                .position(center)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func statusBlock(progress: Double) -> some View {
+        VStack(spacing: 8) {
+            Text(statusText(for: progress))
+                .font(.headline)
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .contentTransition(.opacity)
+                .id(statusText(for: progress))
+
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.62))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+        .padding(.horizontal, 28)
+    }
+
+    private func statusText(for progress: Double) -> String {
+        if isComplete {
+            return String(localized: "Таймер запущен")
+        }
+
+        if isWaitingForInspiration && progress >= 0.94 {
+            return String(localized: "Слушаем тихий ответ будущего")
+        }
+
+        switch progress {
+        case ..<0.36:
+            return String(localized: "Капсула собирает свет вокруг желания")
+        case ..<0.68:
+            return String(localized: "Желание принимает форму")
+        case ..<0.92:
+            return String(localized: "Запечатываем до назначенного дня")
+        default:
+            return String(localized: "Таймер запущен")
         }
     }
 
-    private func particle(index: Int, time: TimeInterval, in size: CGSize) -> SealingParticle {
-        let center = CGPoint(x: size.width * 0.5, y: size.height * 0.34)
-        let baseAngle = random(index, salt: 1) * .pi * 2
-        let speed = 0.12 + random(index, salt: 2) * 0.34
-        let phase = time * speed + random(index, salt: 3) * .pi * 2
-        let orbit = CGFloat(52 + random(index, salt: 4) * 168)
-        let pulse = CGFloat((sin(phase * 2.4) + 1) * 0.5)
-        let launchLift = stage == .launching ? CGFloat(time.truncatingRemainder(dividingBy: 1.8) / 1.8) * -220 : 0
-        let listeningDrift = stage == .listening ? CGFloat(sin(phase * 1.8)) * 26 : 0
-        let completionBloom = stage == .complete ? CGFloat(1 + pulse * 0.42) : 1
-
-        let position = CGPoint(
-            x: center.x + cos(baseAngle + phase) * orbit * completionBloom,
-            y: center.y + sin(baseAngle * 0.72 + phase) * orbit * 0.64 + launchLift + listeningDrift
+    private func textParticle(index: Int, size: CGSize, center: CGPoint, progress: Double) -> SealingParticle {
+        let delay = random(index, salt: 1) * 0.20
+        let travel = smoothstep((progress - 0.03 - delay) / 0.58)
+        let row = CGFloat(index % 9)
+        let column = CGFloat(index / 9)
+        let start = CGPoint(
+            x: size.width * (0.18 + row / 8 * 0.64) + CGFloat(random(index, salt: 2) - 0.5) * 26,
+            y: size.height * (0.74 + column / 8 * 0.16) + CGFloat(random(index, salt: 3) - 0.5) * 22
         )
-        let opacity = 0.18 + Double(pulse) * 0.58
-        let starSize = CGFloat(1.8 + random(index, salt: 5) * 4.8) * (stage == .complete ? 1.18 : 1)
+        let c1 = CGPoint(x: start.x + CGFloat(random(index, salt: 4) - 0.5) * 90, y: size.height * 0.54)
+        let c2 = CGPoint(x: center.x + CGFloat(random(index, salt: 5) - 0.5) * 220, y: center.y + CGFloat(random(index, salt: 6) - 0.5) * 150)
+        let endRadius = CGFloat(random(index, salt: 7)) * 46
+        let endAngle = random(index, salt: 8) * .pi * 2
+        let end = CGPoint(
+            x: center.x + cos(endAngle) * endRadius,
+            y: center.y + sin(endAngle) * endRadius * 0.70
+        )
+        let absorb = phase(progress, from: 0.52 + delay * 0.12, to: 0.74)
+        let opacity = max(0, (0.20 + random(index, salt: 9) * 0.64) * smoothstep(travel / 0.18) * (1 - absorb))
 
-        return SealingParticle(position: position, size: starSize, opacity: opacity)
+        return SealingParticle(
+            position: cubic(start, c1, c2, end, travel),
+            size: CGFloat(1.7 + random(index, salt: 10) * 4.4) * CGFloat(1 - absorb * 0.42),
+            opacity: opacity
+        )
+    }
+
+    private func ambientStar(index: Int, size: CGSize, time: TimeInterval) -> SealingParticle {
+        let twinkle = 0.56 + 0.44 * sin(time * (0.32 + random(index, salt: 19)) + random(index, salt: 20) * .pi * 2)
+
+        return SealingParticle(
+            position: CGPoint(
+                x: size.width * CGFloat(random(index, salt: 21)),
+                y: size.height * CGFloat(random(index, salt: 22))
+            ),
+            size: CGFloat(1.2 + random(index, salt: 23) * 2.8),
+            opacity: (0.08 + random(index, salt: 24) * 0.20) * max(0, twinkle)
+        )
+    }
+
+    private func phase(_ value: Double, from start: Double, to end: Double) -> Double {
+        smoothstep((value - start) / (end - start))
+    }
+
+    private func pulse(_ value: Double, center: Double, width: Double) -> Double {
+        max(0, 1 - abs(value - center) / width)
+    }
+
+    private func smoothstep(_ value: Double) -> Double {
+        let clamped = max(0, min(1, value))
+        return clamped * clamped * (3 - 2 * clamped)
+    }
+
+    private func cubic(_ start: CGPoint, _ c1: CGPoint, _ c2: CGPoint, _ end: CGPoint, _ progress: Double) -> CGPoint {
+        let t = CGFloat(progress)
+        let inverse = 1 - t
+        return CGPoint(
+            x: inverse * inverse * inverse * start.x + 3 * inverse * inverse * t * c1.x + 3 * inverse * t * t * c2.x + t * t * t * end.x,
+            y: inverse * inverse * inverse * start.y + 3 * inverse * inverse * t * c1.y + 3 * inverse * t * t * c2.y + t * t * t * end.y
+        )
     }
 
     private func random(_ index: Int, salt: Int) -> Double {
