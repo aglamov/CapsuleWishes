@@ -34,6 +34,7 @@ struct CapsuleOrbView: View {
     let size: CGFloat
     var isInteractive = false
     var freezesMotion = false
+    var allowsEffects = true
     var openingPhase: CapsuleOrbOpeningPhase = .idle
     var refreshDate = Date()
 
@@ -82,7 +83,7 @@ struct CapsuleOrbView: View {
                 .scaleEffect(glowScale)
                 .opacity(glowOpacity)
 
-            if ready {
+            if ready && allowsEffects {
                 if wakeRingIntensity <= 0 {
                     EmptyView()
                 } else if reduceMotion || freezesMotion {
@@ -103,6 +104,29 @@ struct CapsuleOrbView: View {
                             softness: wakeRingSoftness,
                             duration: wakeRingDuration,
                             ringCount: wakeRingCount
+                        )
+                    }
+                    .allowsHitTesting(false)
+                }
+            }
+
+            if showsReleaseParticles && allowsEffects {
+                if reduceMotion {
+                    CapsuleOrbReleaseParticles(
+                        color: color,
+                        highlight: highlight,
+                        size: size,
+                        progress: openingPhase == .afterglow ? 1 : 0.58,
+                        intensity: releaseParticleIntensity
+                    )
+                } else {
+                    TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
+                        CapsuleOrbReleaseParticles(
+                            color: color,
+                            highlight: highlight,
+                            size: size,
+                            progress: releaseParticleProgress(at: timeline.date),
+                            intensity: releaseParticleIntensity
                         )
                     }
                     .allowsHitTesting(false)
@@ -251,7 +275,7 @@ struct CapsuleOrbView: View {
     }
 
     private var allowsAmbientMotion: Bool {
-        (capsule.status == .sealed || openingPhase == .awakening || openingPhase == .tension || openingPhase == .release || openingPhase == .afterglow) && !freezesMotion && !reduceMotion
+        allowsEffects && (capsule.status == .sealed || openingPhase == .awakening || openingPhase == .tension || openingPhase == .release || openingPhase == .afterglow) && !freezesMotion && !reduceMotion
     }
 
     private var orbScale: CGFloat {
@@ -293,11 +317,11 @@ struct CapsuleOrbView: View {
         case .idle:
             return 1
         case .awakening:
-            return 1.18
+            return 1.08
         case .tension:
-            return 1.42
+            return 1.18
         case .release:
-            return 1.66
+            return 1.28
         case .afterglow, .returning:
             return 1
         }
@@ -321,6 +345,8 @@ struct CapsuleOrbView: View {
     }
 
     private var showsInternalMotion: Bool {
+        guard allowsEffects else { return false }
+
         switch openingPhase {
         case .idle:
             return isShimmering
@@ -519,6 +545,27 @@ struct CapsuleOrbView: View {
         openingPhase == .release ? 1 : 3
     }
 
+    private var showsReleaseParticles: Bool {
+        openingPhase == .release || openingPhase == .afterglow
+    }
+
+    private var releaseParticleIntensity: Double {
+        switch openingPhase {
+        case .release:
+            return 0.68
+        case .afterglow:
+            return 0.42
+        default:
+            return 0
+        }
+    }
+
+    private func releaseParticleProgress(at date: Date) -> Double {
+        let duration = openingPhase == .afterglow ? 2.6 : 1.1
+        let elapsed = date.timeIntervalSince(openingPhaseStartedAt)
+        return min(max(elapsed / duration, 0), 1)
+    }
+
     private var currentCapsuleDiameter: CGFloat {
         size * 1.25 * glowScale
     }
@@ -549,9 +596,9 @@ struct CapsuleOrbView: View {
         case .tension:
             return 1.42
         case .release:
-            return 2.65
+            return 1.55
         case .afterglow:
-            return 2.15
+            return 1.72
         default:
             return 1
         }
@@ -579,11 +626,11 @@ struct CapsuleOrbView: View {
         case .awakening:
             return 0.24
         case .tension:
-            return 0.50
+            return 0.34
         case .release:
-            return 1
+            return 0.58
         case .afterglow:
-            return 0
+            return 0.18
         case .returning:
             return 0
         }
@@ -596,11 +643,11 @@ struct CapsuleOrbView: View {
         case .awakening:
             return 1.14
         case .tension:
-            return 2.35
+            return 1.52
         case .release:
-            return 5.2
+            return 3.4
         case .afterglow:
-            return 1
+            return 2.55
         case .returning:
             return 1
         }
@@ -615,9 +662,9 @@ struct CapsuleOrbView: View {
         case .tension:
             return size * 0.12
         case .release:
-            return size * 0.14
+            return size * 0.18
         case .afterglow:
-            return 0
+            return size * 0.20
         case .returning:
             return 0
         }
@@ -628,9 +675,9 @@ struct CapsuleOrbView: View {
         case .tension:
             return 0.18
         case .release:
-            return 0.96
+            return 0.54
         case .afterglow:
-            return 0
+            return 0.30
         default:
             return 0.18
         }
@@ -641,9 +688,9 @@ struct CapsuleOrbView: View {
         case .tension:
             return 0.42
         case .release:
-            return 0.86
+            return 0.50
         case .afterglow:
-            return 0
+            return 0.24
         default:
             return 0.24
         }
@@ -654,9 +701,9 @@ struct CapsuleOrbView: View {
         case .tension:
             return 0.38
         case .release:
-            return 0.52
+            return 0.30
         case .afterglow:
-            return 0
+            return 0.12
         default:
             return 0.12
         }
@@ -664,10 +711,10 @@ struct CapsuleOrbView: View {
 
     private var glowScale: CGFloat {
         if reduceMotion { return 1 }
-        if openingPhase == .awakening { return isEager ? 1.32 : 1.08 }
-        if openingPhase == .tension { return isEager ? 1.34 : 1.16 }
-        if openingPhase == .release { return 1.18 }
-        if openingPhase == .afterglow { return 1 }
+        if openingPhase == .awakening { return isEager ? 1.18 : 1.06 }
+        if openingPhase == .tension { return isEager ? 1.22 : 1.12 }
+        if openingPhase == .release { return 1.12 }
+        if openingPhase == .afterglow { return 1.04 }
         guard !freezesMotion else { return 1 }
         guard capsule.status == .sealed else { return 1 }
         if capsule.isReadyToOpen {
@@ -678,9 +725,9 @@ struct CapsuleOrbView: View {
 
     private var glowOpacity: Double {
         if openingPhase == .awakening { return isEager && !reduceMotion ? 1 : 0.76 }
-        if openingPhase == .tension { return 0.72 }
-        if openingPhase == .release { return 0.40 }
-        if openingPhase == .afterglow { return 0 }
+        if openingPhase == .tension { return 0.62 }
+        if openingPhase == .release { return 0.34 }
+        if openingPhase == .afterglow { return 0.18 }
         guard capsule.status == .sealed else { return 0.58 }
         if capsule.isReadyToOpen {
             return isEager && !reduceMotion ? 0.95 : 0.70
@@ -702,7 +749,7 @@ struct CapsuleOrbView: View {
         }
 
         if openingPhase == .afterglow {
-            return 0
+            return size * 0.12
         }
 
         guard capsule.status == .sealed else { return size * 0.18 }
@@ -725,6 +772,9 @@ struct CapsuleOrbView: View {
     private var verticalOffset: CGFloat {
         guard !reduceMotion else { return 0 }
         guard !freezesMotion else { return 0 }
+        if openingPhase == .awakening { return -size * 0.018 }
+        if openingPhase == .tension { return -size * 0.038 }
+        if openingPhase == .release { return -size * 0.010 }
         guard capsule.status == .sealed else { return 0 }
         if capsule.isReadyToOpen {
             return 0
@@ -733,7 +783,18 @@ struct CapsuleOrbView: View {
     }
 
     private var rotation: Double {
-        0
+        guard !reduceMotion else { return 0 }
+
+        switch openingPhase {
+        case .awakening:
+            return -1.8
+        case .tension:
+            return 4.2
+        case .release:
+            return -2.6
+        default:
+            return 0
+        }
     }
 
     private var symbolOpacity: Double {
@@ -913,6 +974,95 @@ private struct CapsuleOrbRippleOverlay: View {
     private func speed(for index: Int) -> Double {
         [0.82, 1.05, 0.70, 1.24, 0.92, 1.14][index]
     }
+}
+
+private struct CapsuleOrbReleaseParticles: View {
+    let color: Color
+    let highlight: Color
+    let size: CGFloat
+    let progress: Double
+    let intensity: Double
+
+    var body: some View {
+        ZStack {
+            ForEach(0..<24, id: \.self) { index in
+                let particle = particle(for: index)
+
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                .white.opacity(0.96 * particle.opacity),
+                                highlight.opacity(0.74 * particle.opacity),
+                                color.opacity(0.24 * particle.opacity)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: particle.width, height: particle.height)
+                    .blur(radius: particle.blur)
+                    .shadow(color: color.opacity(0.42 * particle.opacity), radius: particle.width * 1.8)
+                    .rotationEffect(.degrees(particle.rotation))
+                    .offset(particle.offset)
+                    .opacity(particle.opacity)
+            }
+        }
+        .frame(width: size * 2.35, height: size * 2.35)
+        .blendMode(.screen)
+        .allowsHitTesting(false)
+    }
+
+    private func particle(for index: Int) -> ReleaseParticle {
+        let eased = smoothstep(progress)
+        let angle = random(index, salt: 1) * .pi * 2
+        let distance = size * CGFloat(0.18 + random(index, salt: 2) * 0.82) * CGFloat(0.20 + eased * 0.94)
+        let curve = CGFloat(sin(eased * .pi + random(index, salt: 3) * .pi * 2)) * size * 0.05
+        let width = size * CGFloat(0.008 + random(index, salt: 4) * 0.014)
+        let height = size * CGFloat(0.030 + random(index, salt: 5) * 0.070)
+        let fade = pow(max(0, 1 - progress), 0.88)
+        let glowPeak = max(0, min(1, 1 - abs(progress - 0.72) / 0.72))
+        let afterglow = 0.12 + glowPeak * 0.26
+        let opacity = (fade * 0.58 + afterglow) * intensity * (0.44 + random(index, salt: 6) * 0.44)
+
+        return ReleaseParticle(
+            offset: CGSize(
+                width: cos(angle) * distance + cos(angle + .pi / 2) * curve,
+                height: sin(angle) * distance * 0.78 + sin(angle + .pi / 2) * curve
+            ),
+            width: width,
+            height: height,
+            blur: size * CGFloat(0.002 + random(index, salt: 7) * 0.014 + eased * 0.018),
+            rotation: angle * 180 / .pi + 42 + random(index, salt: 8) * 80,
+            opacity: opacity
+        )
+    }
+
+    private func smoothstep(_ value: Double) -> Double {
+        let clamped = max(0, min(1, value))
+        return clamped * clamped * (3 - 2 * clamped)
+    }
+
+    private func random(_ index: Int, salt: Int) -> Double {
+        var value = UInt64(index &+ 1) &* 0x9E37_79B9_7F4A_7C15
+        value ^= UInt64(salt &+ 317) &* 0xBF58_476D_1CE4_E5B9
+        value ^= value >> 30
+        value &*= 0xBF58_476D_1CE4_E5B9
+        value ^= value >> 27
+        value &*= 0x94D0_49BB_1331_11EB
+        value ^= value >> 31
+
+        return Double(value & 0x00FF_FFFF) / Double(0x0100_0000)
+    }
+}
+
+private struct ReleaseParticle {
+    let offset: CGSize
+    let width: CGFloat
+    let height: CGFloat
+    let blur: CGFloat
+    let rotation: Double
+    let opacity: Double
 }
 
 private struct CapsuleOrbWakeRings: View {

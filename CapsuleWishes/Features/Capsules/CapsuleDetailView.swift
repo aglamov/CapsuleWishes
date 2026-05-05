@@ -29,11 +29,12 @@ struct CapsuleDetailView: View {
     @State private var aiEntryPromptGlowTask: Task<Void, Never>?
     @State private var isBeautifyingEntry = false
     @State private var isLoadingOpeningReflection = false
-    @State private var isShowingOpeningReflectionOverlay = false
+    @State private var showsOpeningRitualLayer = false
     @State private var selectedFutureLetterSignal: NotificationSignal?
     @State private var isShowingSealingFortune = false
     @State private var didAutoScrollToEntryPanel = false
     @State private var readinessRefreshDate = Date()
+    @State private var openingCeremonyStartedAt = Date()
     @FocusState private var isEntryFieldFocused: Bool
 
     private let aiWishPromptService = AIWishPromptService()
@@ -96,7 +97,7 @@ struct CapsuleDetailView: View {
         case .idle:
             1
         case .centering:
-            0.45
+            0
         case .awakening, .tension, .release, .afterglow, .returning:
             0
         }
@@ -186,8 +187,6 @@ struct CapsuleDetailView: View {
                     .padding(.bottom, isEntryFieldFocused ? 170 : 32)
                     .opacity(didEnter ? 1 : 0)
                     .scaleEffect(didEnter ? 1 : 0.985)
-                    .blur(radius: isShowingOpeningReflectionOverlay ? 8 : 0)
-                    .opacity(isShowingOpeningReflectionOverlay ? 0.16 : 1)
                 }
                 .onAppear {
                     scrollToEntryPanelIfNeeded(scrollProxy)
@@ -200,21 +199,6 @@ struct CapsuleDetailView: View {
                     guard isEntryFieldFocused else { return }
                     scrollEntryFieldIntoView(scrollProxy)
                 }
-            }
-
-            if isShowingOpeningReflectionOverlay {
-                CapsuleOpeningReflectionOverlay(
-                    reflection: openedReflection,
-                    isLoading: isLoadingOpeningReflection && capsule.openingReflectionText?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false,
-                    capsuleTitle: capsule.title,
-                    colorHex: capsule.colorHex,
-                    symbol: capsule.symbol
-                ) {
-                    withAnimation(.smooth(duration: 0.36)) {
-                        isShowingOpeningReflectionOverlay = false
-                    }
-                }
-                .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
         .onAppear {
@@ -242,6 +226,8 @@ struct CapsuleDetailView: View {
                         .foregroundStyle(.white.opacity(0.42))
                 }
                 .accessibilityLabel("Удалить капсулу")
+                .opacity(isOpeningPending ? 0 : 1)
+                .disabled(isOpeningPending)
             }
         }
         .alert("Удалить капсулу?", isPresented: $isShowingDeleteConfirmation) {
@@ -279,6 +265,7 @@ struct CapsuleDetailView: View {
 
     private var capsuleOrbStage: some View {
         let accentColor = Color(hex: capsule.colorHex)
+        let stageHeight: CGFloat = showsOpeningRitualLayer ? 460 : 326
 
         return ZStack {
             ZStack {
@@ -309,12 +296,13 @@ struct CapsuleDetailView: View {
                     capsule: capsule,
                     size: 168,
                     isInteractive: true,
-                    freezesMotion: freezesCapsuleMotion,
-                    openingPhase: orbOpeningPhase,
+                    freezesMotion: freezesCapsuleMotion || isOpeningPending,
+                    allowsEffects: !isOpeningPending,
+                    openingPhase: .idle,
                     refreshDate: readinessRefreshDate
                 )
             }
-            .frame(width: 326, height: 326)
+            .frame(width: 326, height: stageHeight)
             .overlay {
                 Circle()
                     .fill(
@@ -332,10 +320,24 @@ struct CapsuleDetailView: View {
                     .opacity(focusOpacity)
                     .allowsHitTesting(false)
             }
+            .overlay {
+                if showsOpeningRitualLayer && isOpeningPending {
+                    CapsuleOpeningRitualView(
+                        stage: openingStage,
+                        color: accentColor,
+                        title: capsule.title,
+                        symbol: capsule.symbol,
+                        reflectionTitle: openedReflection.title,
+                        reflectionMessage: openedReflection.message,
+                        startedAt: openingCeremonyStartedAt
+                    )
+                    .transition(.opacity)
+                }
+            }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("\(capsule.title), \(statusText)")
         }
-        .frame(maxWidth: .infinity, minHeight: 326)
+        .frame(maxWidth: .infinity, minHeight: stageHeight)
         .overlay(alignment: .topTrailing) {
             if let statusBadge {
                 Text(statusBadge)
@@ -784,16 +786,20 @@ struct CapsuleDetailView: View {
             capsule.status = status
             capsule.openedAt = Date()
             CapsuleNotificationScheduler.shared.cancelSignals(for: capsule)
-            isShowingOpeningReflectionOverlay = true
+            openingCeremonyStartedAt = Date()
+            openingStage = .returning
+            showsOpeningRitualLayer = true
             return
         }
 
         AudioFeedbackService.shared.play(.capsuleRelease)
-        openingStage = .centering
+        openingCeremonyStartedAt = Date()
+        showsOpeningRitualLayer = true
         openingTask?.cancel()
 
-        withAnimation(.easeInOut(duration: 0.34)) {
+        withAnimation(.easeInOut(duration: 0.48)) {
             scrollProxy.scrollTo("capsule-orb", anchor: .center)
+            openingStage = .centering
         }
 
         openingTask = Task {
@@ -801,52 +807,55 @@ struct CapsuleDetailView: View {
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                withAnimation(.smooth(duration: 0.82)) {
+                withAnimation(.smooth(duration: 0.72)) {
                     openingStage = .awakening
                 }
             }
 
-            try? await Task.sleep(for: .milliseconds(820))
+            try? await Task.sleep(for: .milliseconds(1250))
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                withAnimation(.smooth(duration: 0.62)) {
+                withAnimation(.smooth(duration: 0.85)) {
+                    openingStage = .tension
+                }
+            }
+
+            try? await Task.sleep(for: .milliseconds(850))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                withAnimation(.smooth(duration: 1.05)) {
                     openingStage = .release
                 }
             }
 
-            try? await Task.sleep(for: .milliseconds(620))
+            try? await Task.sleep(for: .milliseconds(1150))
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
+                withAnimation(.smooth(duration: 1.1)) {
+                    openingStage = .afterglow
+                }
+            }
 
-                withTransaction(transaction) {
+            try? await Task.sleep(for: .milliseconds(900))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                withAnimation(.smooth(duration: 0.40)) {
                     isLoadingOpeningReflection = true
                     capsule.status = status
                     capsule.openedAt = Date()
                     CapsuleNotificationScheduler.shared.cancelSignals(for: capsule)
                 }
-
-                isShowingOpeningReflectionOverlay = true
             }
 
             await MainActor.run {
-                openingStage = .returning
-            }
-
-            try? await Task.sleep(for: .milliseconds(60))
-            guard !Task.isCancelled else { return }
-
-            await MainActor.run {
-                withAnimation(.smooth(duration: 0.62)) {
-                    openingStage = .idle
+                withAnimation(.smooth(duration: 1.05)) {
+                    openingStage = .returning
                 }
             }
-
-            try? await Task.sleep(for: .milliseconds(620))
-            guard !Task.isCancelled else { return }
 
             await MainActor.run {
                 openingTask = nil
@@ -908,6 +917,234 @@ private struct OpenedReflection {
     }
 }
 
+private struct CapsuleOpeningRitualView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let stage: CapsuleOpeningStage
+    let color: Color
+    let title: String
+    let symbol: String
+    let reflectionTitle: String
+    let reflectionMessage: String
+    let startedAt: Date
+
+    private let ritualDuration: TimeInterval = 5.5
+    private let countdownDuration: TimeInterval = 2.45
+    private let unsealDuration: TimeInterval = 1.05
+
+    var body: some View {
+        GeometryReader { proxy in
+            if reduceMotion {
+                scene(in: proxy.size, elapsed: countdownDuration + unsealDuration)
+            } else {
+                TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
+                    scene(in: proxy.size, elapsed: timeline.date.timeIntervalSince(startedAt))
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func scene(in size: CGSize, elapsed: TimeInterval) -> some View {
+        let remaining = max(0, countdownDuration - elapsed)
+        let progress = min(max(elapsed / ritualDuration, 0), 1)
+        let unseal = unsealProgress(elapsed: elapsed)
+        let calm = phase(progress, from: 0.66, to: 0.92)
+        let finalReveal = max(phase(progress, from: 0.78, to: 0.92), stage == .returning ? 1.0 : 0.0)
+        let center = CGPoint(x: size.width * 0.5, y: size.height * 0.50)
+        let capsuleSize = min(size.width * 0.48, 172)
+
+        return ZStack {
+            openingBackdrop(size: size, center: center, progress: progress, calm: max(calm, finalReveal), time: elapsed)
+            unsealingRing(center: center, capsuleSize: capsuleSize, unseal: unseal)
+            openingCountdown(center: center, capsuleSize: capsuleSize, remaining: remaining, progress: progress)
+            finalReflectionBlock(
+                center: center,
+                capsuleSize: capsuleSize,
+                reveal: finalReveal,
+                maxY: size.height
+            )
+        }
+    }
+
+    private func finalReflectionBlock(center: CGPoint, capsuleSize: CGFloat, reveal: Double, maxY: CGFloat) -> some View {
+        VStack(spacing: 8) {
+            Text(reflectionTitle)
+                .font(.headline)
+                .foregroundStyle(.white.opacity(0.92))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+
+            Text(reflectionMessage)
+                .font(.subheadline.weight(.medium))
+                .lineSpacing(3)
+                .foregroundStyle(.white.opacity(0.74))
+                .multilineTextAlignment(.center)
+                .lineLimit(4)
+                .minimumScaleFactor(0.82)
+        }
+        .frame(width: min(capsuleSize * 2.05, 318))
+        .position(
+            x: center.x,
+            y: min(maxY - 74, center.y + capsuleSize * 0.92 + 74)
+        )
+        .opacity(reveal)
+        .scaleEffect(0.965 + reveal * 0.035)
+        .offset(y: CGFloat(1 - reveal) * 12)
+    }
+
+    private func openingBackdrop(size: CGSize, center: CGPoint, progress: Double, calm: Double, time: TimeInterval) -> some View {
+        ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            color.opacity(0.30 - calm * 0.10),
+                            Color(hex: "111E3A").opacity(0.14 + calm * 0.06),
+                            .clear
+                        ],
+                        center: .center,
+                        startRadius: 2,
+                        endRadius: min(size.width, size.height) * 0.66
+                    )
+                )
+                .frame(width: min(size.width, size.height) * 1.34, height: min(size.width, size.height) * 1.34)
+                .position(center)
+                .blur(radius: 18)
+
+            ForEach(0..<56, id: \.self) { index in
+                let star = ambientStar(index: index, size: size, calm: calm, time: time)
+
+                Circle()
+                    .fill(.white.opacity(star.opacity))
+                    .frame(width: star.size, height: star.size)
+                    .position(star.position)
+            }
+        }
+    }
+
+    private func unsealingRing(center: CGPoint, capsuleSize: CGFloat, unseal: Double) -> some View {
+        let radius = capsuleSize * 1.10
+        let visible = max(0, 1 - phase(unseal, from: 0.96, to: 1))
+
+        return ZStack {
+            Circle()
+                .trim(from: 0, to: max(0.001, 1 - unseal))
+                .stroke(
+                    AngularGradient(
+                        colors: [
+                            .white.opacity(0.92),
+                            color.opacity(0.84),
+                            .white.opacity(0.92)
+                        ],
+                        center: .center
+                    ),
+                    style: StrokeStyle(lineWidth: 2.8, lineCap: .round)
+                )
+                .frame(width: radius, height: radius)
+                .rotationEffect(.degrees(-90))
+                .opacity(visible)
+        }
+        .position(center)
+    }
+
+    private func openingCountdown(center: CGPoint, capsuleSize: CGFloat, remaining: TimeInterval, progress: Double) -> some View {
+        let reveal = max(0, 1 - phase(progress, from: 0.54, to: 0.64))
+
+        return ZStack {
+            VStack(spacing: 3) {
+                Text(countdownString(remaining))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.white.opacity(0.92))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+
+                Text("до открытия")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.58))
+            }
+            .frame(width: capsuleSize * 2.0)
+            .position(x: center.x, y: center.y - capsuleSize * 1.30)
+            .opacity(reveal)
+            .scaleEffect(1 - (1 - reveal) * 0.06)
+
+            Circle()
+                .stroke(color.mix(with: .white, by: 0.45).opacity(0.28 * reveal), lineWidth: 1)
+                .frame(width: capsuleSize * 1.26, height: capsuleSize * 1.26)
+                .position(center)
+                .opacity(reveal)
+        }
+    }
+
+    private func unsealProgress(elapsed: TimeInterval) -> Double {
+        let raw = (elapsed - countdownDuration) / unsealDuration
+        return smoothstep(raw)
+    }
+
+    private func countdownString(_ remaining: TimeInterval) -> String {
+        let milliseconds = Int((remaining * 1_000).rounded())
+        let seconds = milliseconds / 1_000
+        let millis = milliseconds % 1_000
+        return String(format: "00:%02d.%03d", seconds, millis)
+    }
+
+    private func ambientStar(index: Int, size: CGSize, calm: Double, time: TimeInterval) -> OpeningRitualParticle {
+        let twinkle = 0.56 + 0.44 * sin(time * (0.32 + random(index, salt: 19)) + random(index, salt: 20) * .pi * 2)
+        let orbit = CGFloat(4 + random(index, salt: 25) * 18) * CGFloat(calm)
+        let driftAngle = time * (0.10 + random(index, salt: 26) * 0.14) + random(index, salt: 27) * .pi * 2
+
+        return OpeningRitualParticle(
+            position: CGPoint(
+                x: size.width * CGFloat(random(index, salt: 21)) + cos(driftAngle) * orbit,
+                y: size.height * CGFloat(random(index, salt: 22)) + sin(driftAngle * 0.82) * orbit * 0.72
+            ),
+            size: CGFloat(1.2 + random(index, salt: 23) * 2.8) * CGFloat(1 + calm * 0.22),
+            opacity: (0.08 + random(index, salt: 24) * (0.20 + calm * 0.18)) * max(0, twinkle)
+        )
+    }
+
+    private func phase(_ value: Double, from start: Double, to end: Double) -> Double {
+        smoothstep((value - start) / (end - start))
+    }
+
+    private func pulse(_ value: Double, center: Double, width: Double) -> Double {
+        max(0, 1 - abs(value - center) / width)
+    }
+
+    private func smoothstep(_ value: Double) -> Double {
+        let clamped = max(0, min(1, value))
+        return clamped * clamped * (3 - 2 * clamped)
+    }
+
+    private func cubic(_ start: CGPoint, _ c1: CGPoint, _ c2: CGPoint, _ end: CGPoint, _ progress: Double) -> CGPoint {
+        let t = CGFloat(progress)
+        let inverse = 1 - t
+        return CGPoint(
+            x: inverse * inverse * inverse * start.x + 3 * inverse * inverse * t * c1.x + 3 * inverse * t * t * c2.x + t * t * t * end.x,
+            y: inverse * inverse * inverse * start.y + 3 * inverse * inverse * t * c1.y + 3 * inverse * t * t * c2.y + t * t * t * end.y
+        )
+    }
+
+    private func random(_ index: Int, salt: Int) -> Double {
+        var value = UInt64(index &+ 1) &* 0x9E37_79B9_7F4A_7C15
+        value ^= UInt64(salt &+ 101) &* 0xBF58_476D_1CE4_E5B9
+        value ^= value >> 30
+        value &*= 0xBF58_476D_1CE4_E5B9
+        value ^= value >> 27
+        value &*= 0x94D0_49BB_1331_11EB
+        value ^= value >> 31
+
+        return Double(value & 0x00FF_FFFF) / Double(0x0100_0000)
+    }
+}
+
+private struct OpeningRitualParticle {
+    let position: CGPoint
+    let size: CGFloat
+    let opacity: Double
+}
+
 private struct CapsuleOpeningReflectionOverlay: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -916,19 +1153,20 @@ private struct CapsuleOpeningReflectionOverlay: View {
     let capsuleTitle: String
     let colorHex: String
     let symbol: String
+    let showsOpeningOrb: Bool
+    let showsOpeningField: Bool
     let onDone: () -> Void
 
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                Color.black.opacity(0.24)
-                    .ignoresSafeArea()
-
-                if reduceMotion {
-                    staticStars(in: proxy.size)
-                } else {
-                    TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
-                        openingField(in: proxy.size, time: timeline.date.timeIntervalSinceReferenceDate)
+                if showsOpeningField {
+                    if reduceMotion {
+                        staticStars(in: proxy.size)
+                    } else {
+                        TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
+                            openingField(in: proxy.size, time: timeline.date.timeIntervalSinceReferenceDate)
+                        }
                     }
                 }
 
@@ -936,7 +1174,13 @@ private struct CapsuleOpeningReflectionOverlay: View {
                     VStack(spacing: 22) {
                         Spacer(minLength: 30)
 
-                        openingOrb
+                        if showsOpeningOrb {
+                            openingOrb
+                                .transition(.opacity.combined(with: .scale(scale: 0.985)))
+                        } else {
+                            Color.clear
+                                .frame(width: 280, height: 280)
+                        }
 
                         VStack(spacing: 8) {
                             Text(isLoading ? String(localized: "Капсула слушает итог") : reflection.title)
@@ -999,7 +1243,24 @@ private struct CapsuleOpeningReflectionOverlay: View {
     private var openingOrb: some View {
         let color = Color(hex: colorHex)
 
-        return ZStack {
+        return Group {
+            if reduceMotion {
+                openingOrbScene(color: color, time: 0)
+            } else {
+                TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
+                    openingOrbScene(
+                        color: color,
+                        time: timeline.date.timeIntervalSinceReferenceDate
+                    )
+                }
+            }
+        }
+        .frame(width: 280, height: 280)
+        .scaleEffect(isLoading ? 1 : 1.05)
+    }
+
+    private func openingOrbScene(color: Color, time: TimeInterval) -> some View {
+        ZStack {
             Circle()
                 .fill(
                     RadialGradient(
@@ -1017,6 +1278,39 @@ private struct CapsuleOpeningReflectionOverlay: View {
                 .scaleEffect(isLoading ? 1.05 : 1.42)
                 .blur(radius: isLoading ? 10 : 18)
                 .blendMode(.screen)
+
+            if !reduceMotion {
+                ForEach(0..<3, id: \.self) { index in
+                    Circle()
+                        .trim(from: 0.08, to: isLoading ? 0.42 : 0.72)
+                        .stroke(
+                            AngularGradient(
+                                colors: [
+                                    .white.opacity(isLoading ? 0.12 : 0.28),
+                                    color.opacity(isLoading ? 0.30 : 0.58),
+                                    .clear,
+                                    .white.opacity(isLoading ? 0.10 : 0.24)
+                                ],
+                                center: .center
+                            ),
+                            style: StrokeStyle(lineWidth: 1.4 + CGFloat(index) * 0.35, lineCap: .round)
+                        )
+                        .frame(width: 174 + CGFloat(index) * 32, height: 174 + CGFloat(index) * 32)
+                        .rotationEffect(.degrees(time * (10 + Double(index) * 7) + Double(index) * 72))
+                        .blur(radius: CGFloat(index) * 0.5)
+                        .blendMode(.screen)
+                }
+
+                ForEach(0..<12, id: \.self) { index in
+                    let spark = orbSpark(index: index, time: time)
+
+                    Circle()
+                        .fill((index.isMultiple(of: 3) ? color : .white).opacity(spark.opacity))
+                        .frame(width: spark.size, height: spark.size)
+                        .shadow(color: color.opacity(spark.opacity), radius: spark.size * 2.2)
+                        .offset(spark.offset)
+                }
+            }
 
             Circle()
                 .fill(
@@ -1043,8 +1337,23 @@ private struct CapsuleOpeningReflectionOverlay: View {
                 .foregroundStyle(.white.opacity(isLoading ? 0.78 : 1))
                 .scaleEffect(isLoading ? 0.96 : 1.08)
         }
-        .frame(width: 280, height: 280)
-        .scaleEffect(isLoading ? 1 : 1.05)
+    }
+
+    private func orbSpark(index: Int, time: TimeInterval) -> OpeningOrbSpark {
+        let baseAngle = random(index, salt: 80) * .pi * 2
+        let speed = 0.46 + random(index, salt: 81) * 0.36
+        let angle = baseAngle + time * speed * (index.isMultiple(of: 2) ? 1 : -1)
+        let pulse = CGFloat((sin(time * (1.8 + random(index, salt: 82)) + baseAngle) + 1) * 0.5)
+        let radius = CGFloat(isLoading ? 82 : 108) + CGFloat(random(index, salt: 83)) * (isLoading ? 42 : 62)
+
+        return OpeningOrbSpark(
+            offset: CGSize(
+                width: cos(angle) * radius,
+                height: sin(angle * 0.76) * radius * 0.66
+            ),
+            size: CGFloat(2.0 + random(index, salt: 84) * 4.6) * (0.84 + pulse * 0.46),
+            opacity: Double(0.18 + pulse * (isLoading ? 0.36 : 0.58))
+        )
     }
 
     @ViewBuilder
@@ -1108,6 +1417,12 @@ private struct CapsuleOpeningReflectionOverlay: View {
 
 private struct OpeningParticle {
     let position: CGPoint
+    let size: CGFloat
+    let opacity: Double
+}
+
+private struct OpeningOrbSpark {
+    let offset: CGSize
     let size: CGFloat
     let opacity: Double
 }
