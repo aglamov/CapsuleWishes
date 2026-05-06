@@ -216,18 +216,18 @@ struct CapsuleDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(role: .destructive) {
-                    isEntryFieldFocused = false
-                    isShowingDeleteConfirmation = true
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.42))
+            if !isOpeningPending {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(role: .destructive) {
+                        isEntryFieldFocused = false
+                        isShowingDeleteConfirmation = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.42))
+                    }
+                    .accessibilityLabel("Удалить капсулу")
                 }
-                .accessibilityLabel("Удалить капсулу")
-                .opacity(isOpeningPending ? 0 : 1)
-                .disabled(isOpeningPending)
             }
         }
         .alert("Удалить капсулу?", isPresented: $isShowingDeleteConfirmation) {
@@ -265,7 +265,7 @@ struct CapsuleDetailView: View {
 
     private var capsuleOrbStage: some View {
         let accentColor = Color(hex: capsule.colorHex)
-        let stageHeight: CGFloat = showsOpeningRitualLayer ? 460 : 326
+        let stageHeight: CGFloat = showsOpeningRitualLayer ? 640 : 326
 
         return ZStack {
             ZStack {
@@ -339,7 +339,7 @@ struct CapsuleDetailView: View {
         }
         .frame(maxWidth: .infinity, minHeight: stageHeight)
         .overlay(alignment: .topTrailing) {
-            if let statusBadge {
+            if let statusBadge, !isOpeningPending {
                 Text(statusBadge)
                     .font(.caption.weight(.bold))
                     .foregroundStyle(badgeTextColor)
@@ -968,25 +968,25 @@ private struct CapsuleOpeningRitualView: View {
     }
 
     private func finalReflectionBlock(center: CGPoint, capsuleSize: CGFloat, reveal: Double, maxY: CGFloat) -> some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 14) {
             Text(reflectionTitle)
-                .font(.headline)
-                .foregroundStyle(.white.opacity(0.92))
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
-                .lineLimit(2)
 
             Text(reflectionMessage)
-                .font(.subheadline.weight(.medium))
-                .lineSpacing(3)
-                .foregroundStyle(.white.opacity(0.74))
+                .font(.title3.weight(.medium))
+                .lineSpacing(5)
+                .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
-                .lineLimit(4)
                 .minimumScaleFactor(0.82)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(width: min(capsuleSize * 2.05, 318))
+        .padding(.horizontal, 26)
+        .frame(width: min(capsuleSize * 2.30, 360))
         .position(
             x: center.x,
-            y: min(maxY - 74, center.y + capsuleSize * 0.92 + 74)
+            y: min(maxY - 122, center.y + capsuleSize * 1.05 + 128)
         )
         .opacity(reveal)
         .scaleEffect(0.965 + reveal * 0.035)

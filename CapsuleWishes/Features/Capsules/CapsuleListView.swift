@@ -68,7 +68,7 @@ struct CapsuleListView: View {
                         Button {
                             isShowingNotificationSettings = true
                         } label: {
-                            Image(systemName: "bell")
+                            Image(systemName: "gearshape")
                         }
                         .accessibilityLabel("Настроить сигналы")
                     }

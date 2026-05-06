@@ -5,7 +5,6 @@
 //  Created by Codex on 26.04.2026.
 //
 
-import SwiftData
 import SwiftUI
 import UserNotifications
 
@@ -17,10 +16,7 @@ struct NotificationSettingsView: View {
     @AppStorage(NotificationPreferences.morningDreamSignalMinuteKey) private var morningDreamSignalMinute = MorningSignalTime.defaultValue.minute
     @AppStorage(AIUsagePreferences.enabledKey) private var aiFeaturesEnabled = false
     @AppStorage(AudioFeedbackPreferences.enabledKey) private var audioFeedbackEnabled = true
-    @Query private var capsules: [WishCapsule]
-    @Query(sort: \NotificationSignal.scheduledAt, order: .reverse) private var signals: [NotificationSignal]
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
-    @State private var selectedSignal: NotificationSignal?
 
     private var notificationMode: Binding<NotificationMode> {
         Binding {
@@ -53,13 +49,12 @@ struct NotificationSettingsView: View {
                         audioFeedbackToggle
                         aiUsageToggle
                         morningDreamsToggle
-                        signalHistory
                     }
                     .padding(20)
                     .padding(.bottom, 24)
                 }
             }
-            .navigationTitle("Сигналы")
+            .navigationTitle("Настройки")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -71,9 +66,6 @@ struct NotificationSettingsView: View {
             }
             .task {
                 await refreshAuthorizationStatus()
-            }
-            .sheet(item: $selectedSignal) { signal in
-                NotificationSignalDetailView(signal: signal)
             }
         }
     }
@@ -278,119 +270,6 @@ struct NotificationSettingsView: View {
         )
     }
 
-    private var signalHistory: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Следы сигналов")
-                .font(.headline)
-                .foregroundStyle(.white)
-
-            if pastSignals.isEmpty {
-                Text("Здесь появятся сигналы, которые уже приходили: открытие капсул, мягкие возвращения и утренние сны.")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.64))
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                signalSection(title: "Уже приходило", signals: pastSignals)
-            }
-
-            if !upcomingSignals.isEmpty {
-                signalSection(title: "Ожидают", signals: upcomingSignals)
-            }
-        }
-    }
-
-    private func signalSection(title: LocalizedStringKey, signals: [NotificationSignal]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.56))
-
-            ForEach(signals) { signal in
-                Button {
-                    selectedSignal = signal
-                } label: {
-                    signalRow(signal)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private func signalRow(_ signal: NotificationSignal) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: signal.kind.symbolName)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 30, height: 30)
-                .background(.white.opacity(0.10), in: Circle())
-
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(signal.kind.title)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.52))
-
-                    Spacer(minLength: 0)
-
-                    Text(signal.scheduledAt.formatted(date: .abbreviated, time: .shortened))
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.46))
-                        .lineLimit(1)
-                }
-
-                Text(signal.title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(displayMessage(for: signal))
-                    .font(.footnote)
-                    .foregroundStyle(.white.opacity(0.66))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(14)
-        .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(.white.opacity(0.10), lineWidth: 1)
-        )
-    }
-
-    private var pastSignals: [NotificationSignal] {
-        Array(signals
-            .filter(isVisibleSignal)
-            .filter(\.hasPassed)
-            .sorted { $0.scheduledAt > $1.scheduledAt }
-            .prefix(12))
-    }
-
-    private var upcomingSignals: [NotificationSignal] {
-        Array(signals
-            .filter(isVisibleSignal)
-            .filter { !$0.hasPassed }
-            .filter { $0.kind != .futureLetter }
-            .sorted { $0.scheduledAt < $1.scheduledAt }
-            .prefix(16))
-    }
-
-    private func isVisibleSignal(_ signal: NotificationSignal) -> Bool {
-        if let capsuleID = signal.capsuleID,
-           !capsules.contains(where: { $0.id == capsuleID }) {
-            return false
-        }
-
-        return !signal.isCancelled || signal.kind == .futureLetter
-    }
-
-    private func displayMessage(for signal: NotificationSignal) -> String {
-        if signal.kind == .futureLetter {
-            return String(localized: "Открыть письмо")
-        }
-
-        return signal.message
-    }
-
     private var authorizationTitle: String {
         switch authorizationStatus {
         case .authorized, .provisional, .ephemeral:
@@ -433,63 +312,5 @@ struct NotificationSettingsView: View {
     @MainActor
     private func refreshAuthorizationStatus() async {
         authorizationStatus = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
-    }
-}
-
-private struct NotificationSignalDetailView: View {
-    @Environment(\.dismiss) private var dismiss
-    let signal: NotificationSignal
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                NightSkyBackground()
-
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 22) {
-                        Image(systemName: signal.kind.symbolName)
-                            .font(.title2.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 52, height: 52)
-                            .background(.white.opacity(0.12), in: Circle())
-                            .padding(.top, 24)
-
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(signal.kind.title)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.white.opacity(0.56))
-
-                            Text(signal.title)
-                                .font(.largeTitle.bold())
-                                .foregroundStyle(.white)
-                                .fixedSize(horizontal: false, vertical: true)
-
-                            Text(signal.message)
-                                .font(.title3)
-                                .foregroundStyle(.white.opacity(0.74))
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-
-                        Text(signal.scheduledAt.formatted(date: .complete, time: .shortened))
-                            .font(.footnote.weight(.medium))
-                            .foregroundStyle(.white.opacity(0.50))
-
-                        Spacer(minLength: 0)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(24)
-                }
-            }
-            .navigationTitle("Сигнал")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Закрыть") {
-                        dismiss()
-                    }
-                    .foregroundStyle(.white)
-                }
-            }
-        }
     }
 }
