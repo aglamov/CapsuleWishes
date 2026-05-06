@@ -129,6 +129,10 @@ struct CapsuleDetailView: View {
         return showsSealedControls && capsule.isReadyToOpen
     }
 
+    private var showsOpeningFinalReflection: Bool {
+        showsOpeningRitualLayer && openingStage == .returning
+    }
+
     var body: some View {
         let _ = readinessRefreshDate
 
@@ -137,51 +141,59 @@ struct CapsuleDetailView: View {
 
             ScrollViewReader { scrollProxy in
                 ScrollView {
-                    VStack(spacing: 22) {
+                    VStack(spacing: showsOpeningFinalReflection ? 12 : 22) {
                         capsuleOrbStage
                         .id("capsule-orb")
                         .padding(.top, 28)
 
-                        VStack(spacing: 8) {
-                            Text(capsule.title)
-                                .font(.title.bold())
-                                .foregroundStyle(.white)
-                                .multilineTextAlignment(.center)
-
-                            Text(statusText)
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(.white.opacity(0.72))
+                        if showsOpeningFinalReflection {
+                            openingFinalReflectionBlock
+                                .id("opening-final-reflection")
+                                .transition(.opacity.combined(with: .offset(y: 12)))
                         }
-                        .opacity(focusOpacity)
 
-                        WishTextPanel(
-                            capsule: capsule,
-                            showsSealingFortuneButton: sealingFortuneText != nil
-                        ) {
-                            AudioFeedbackService.shared.play(.sealingFortuneOpen)
-                            isShowingSealingFortune = true
-                        }
-                        .opacity(focusOpacity)
+                        if !showsOpeningFinalReflection {
+                            VStack(spacing: 8) {
+                                Text(capsule.title)
+                                    .font(.title.bold())
+                                    .foregroundStyle(.white)
+                                    .multilineTextAlignment(.center)
 
-                        if showsOpeningPanel {
-                            OpeningPanel(isOpening: isOpeningPending) { status in
-                                openCapsule(as: status, scrollProxy: scrollProxy)
+                                Text(statusText)
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(.white.opacity(0.72))
                             }
                             .opacity(focusOpacity)
-                        }
 
-                        Group {
-                            if showsSealedControls {
-                                addEntryPanel
-                                    .id("add-entry-panel")
-                            } else {
-                                openedReflectionPanel
+                            WishTextPanel(
+                                capsule: capsule,
+                                showsSealingFortuneButton: sealingFortuneText != nil
+                            ) {
+                                AudioFeedbackService.shared.play(.sealingFortuneOpen)
+                                isShowingSealingFortune = true
                             }
-                        }
-                        .opacity(focusOpacity)
-
-                        entriesPanel
                             .opacity(focusOpacity)
+
+                            if showsOpeningPanel {
+                                OpeningPanel(isOpening: isOpeningPending) { status in
+                                    openCapsule(as: status, scrollProxy: scrollProxy)
+                                }
+                                .opacity(focusOpacity)
+                            }
+
+                            Group {
+                                if showsSealedControls {
+                                    addEntryPanel
+                                        .id("add-entry-panel")
+                                } else {
+                                    openedReflectionPanel
+                                }
+                            }
+                            .opacity(focusOpacity)
+
+                            entriesPanel
+                                .opacity(focusOpacity)
+                        }
                     }
                     .padding(20)
                     .padding(.bottom, isEntryFieldFocused ? 170 : 32)
@@ -265,7 +277,7 @@ struct CapsuleDetailView: View {
 
     private var capsuleOrbStage: some View {
         let accentColor = Color(hex: capsule.colorHex)
-        let stageHeight: CGFloat = showsOpeningRitualLayer ? 640 : 326
+        let stageHeight: CGFloat = showsOpeningRitualLayer ? 480 : 326
 
         return ZStack {
             ZStack {
@@ -328,7 +340,6 @@ struct CapsuleDetailView: View {
                         title: capsule.title,
                         symbol: capsule.symbol,
                         reflectionTitle: openedReflection.title,
-                        reflectionMessage: openedReflection.message,
                         startedAt: openingCeremonyStartedAt
                     )
                     .transition(.opacity)
@@ -535,6 +546,36 @@ struct CapsuleDetailView: View {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(.white.opacity(0.16), lineWidth: 1)
         )
+    }
+
+    private var openingFinalReflectionBlock: some View {
+        let reflection = openedReflection
+        let isWaitingForReflection = isLoadingOpeningReflection && capsule.openingReflectionText?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false
+
+        return VStack(spacing: 14) {
+            if isWaitingForReflection {
+                ProgressView()
+                    .tint(.white)
+                    .controlSize(.regular)
+
+                Text("Собираю итог этого желания...")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.68))
+                    .multilineTextAlignment(.center)
+                    .transition(.opacity)
+            } else {
+                Text(reflection.message)
+                    .font(.title3.weight(.medium))
+                    .lineSpacing(5)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.white)
+                    .minimumScaleFactor(0.86)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .transition(.opacity.combined(with: .offset(y: 12)))
+            }
+        }
+        .padding(.horizontal, 26)
+        .padding(.bottom, 8)
     }
 
     private var entriesPanel: some View {
@@ -789,6 +830,12 @@ struct CapsuleDetailView: View {
             openingCeremonyStartedAt = Date()
             openingStage = .returning
             showsOpeningRitualLayer = true
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(100))
+                withAnimation(.easeInOut(duration: 0.55)) {
+                    scrollProxy.scrollTo("opening-final-reflection", anchor: .bottom)
+                }
+            }
             return
         }
 
@@ -854,6 +901,15 @@ struct CapsuleDetailView: View {
             await MainActor.run {
                 withAnimation(.smooth(duration: 1.05)) {
                     openingStage = .returning
+                }
+            }
+
+            try? await Task.sleep(for: .milliseconds(260))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.9)) {
+                    scrollProxy.scrollTo("opening-final-reflection", anchor: .bottom)
                 }
             }
 
@@ -925,7 +981,6 @@ private struct CapsuleOpeningRitualView: View {
     let title: String
     let symbol: String
     let reflectionTitle: String
-    let reflectionMessage: String
     let startedAt: Date
 
     private let ritualDuration: TimeInterval = 5.5
@@ -958,7 +1013,7 @@ private struct CapsuleOpeningRitualView: View {
             openingBackdrop(size: size, center: center, progress: progress, calm: max(calm, finalReveal), time: elapsed)
             unsealingRing(center: center, capsuleSize: capsuleSize, unseal: unseal)
             openingCountdown(center: center, capsuleSize: capsuleSize, remaining: remaining, progress: progress)
-            finalReflectionBlock(
+            finalTitleBlock(
                 center: center,
                 capsuleSize: capsuleSize,
                 reveal: finalReveal,
@@ -967,26 +1022,18 @@ private struct CapsuleOpeningRitualView: View {
         }
     }
 
-    private func finalReflectionBlock(center: CGPoint, capsuleSize: CGFloat, reveal: Double, maxY: CGFloat) -> some View {
+    private func finalTitleBlock(center: CGPoint, capsuleSize: CGFloat, reveal: Double, maxY: CGFloat) -> some View {
         VStack(spacing: 14) {
             Text(reflectionTitle)
                 .font(.headline.weight(.semibold))
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
-
-            Text(reflectionMessage)
-                .font(.title3.weight(.medium))
-                .lineSpacing(5)
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .minimumScaleFactor(0.82)
-                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 26)
         .frame(width: min(capsuleSize * 2.30, 360))
         .position(
             x: center.x,
-            y: min(maxY - 122, center.y + capsuleSize * 1.05 + 128)
+            y: min(maxY - 78, center.y + capsuleSize * 0.72 + 48)
         )
         .opacity(reveal)
         .scaleEffect(0.965 + reveal * 0.035)
