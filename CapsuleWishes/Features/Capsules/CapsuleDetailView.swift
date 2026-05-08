@@ -133,6 +133,10 @@ struct CapsuleDetailView: View {
         showsOpeningRitualLayer && openingStage == .returning
     }
 
+    private var openingFinalScrollAnchor: UnitPoint {
+        UnitPoint(x: 0.5, y: 0.06)
+    }
+
     var body: some View {
         let _ = readinessRefreshDate
 
@@ -141,10 +145,10 @@ struct CapsuleDetailView: View {
 
             ScrollViewReader { scrollProxy in
                 ScrollView {
-                    VStack(spacing: showsOpeningFinalReflection ? 12 : 22) {
+                    VStack(spacing: showsOpeningFinalReflection ? 18 : 22) {
                         capsuleOrbStage
                         .id("capsule-orb")
-                        .padding(.top, 28)
+                        .padding(.top, showsOpeningFinalReflection ? 0 : 28)
 
                         if showsOpeningFinalReflection {
                             openingFinalReflectionBlock
@@ -228,7 +232,7 @@ struct CapsuleDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if !isOpeningPending {
+            if !isOpeningPending || showsOpeningFinalReflection {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(role: .destructive) {
                         isEntryFieldFocused = false
@@ -242,6 +246,7 @@ struct CapsuleDetailView: View {
                 }
             }
         }
+        .toolbar(showsOpeningFinalReflection ? .hidden : .visible, for: .tabBar)
         .alert("Удалить капсулу?", isPresented: $isShowingDeleteConfirmation) {
             Button("Оставить", role: .cancel) { }
 
@@ -277,7 +282,7 @@ struct CapsuleDetailView: View {
 
     private var capsuleOrbStage: some View {
         let accentColor = Color(hex: capsule.colorHex)
-        let stageHeight: CGFloat = showsOpeningRitualLayer ? 480 : 326
+        let stageHeight: CGFloat = showsOpeningFinalReflection ? 268 : (showsOpeningRitualLayer ? 480 : 326)
 
         return ZStack {
             ZStack {
@@ -339,7 +344,6 @@ struct CapsuleDetailView: View {
                         color: accentColor,
                         title: capsule.title,
                         symbol: capsule.symbol,
-                        reflectionTitle: openedReflection.title,
                         startedAt: openingCeremonyStartedAt
                     )
                     .transition(.opacity)
@@ -552,7 +556,21 @@ struct CapsuleDetailView: View {
         let reflection = openedReflection
         let isWaitingForReflection = isLoadingOpeningReflection && capsule.openingReflectionText?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false
 
-        return VStack(spacing: 14) {
+        return VStack(spacing: 18) {
+            VStack(spacing: 8) {
+                Text(reflection.title)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+
+                Text(capsule.title)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.62))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+            }
+            .padding(.horizontal, 12)
+
             if isWaitingForReflection {
                 ProgressView()
                     .tint(.white)
@@ -572,10 +590,21 @@ struct CapsuleDetailView: View {
                     .minimumScaleFactor(0.86)
                     .fixedSize(horizontal: false, vertical: true)
                     .transition(.opacity.combined(with: .offset(y: 12)))
+
+                Button {
+                    dismiss()
+                } label: {
+                    Label("Вернуться к капсулам", systemImage: "checkmark.seal.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(PrimaryCapsuleButtonStyle())
+                .padding(.top, 4)
+                .transition(.opacity.combined(with: .offset(y: 10)))
             }
         }
-        .padding(.horizontal, 26)
-        .padding(.bottom, 8)
+        .padding(.horizontal, 8)
+        .padding(.top, 0)
+        .padding(.bottom, 18)
     }
 
     private var entriesPanel: some View {
@@ -833,7 +862,7 @@ struct CapsuleDetailView: View {
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(100))
                 withAnimation(.easeInOut(duration: 0.55)) {
-                    scrollProxy.scrollTo("opening-final-reflection", anchor: .bottom)
+                    scrollProxy.scrollTo("capsule-orb", anchor: openingFinalScrollAnchor)
                 }
             }
             return
@@ -904,12 +933,12 @@ struct CapsuleDetailView: View {
                 }
             }
 
-            try? await Task.sleep(for: .milliseconds(260))
+            try? await Task.sleep(for: .milliseconds(900))
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                withAnimation(.easeInOut(duration: 0.9)) {
-                    scrollProxy.scrollTo("opening-final-reflection", anchor: .bottom)
+                withAnimation(.easeInOut(duration: 1.15)) {
+                    scrollProxy.scrollTo("capsule-orb", anchor: openingFinalScrollAnchor)
                 }
             }
 
@@ -980,11 +1009,11 @@ private struct CapsuleOpeningRitualView: View {
     let color: Color
     let title: String
     let symbol: String
-    let reflectionTitle: String
     let startedAt: Date
 
-    private let ritualDuration: TimeInterval = 5.5
+    private let ritualDuration: TimeInterval = 5.8
     private let countdownDuration: TimeInterval = 2.45
+    private let zeroHoldDuration: TimeInterval = 0.22
     private let unsealDuration: TimeInterval = 1.05
 
     var body: some View {
@@ -1008,36 +1037,46 @@ private struct CapsuleOpeningRitualView: View {
         let finalReveal = max(phase(progress, from: 0.78, to: 0.92), stage == .returning ? 1.0 : 0.0)
         let center = CGPoint(x: size.width * 0.5, y: size.height * 0.50)
         let capsuleSize = min(size.width * 0.48, 172)
+        let awakening = capsuleAwakening(elapsed: elapsed)
 
         return ZStack {
             openingBackdrop(size: size, center: center, progress: progress, calm: max(calm, finalReveal), time: elapsed)
+            capsuleAwakeningGlow(center: center, capsuleSize: capsuleSize, awakening: awakening, finalReveal: finalReveal)
             unsealingRing(center: center, capsuleSize: capsuleSize, unseal: unseal)
-            openingCountdown(center: center, capsuleSize: capsuleSize, remaining: remaining, progress: progress)
-            finalTitleBlock(
-                center: center,
-                capsuleSize: capsuleSize,
-                reveal: finalReveal,
-                maxY: size.height
-            )
+            ringReleasedStars(center: center, capsuleSize: capsuleSize, unseal: unseal, calm: max(calm, finalReveal), time: elapsed)
+            openingCountdown(center: center, capsuleSize: capsuleSize, remaining: remaining, elapsed: elapsed)
         }
     }
 
-    private func finalTitleBlock(center: CGPoint, capsuleSize: CGFloat, reveal: Double, maxY: CGFloat) -> some View {
-        VStack(spacing: 14) {
-            Text(reflectionTitle)
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
+    private func capsuleAwakeningGlow(center: CGPoint, capsuleSize: CGFloat, awakening: Double, finalReveal: Double) -> some View {
+        let reveal = max(awakening, finalReveal * 0.46)
+        let pulse = max(0, sin(reveal * .pi))
+
+        return ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            .white.opacity(0.18 * reveal + 0.08 * pulse),
+                            color.opacity(0.20 * reveal),
+                            .clear
+                        ],
+                        center: .center,
+                        startRadius: 1,
+                        endRadius: capsuleSize * (0.68 + CGFloat(reveal) * 0.22)
+                    )
+                )
+                .frame(width: capsuleSize * 1.78, height: capsuleSize * 1.78)
+                .blur(radius: 10 + CGFloat(reveal) * 8)
+
+            Circle()
+                .stroke(.white.opacity(0.18 * reveal), lineWidth: 0.8)
+                .frame(width: capsuleSize * 1.02, height: capsuleSize * 1.02)
+                .blur(radius: 0.5)
         }
-        .padding(.horizontal, 26)
-        .frame(width: min(capsuleSize * 2.30, 360))
-        .position(
-            x: center.x,
-            y: min(maxY - 78, center.y + capsuleSize * 0.72 + 48)
-        )
+        .position(center)
+        .blendMode(.screen)
         .opacity(reveal)
-        .scaleEffect(0.965 + reveal * 0.035)
-        .offset(y: CGFloat(1 - reveal) * 12)
     }
 
     private func openingBackdrop(size: CGSize, center: CGPoint, progress: Double, calm: Double, time: TimeInterval) -> some View {
@@ -1070,6 +1109,20 @@ private struct CapsuleOpeningRitualView: View {
         }
     }
 
+    private func ringReleasedStars(center: CGPoint, capsuleSize: CGFloat, unseal: Double, calm: Double, time: TimeInterval) -> some View {
+        ZStack {
+            ForEach(0..<30, id: \.self) { index in
+                let star = ringReleasedStar(index: index, center: center, capsuleSize: capsuleSize, unseal: unseal, calm: calm, time: time)
+
+                Circle()
+                    .fill(.white.opacity(star.opacity))
+                    .frame(width: star.size, height: star.size)
+                    .position(star.position)
+                    .blendMode(.screen)
+            }
+        }
+    }
+
     private func unsealingRing(center: CGPoint, capsuleSize: CGFloat, unseal: Double) -> some View {
         let radius = capsuleSize * 1.10
         let visible = max(0, 1 - phase(unseal, from: 0.96, to: 1))
@@ -1095,8 +1148,9 @@ private struct CapsuleOpeningRitualView: View {
         .position(center)
     }
 
-    private func openingCountdown(center: CGPoint, capsuleSize: CGFloat, remaining: TimeInterval, progress: Double) -> some View {
-        let reveal = max(0, 1 - phase(progress, from: 0.54, to: 0.64))
+    private func openingCountdown(center: CGPoint, capsuleSize: CGFloat, remaining: TimeInterval, elapsed: TimeInterval) -> some View {
+        let fadeStart = countdownDuration + zeroHoldDuration * 0.55
+        let reveal = max(0, 1 - phase(elapsed, from: fadeStart, to: fadeStart + 0.42))
 
         return ZStack {
             VStack(spacing: 3) {
@@ -1125,8 +1179,14 @@ private struct CapsuleOpeningRitualView: View {
     }
 
     private func unsealProgress(elapsed: TimeInterval) -> Double {
-        let raw = (elapsed - countdownDuration) / unsealDuration
+        let raw = (elapsed - countdownDuration - zeroHoldDuration) / unsealDuration
         return smoothstep(raw)
+    }
+
+    private func capsuleAwakening(elapsed: TimeInterval) -> Double {
+        let prezero = phase(elapsed, from: countdownDuration * 0.46, to: countdownDuration + zeroHoldDuration)
+        let quiet = 1 - phase(elapsed, from: countdownDuration + zeroHoldDuration + unsealDuration * 0.72, to: countdownDuration + zeroHoldDuration + unsealDuration + 0.72)
+        return prezero * quiet
     }
 
     private func countdownString(_ remaining: TimeInterval) -> String {
@@ -1148,6 +1208,25 @@ private struct CapsuleOpeningRitualView: View {
             ),
             size: CGFloat(1.2 + random(index, salt: 23) * 2.8) * CGFloat(1 + calm * 0.22),
             opacity: (0.08 + random(index, salt: 24) * (0.20 + calm * 0.18)) * max(0, twinkle)
+        )
+    }
+
+    private func ringReleasedStar(index: Int, center: CGPoint, capsuleSize: CGFloat, unseal: Double, calm: Double, time: TimeInterval) -> OpeningRitualParticle {
+        let radius = capsuleSize * 0.55
+        let angle = -.pi / 2 + .pi * 2 * random(index, salt: 31)
+        let emergence = phase(unseal, from: 0.12 + random(index, salt: 32) * 0.30, to: 0.82)
+        let settle = phase(unseal, from: 0.72, to: 1)
+        let drift = CGFloat(8 + random(index, salt: 33) * 30) * CGFloat(emergence + calm * 0.55)
+        let orbit = CGFloat(sin(time * (0.18 + random(index, salt: 34) * 0.18) + random(index, salt: 35) * .pi * 2)) * CGFloat(calm) * 6
+        let opacity = (0.03 + random(index, salt: 36) * 0.28) * emergence * (0.58 + calm * 0.42)
+
+        return OpeningRitualParticle(
+            position: CGPoint(
+                x: center.x + cos(angle) * (radius + drift + orbit),
+                y: center.y + sin(angle) * (radius + drift + orbit * 0.7) - CGFloat(settle) * capsuleSize * 0.18
+            ),
+            size: CGFloat(1.1 + random(index, salt: 37) * 2.2) * CGFloat(0.82 + settle * 0.42),
+            opacity: opacity
         )
     }
 
