@@ -562,12 +562,14 @@ struct CapsuleDetailView: View {
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)).combined(with: .offset(y: 10)))
 
                 Text(capsule.title)
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.62))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
+                    .transition(.opacity.combined(with: .offset(y: 8)))
             }
             .padding(.horizontal, 12)
 
@@ -1038,17 +1040,19 @@ private struct CapsuleOpeningRitualView: View {
         let center = CGPoint(x: size.width * 0.5, y: size.height * 0.50)
         let capsuleSize = min(size.width * 0.48, 172)
         let awakening = capsuleAwakening(elapsed: elapsed)
+        let releasePulse = zeroReleasePulse(elapsed: elapsed)
 
         return ZStack {
             openingBackdrop(size: size, center: center, progress: progress, calm: max(calm, finalReveal), time: elapsed)
-            capsuleAwakeningGlow(center: center, capsuleSize: capsuleSize, awakening: awakening, finalReveal: finalReveal)
+            capsuleAwakeningGlow(center: center, capsuleSize: capsuleSize, awakening: awakening, releasePulse: releasePulse, finalReveal: finalReveal)
+            openingReleasePulse(center: center, capsuleSize: capsuleSize, pulse: releasePulse)
             unsealingRing(center: center, capsuleSize: capsuleSize, unseal: unseal)
             ringReleasedStars(center: center, capsuleSize: capsuleSize, unseal: unseal, calm: max(calm, finalReveal), time: elapsed)
             openingCountdown(center: center, capsuleSize: capsuleSize, remaining: remaining, elapsed: elapsed)
         }
     }
 
-    private func capsuleAwakeningGlow(center: CGPoint, capsuleSize: CGFloat, awakening: Double, finalReveal: Double) -> some View {
+    private func capsuleAwakeningGlow(center: CGPoint, capsuleSize: CGFloat, awakening: Double, releasePulse: Double, finalReveal: Double) -> some View {
         let reveal = max(awakening, finalReveal * 0.46)
         let pulse = max(0, sin(reveal * .pi))
 
@@ -1057,26 +1061,61 @@ private struct CapsuleOpeningRitualView: View {
                 .fill(
                     RadialGradient(
                         colors: [
-                            .white.opacity(0.18 * reveal + 0.08 * pulse),
-                            color.opacity(0.20 * reveal),
+                            .white.opacity(0.22 * reveal + 0.12 * pulse + 0.18 * releasePulse),
+                            color.mix(with: .white, by: 0.24).opacity(0.26 * reveal + 0.18 * releasePulse),
+                            color.opacity(0.14 * reveal),
                             .clear
                         ],
                         center: .center,
                         startRadius: 1,
-                        endRadius: capsuleSize * (0.68 + CGFloat(reveal) * 0.22)
+                        endRadius: capsuleSize * (0.68 + CGFloat(reveal) * 0.28 + CGFloat(releasePulse) * 0.16)
                     )
                 )
-                .frame(width: capsuleSize * 1.78, height: capsuleSize * 1.78)
-                .blur(radius: 10 + CGFloat(reveal) * 8)
+                .frame(width: capsuleSize * (1.78 + CGFloat(releasePulse) * 0.22), height: capsuleSize * (1.78 + CGFloat(releasePulse) * 0.22))
+                .blur(radius: 9 + CGFloat(reveal) * 10 + CGFloat(releasePulse) * 5)
 
             Circle()
-                .stroke(.white.opacity(0.18 * reveal), lineWidth: 0.8)
-                .frame(width: capsuleSize * 1.02, height: capsuleSize * 1.02)
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            .white.opacity(0.24 * reveal + 0.18 * releasePulse),
+                            color.opacity(0.16 * reveal),
+                            .clear
+                        ],
+                        center: .center,
+                        startRadius: 1,
+                        endRadius: capsuleSize * 0.38
+                    )
+                )
+                .frame(width: capsuleSize * 0.88, height: capsuleSize * 0.88)
+                .blur(radius: 7)
+
+            Circle()
+                .stroke(.white.opacity(0.20 * reveal + 0.16 * releasePulse), lineWidth: 0.8 + releasePulse * 1.2)
+                .frame(width: capsuleSize * (1.02 + CGFloat(releasePulse) * 0.10), height: capsuleSize * (1.02 + CGFloat(releasePulse) * 0.10))
                 .blur(radius: 0.5)
         }
         .position(center)
         .blendMode(.screen)
         .opacity(reveal)
+    }
+
+    private func openingReleasePulse(center: CGPoint, capsuleSize: CGFloat, pulse: Double) -> some View {
+        ZStack {
+            Circle()
+                .stroke(.white.opacity(0.34 * pulse), lineWidth: 1.2 + pulse * 2.2)
+                .frame(width: capsuleSize * (1.02 + CGFloat(pulse) * 0.48), height: capsuleSize * (1.02 + CGFloat(pulse) * 0.48))
+                .blur(radius: 0.8 + pulse * 3.8)
+
+            Circle()
+                .stroke(color.mix(with: .white, by: 0.42).opacity(0.24 * pulse), lineWidth: 1.1)
+                .frame(width: capsuleSize * (1.22 + CGFloat(pulse) * 0.70), height: capsuleSize * (1.22 + CGFloat(pulse) * 0.70))
+                .blur(radius: 2 + pulse * 5)
+        }
+        .position(center)
+        .blendMode(.screen)
+        .scaleEffect(0.96 + pulse * 0.06)
+        .opacity(pulse)
     }
 
     private func openingBackdrop(size: CGSize, center: CGPoint, progress: Double, calm: Double, time: TimeInterval) -> some View {
@@ -1187,6 +1226,10 @@ private struct CapsuleOpeningRitualView: View {
         let prezero = phase(elapsed, from: countdownDuration * 0.46, to: countdownDuration + zeroHoldDuration)
         let quiet = 1 - phase(elapsed, from: countdownDuration + zeroHoldDuration + unsealDuration * 0.72, to: countdownDuration + zeroHoldDuration + unsealDuration + 0.72)
         return prezero * quiet
+    }
+
+    private func zeroReleasePulse(elapsed: TimeInterval) -> Double {
+        pulse(elapsed, center: countdownDuration + zeroHoldDuration * 0.72, width: 0.24)
     }
 
     private func countdownString(_ remaining: TimeInterval) -> String {
