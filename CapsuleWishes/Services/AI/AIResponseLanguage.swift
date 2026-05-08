@@ -9,11 +9,26 @@ import Foundation
 
 enum AIResponseLanguage {
     static var isRussian: Bool {
-        Bundle.main.preferredLocalizations.first == "ru"
+        code == "ru"
+    }
+
+    private static var code: String {
+        Bundle.main.preferredLocalizations.first ?? "en"
     }
 
     static var name: String {
-        isRussian ? "Russian" : "English"
+        switch code {
+        case "ru":
+            "Russian"
+        case "de":
+            "German"
+        case "fr":
+            "French"
+        case "es":
+            "Spanish"
+        default:
+            "English"
+        }
     }
 
     static var instruction: String {
