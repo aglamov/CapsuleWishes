@@ -13,6 +13,7 @@ struct CapsuleListView: View {
     @AppStorage("hasSeenCapsuleIntro") private var hasSeenCapsuleIntro = false
     @Query(sort: \WishCapsule.openAt, order: .forward) private var capsules: [WishCapsule]
     @State private var isCreatingCapsule = false
+    @State private var isShowingCapsuleLimit = false
     @State private var isShowingNotificationSettings = false
     @State private var highlightedCapsuleID: UUID?
     @State private var selectedCapsule: WishCapsule?
@@ -32,7 +33,7 @@ struct CapsuleListView: View {
                         }
                     } createAction: {
                         hasSeenCapsuleIntro = true
-                        isCreatingCapsule = true
+                        beginCapsuleCreation()
                     }
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 } else {
@@ -42,7 +43,7 @@ struct CapsuleListView: View {
 
                             if capsules.isEmpty {
                                 EmptyCapsulesView {
-                                    isCreatingCapsule = true
+                                    beginCapsuleCreation()
                                 }
                             } else {
                                 VStack(spacing: 18) {
@@ -75,7 +76,7 @@ struct CapsuleListView: View {
 
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
-                            isCreatingCapsule = true
+                            beginCapsuleCreation()
                         } label: {
                             Image(systemName: "plus")
                         }
@@ -85,6 +86,11 @@ struct CapsuleListView: View {
             }
             .sheet(isPresented: $isCreatingCapsule) {
                 CreateCapsuleView()
+            }
+            .alert("\(CapsuleCreationPolicy.activeCapsuleLimit) активные капсулы", isPresented: $isShowingCapsuleLimit) {
+                Button("Понятно", role: .cancel) {}
+            } message: {
+                Text("Настоящих желаний не должно быть слишком много одновременно. Дождись открытия одной капсулы или освободи место.")
             }
             .sheet(isPresented: $isShowingNotificationSettings) {
                 NotificationSettingsView()
@@ -206,6 +212,15 @@ struct CapsuleListView: View {
 
                 return first.openAt > second.openAt
             }
+    }
+
+    private func beginCapsuleCreation() {
+        guard CapsuleCreationPolicy.canCreateCapsule(with: capsules) else {
+            isShowingCapsuleLimit = true
+            return
+        }
+
+        isCreatingCapsule = true
     }
 
     private func openCapsuleAfterPause(_ capsule: WishCapsule) {

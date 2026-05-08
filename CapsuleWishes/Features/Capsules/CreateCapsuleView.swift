@@ -53,6 +53,10 @@ struct CreateCapsuleView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
 
+                        if hasReachedActiveCapsuleLimit {
+                            capsuleLimitNotice
+                        }
+
                         VStack(spacing: 14) {
                             field(
                                 "Желание",
@@ -122,6 +126,8 @@ struct CreateCapsuleView: View {
                         .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(PrimaryCapsuleButtonStyle())
+                    .disabled(hasReachedActiveCapsuleLimit)
+                    .opacity(hasReachedActiveCapsuleLimit ? 0.55 : 1)
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
                     .padding(.bottom, 8)
@@ -160,6 +166,28 @@ struct CreateCapsuleView: View {
     private var canCreate: Bool {
         !intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !feeling.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var hasReachedActiveCapsuleLimit: Bool {
+        !CapsuleCreationPolicy.canCreateCapsule(with: existingCapsules)
+    }
+
+    private var capsuleLimitNotice: some View {
+        Label {
+            Text("Сейчас у тебя уже \(CapsuleCreationPolicy.activeCapsuleLimit) активные капсулы. Дождись открытия одной из них или освободи место для нового желания.")
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: "seal.fill")
+        }
+        .font(.callout.weight(.medium))
+        .foregroundStyle(Color(hex: "FFE3AD"))
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color(hex: "FFE3AD").opacity(0.28), lineWidth: 1)
+        }
     }
 
     private var closeButton: some View {
@@ -319,6 +347,7 @@ struct CreateCapsuleView: View {
     private func sealCapsule() {
         guard !sealingStage.isActive else { return }
         didAttemptSeal = true
+        guard !hasReachedActiveCapsuleLimit else { return }
         guard canCreate else { return }
 
         let trimmedIntention = intention.trimmingCharacters(in: .whitespacesAndNewlines)

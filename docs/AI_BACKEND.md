@@ -47,3 +47,17 @@ The Worker returns:
   "text": "..."
 }
 ```
+
+## Opaque Usage Limits
+
+The Worker keeps AI limits hidden from the app UI. If a limit is reached, it returns `429`, and the iOS app falls back to local non-AI text.
+
+The built-in request limits are configured through Worker variables:
+
+```text
+DAILY_TOKEN_LIMIT=50000
+DAILY_IP_TOKEN_LIMIT=8000
+MAX_INPUT_CHARS=6000
+```
+
+Daily token counters require an optional Cloudflare KV binding named `AI_USAGE_KV`. Without that binding, the Worker still applies per-request size and output-token caps, but cannot persist daily usage.
