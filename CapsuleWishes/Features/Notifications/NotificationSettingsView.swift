@@ -72,11 +72,11 @@ struct NotificationSettingsView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Пусть время говорит тихо")
+            Text("Сигналы без суеты")
                 .font(.largeTitle.bold())
                 .foregroundStyle(.white)
 
-            Text("Здесь нет ежедневных пинков. Только события, редкие возвращения и моменты, которые действительно имеют смысл.")
+            Text("Здесь можно выбрать ритм напоминаний: от полной тишины до более внимательного сопровождения.")
                 .font(.body)
                 .foregroundStyle(.white.opacity(0.72))
                 .fixedSize(horizontal: false, vertical: true)
@@ -163,7 +163,7 @@ struct NotificationSettingsView: View {
                         .font(.headline)
                         .foregroundStyle(.white)
 
-                    Text("Один мягкий утренний сигнал, если хочется сделать это личным ритуалом.")
+                    Text("Один утренний сигнал для снов и образов, которые лучше записать сразу после пробуждения.")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.66))
                         .fixedSize(horizontal: false, vertical: true)
@@ -202,7 +202,7 @@ struct NotificationSettingsView: View {
 
                         Text(
                             String(
-                                format: String(localized: "Сейчас: %@. Будет мягко подстраиваться по первому утреннему открытию приложения."),
+                                format: String(localized: "Сейчас: %@. Время сигнала будет уточняться по твоему утреннему ритму."),
                                 morningSignalTime.title
                             )
                         )
@@ -224,11 +224,11 @@ struct NotificationSettingsView: View {
     private var audioFeedbackToggle: some View {
         Toggle(isOn: $audioFeedbackEnabled) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Звуки ритуалов")
+                Text("Звуки капсулы")
                     .font(.headline)
                     .foregroundStyle(.white)
 
-                Text("Короткие мягкие отклики для запечатывания, открытия капсулы и сохранения записей.")
+                Text("Короткие звуковые отклики для запечатывания, открытия и сохранения записей.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.66))
                     .fixedSize(horizontal: false, vertical: true)
@@ -246,16 +246,16 @@ struct NotificationSettingsView: View {
     private var aiUsageToggle: some View {
         Toggle(isOn: $aiFeaturesEnabled) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Использовать ИИ")
+                Text("Умные подсказки")
                     .font(.headline)
                     .foregroundStyle(.white)
 
-                Text("Когда включено, подсказки и письма могут создаваться через защищенный сервер приложения. Отправляются только данные, нужные для выбранной функции, и ничего более.")
+                Text("Когда включено, приложение может точнее формулировать подсказки, письма и итоги через защищенный сервер. Передаются только данные, нужные для выбранного действия.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.66))
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("Когда выключено, приложение использует локальные шаблонные выражения.")
+                Text("Когда выключено, капсула использует встроенные локальные тексты.")
                     .font(.footnote)
                     .foregroundStyle(.white.opacity(0.54))
                     .fixedSize(horizontal: false, vertical: true)

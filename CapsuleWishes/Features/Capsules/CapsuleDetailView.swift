@@ -254,7 +254,7 @@ struct CapsuleDetailView: View {
                 deleteCapsule()
             }
         } message: {
-            Text("Капсула уже хранит твой запрос к миру. Иногда именно такие внезапные желания оказываются заветными. Удалить ее навсегда?")
+            Text("Капсула уже хранит это желание и всё, что успело собраться вокруг него. Удалить её навсегда?")
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             FloatingKeyboardDoneBar(isVisible: isEntryFieldFocused) {
@@ -493,7 +493,7 @@ struct CapsuleDetailView: View {
                 }
                 .disabled(entryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isBeautifyingEntry)
                 .opacity(entryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
-                .accessibilityLabel("Переписать наблюдение красивее")
+                .accessibilityLabel("Сделать наблюдение яснее")
             }
             .padding(14)
             .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
@@ -616,7 +616,7 @@ struct CapsuleDetailView: View {
                 .foregroundStyle(.white)
 
             if entries.isEmpty && futureLetterSignal == nil {
-                Text("Здесь появятся странности, маленькие радости и шаги, которые будут собираться вокруг капсулы.")
+                Text("Здесь появятся знаки, мысли, сны и шаги, которые постепенно соберутся вокруг капсулы.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.64))
                     .fixedSize(horizontal: false, vertical: true)
@@ -659,7 +659,7 @@ struct CapsuleDetailView: View {
                             .foregroundStyle(.white.opacity(0.48))
                     }
 
-                    Text("Открыть послание, которое пришло по пути к желанию")
+                    Text("Открыть письмо, запланированное для этого пути")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.76))
                         .fixedSize(horizontal: false, vertical: true)
@@ -724,7 +724,7 @@ struct CapsuleDetailView: View {
                     .padding(.top, 1)
             }
 
-            Text(isLoadingAIEntryPrompt ? String(localized: "Ищу подсказку вокруг этого желания...") : currentEntryPrompt)
+            Text(isLoadingAIEntryPrompt ? String(localized: "Прислушиваюсь к этому желанию...") : currentEntryPrompt)
                 .font(.footnote)
                 .foregroundStyle(.white.opacity(0.76 + aiEntryPromptGlowAmount * 0.24))
                 .fixedSize(horizontal: false, vertical: true)
@@ -986,15 +986,15 @@ private struct OpenedReflection {
             symbolName = "leaf.fill"
         case .changed:
             title = String(localized: "Желание сбылось иначе")
-            message = generatedMessage ?? String(localized: "Иногда желание отвечает не тем предметом, а смыслом под ним. Посмотри, что изменилось в тебе, в обстоятельствах или в самом запросе: возможно, итог оказался точнее первоначальной формулировки.")
+            message = generatedMessage ?? String(localized: "Иногда желание отвечает не тем предметом, а смыслом под ним. Посмотри, что изменилось в тебе, в обстоятельствах или в самой формулировке: возможно, итог оказался точнее первоначального желания.")
             symbolName = "wand.and.stars"
         case .released:
             title = String(localized: "Желание не сбылось")
-            message = generatedMessage ?? String(localized: "Это тоже честный итог. Желание было важным, даже если мир не сложился в его сторону. Можно поблагодарить его за то, что оно показало, и отпустить без долга продолжать хотеть.")
+            message = generatedMessage ?? String(localized: "Это тоже честный итог. Желание было важным, даже если жизнь не пошла в его сторону. Можно оставить себе то, что оно показало, и отпустить без обязанности хотеть дальше.")
             symbolName = "hand.raised.fill"
         case .opened:
             title = String(localized: "Капсула открыта")
-            message = generatedMessage ?? String(localized: "Ты уже сделал важную часть: сохранил желание, дал ему время и вернулся к нему внимательнее. Пусть то, что открылось сейчас, станет не точкой, а мягкой подсказкой для следующего шага.")
+            message = generatedMessage ?? String(localized: "Ты сохранил желание, дал ему время и вернулся внимательнее. Пусть то, что открылось сейчас, станет не точкой, а знаком для следующего движения.")
             symbolName = "sparkles"
         case .sealed:
             title = String(localized: "Капсула ждет открытия")
@@ -1659,7 +1659,7 @@ private struct SealingFortuneReadingView: View {
 
     private func planSignsView(_ signs: [SealingFortunePlanSign]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Капсула оставила знаки на пути", systemImage: "bell.badge")
+            Label("Капсула отметила точки на пути", systemImage: "bell.badge")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white)
 

@@ -83,7 +83,7 @@ struct WishCreationAssistantService {
                 Ты бережно переписываешь желание для приложения CapsuleWishes.
                 \(AIResponseLanguage.instruction)
                 Сохрани смысл пользователя, не добавляй новых фактов, не обещай исполнение.
-                Сделай формулировку ясной, красивой, личной и живой.
+                Сделай формулировку ясной, личной и живой, без украшательства.
                 Верни только текст желания, 1-2 предложения, без кавычек и Markdown.
                 """,
                 input: AIResponseLanguage.text(
@@ -203,7 +203,7 @@ struct WishCreationAssistantService {
             return titleFromFeeling(cleanFeeling)
         }
 
-        return AIResponseLanguage.text(ru: "Тихое желание", en: "Quiet Wish")
+        return AIResponseLanguage.text(ru: "Сохранённое желание", en: "Held Wish")
     }
 
     private func titleFromFeeling(_ feeling: String) -> String {
@@ -214,7 +214,7 @@ struct WishCreationAssistantService {
             .lowercased()
 
         guard let firstWord, !firstWord.isEmpty else {
-            return AIResponseLanguage.text(ru: "Тихое желание", en: "Quiet Wish")
+            return AIResponseLanguage.text(ru: "Сохранённое желание", en: "Held Wish")
         }
 
         return AIResponseLanguage.text(ru: "Капсула \(firstWord)", en: "\(firstWord.capitalized) Capsule")

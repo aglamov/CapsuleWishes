@@ -30,12 +30,12 @@ struct CapsuleIntroView: View {
                     .shadow(color: .white.opacity(0.28), radius: 26)
                     .accessibilityHidden(true)
 
-                    Text("Здесь желания получают время")
+                    Text("Желаниям нужно время")
                         .font(.largeTitle.bold())
                         .foregroundStyle(.white)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("Капсула не обещает чудо по расписанию. Она помогает бережно сформулировать желание, прожить с ним несколько дней и потом увидеть, что изменилось внутри и вокруг.")
+                    Text("Капсула не обещает чудо по расписанию. Она сохраняет желание до выбранного дня, чтобы потом ты мог увидеть, что изменилось в нём, в тебе и вокруг.")
                         .font(.body)
                         .foregroundStyle(.white.opacity(0.74))
                         .fixedSize(horizontal: false, vertical: true)
@@ -45,19 +45,19 @@ struct CapsuleIntroView: View {
                     introRow(
                         icon: "lock.fill",
                         title: "Запечатай намерение",
-                        text: "Опиши желание и чувство, которое стоит за ним."
+                        text: "Назови желание и чувство, ради которого оно важно."
                     )
 
                     introRow(
                         icon: "book.closed.fill",
                         title: "Замечай путь",
-                        text: "Сохраняй сны, знаки, мысли и маленькие шаги в дневнике."
+                        text: "Сохраняй сны, знаки, мысли и тихие сдвиги в дневнике."
                     )
 
                     introRow(
                         icon: "lock.open.fill",
                         title: "Открой позже",
-                        text: "Вернись к капсуле в выбранный день и честно посмотри, как желание изменилось."
+                        text: "Вернись в выбранный день и посмотри, какую форму приняло желание."
                     )
                 }
                 .padding(18)

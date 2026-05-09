@@ -93,7 +93,7 @@ struct JournalView: View {
                                     .foregroundStyle(.white)
 
                                 if entries.isEmpty {
-                                    Text("Сегодня можно начать с малого: что сделало день хотя бы на 1% легче?")
+                                    Text("Начни с одного наблюдения: что сегодня осталось с тобой дольше обычного?")
                                         .foregroundStyle(.white.opacity(0.64))
                                 } else {
                                     ForEach(entrySections) { section in
@@ -209,7 +209,7 @@ struct JournalView: View {
                 }
                 .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isBeautifyingEntry)
                 .opacity(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
-                .accessibilityLabel("Переписать наблюдение красивее")
+                .accessibilityLabel("Сделать наблюдение яснее")
             }
             .padding(16)
             .background(
@@ -246,7 +246,7 @@ struct JournalView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("Записывай следы вокруг желаний")
+                    Text("Собирай знаки, мысли и сны вокруг желаний")
                         .font(.body)
                         .foregroundStyle(.white.opacity(0.74))
 
@@ -263,7 +263,7 @@ struct JournalView: View {
                 }
 
                 if isIntroExpanded {
-                    Text("Когда желание названо, вокруг него начинают появляться следы: странные совпадения, возвращающиеся мысли и сны. Записывай то, что происходит вокруг и внутри тебя, и маленькие шаги, которые ты сделал навстречу желанию. Иногда именно так путь становится видимым.")
+                    Text("Когда желание получает имя, внимание начинает замечать больше: совпадения, возвращающиеся мысли, сны и тихие сдвиги. Записывай не доказательства, а то, что действительно задержалось внутри.")
                         .font(.callout)
                         .foregroundStyle(.white.opacity(0.64))
                         .fixedSize(horizontal: false, vertical: true)
@@ -381,7 +381,7 @@ struct JournalView: View {
                     .padding(.top, 1)
             }
 
-            Text(isLoadingAIPrompt ? String(localized: "Ищу подсказку вокруг этого желания...") : currentPrompt)
+            Text(isLoadingAIPrompt ? String(localized: "Прислушиваюсь к этому желанию...") : currentPrompt)
                 .font(.footnote)
                 .foregroundStyle(.white.opacity(0.76 + aiPromptGlowAmount * 0.24))
                 .fixedSize(horizontal: false, vertical: true)

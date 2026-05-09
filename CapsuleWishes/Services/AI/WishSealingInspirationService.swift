@@ -247,20 +247,20 @@ struct WishSealingInspirationService {
         guard daysUntilOpen >= 3, looksLikePlan(title: title, intention: intention) else {
             let message = cleanFeeling.isEmpty
                 ? AIResponseLanguage.text(
-                    ru: "Запрос «\(cleanTitle)» уже вышел за пределы этой минуты. Пусть ближайшие дни принесут тебе не громкий знак, а тихую ясность: где сделать первый честный шаг.",
-                    en: "The wish \"\(cleanTitle)\" has already moved beyond this minute. May the coming days bring you not a loud sign, but quiet clarity about the first honest step."
+                    ru: "Желание «\(cleanTitle)» сохранено до выбранного дня. Пусть ближайшее время покажет не громкий знак, а точную деталь, по которой ты узнаешь, что внутри что-то сдвинулось.",
+                    en: "The wish \"\(cleanTitle)\" is held until the chosen day. May the time ahead show not a loud sign, but one precise detail by which you recognize that something inside has shifted."
                 )
                 : AIResponseLanguage.text(
-                    ru: "Запрос «\(cleanTitle)» отправлен в большое темное небо. Пусть чувство \(cleanFeeling.lowercased()) начнет находить к тебе дорогу через маленькие совпадения, смелые решения и спокойные шаги.",
-                    en: "The wish \"\(cleanTitle)\" has been sent into the wide dark sky. May the feeling of \(cleanFeeling.lowercased()) begin finding its way to you through small coincidences, brave choices, and calm steps."
+                    ru: "Желание «\(cleanTitle)» запечатано. Пусть чувство \(cleanFeeling.lowercased()) не торопится доказывать себя, а постепенно проявится в решениях, встречах и деталях, которые ты не пройдёшь мимо.",
+                    en: "The wish \"\(cleanTitle)\" is sealed. May the feeling of \(cleanFeeling.lowercased()) not rush to prove itself, but slowly appear in choices, encounters, and details you will not pass by."
                 )
             return WishSealingInspiration(message: message, planSummary: nil, recommendation: nil, checkpoints: [])
         }
 
         return WishSealingInspiration(
-            message: AIResponseLanguage.text(ru: "Там, где желание получает имя, дорога начинает узнавать твои шаги.", en: "Where a wish receives a name, the road begins to recognize your steps."),
-            planSummary: AIResponseLanguage.text(ru: "Внутри этого запроса уже спрятан маршрут из нескольких спокойных действий.", en: "A route of several calm actions is already hidden inside this request."),
-            recommendation: AIResponseLanguage.text(ru: "Начни с малого знака на земле: выбери один следующий шаг и время для него.", en: "Start with one small sign on the ground: choose the next step and a time for it."),
+            message: AIResponseLanguage.text(ru: "Желание названо, и у него появился свой срок. Теперь важен не рывок, а внимательное движение в его сторону.", en: "The wish has been named, and it now has its own horizon. What matters is not a sudden push, but attentive movement toward it."),
+            planSummary: AIResponseLanguage.text(ru: "В этом желании уже виден маршрут из нескольких спокойных действий.", en: "A route of several calm actions is already visible inside this wish."),
+            recommendation: AIResponseLanguage.text(ru: "Выбери один следующий шаг и время, когда ты действительно сможешь к нему вернуться.", en: "Choose one next step and a time when you can truly return to it."),
             checkpoints: [
                 WishPlanCheckpoint(title: AIResponseLanguage.text(ru: "Первый шаг", en: "First step"), message: AIResponseLanguage.text(ru: "Выбери одно действие, которое приблизит желание без лишней подготовки.", en: "Choose one action that moves the wish closer without extra preparation."), afterDays: 1),
                 WishPlanCheckpoint(title: AIResponseLanguage.text(ru: "Проверка маршрута", en: "Route check"), message: AIResponseLanguage.text(ru: "Посмотри, что уже сдвинулось, и выбери следующий честный шаг.", en: "Notice what has already shifted and choose the next honest step."), afterDays: 3),

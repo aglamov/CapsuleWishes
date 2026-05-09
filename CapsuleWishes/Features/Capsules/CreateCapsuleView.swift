@@ -47,7 +47,7 @@ struct CreateCapsuleView: View {
                                 .font(.title.bold())
                                 .foregroundStyle(.white)
 
-                            Text("Не обязательно формулировать идеально. Иногда желание становится яснее уже после того, как его бережно записали.")
+                            Text("Не ищи идеальную фразу. Достаточно назвать желание так, чтобы через время ты узнал в нём себя.")
                                 .font(.callout)
                                 .foregroundStyle(.white.opacity(0.72))
                                 .fixedSize(horizontal: false, vertical: true)
@@ -174,7 +174,7 @@ struct CreateCapsuleView: View {
 
     private var capsuleLimitNotice: some View {
         Label {
-            Text("Сейчас у тебя уже \(CapsuleCreationPolicy.activeCapsuleLimit) активные капсулы. Дождись открытия одной из них или освободи место для нового желания.")
+            Text("Сейчас у тебя уже \(CapsuleCreationPolicy.activeCapsuleLimit) активных капсул. Дай одной из них дойти до открытия или освободи место для нового желания.")
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {
             Image(systemName: "seal.fill")
@@ -289,7 +289,7 @@ struct CreateCapsuleView: View {
         }
         .disabled(intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isBeautifyingIntention)
         .opacity(intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
-        .accessibilityLabel("Переписать желание красивее")
+        .accessibilityLabel("Уточнить формулировку желания")
     }
 
     private func field(
@@ -337,7 +337,7 @@ struct CreateCapsuleView: View {
             }
 
             if showsValidation {
-                Text("Заполни это поле, чтобы запечатать капсулу.")
+                Text("Заполни поле, чтобы капсула могла сохранить желание.")
                     .font(.caption)
                     .foregroundStyle(Color(hex: "FFB3AA"))
             }
@@ -680,7 +680,7 @@ private struct WishSealingOverlay: View {
 
     private func signalPreview(_ checkpoints: [WishPlanCheckpoint]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Капсула оставила знаки на пути", systemImage: "bell.badge")
+            Label("Капсула отметила точки на пути", systemImage: "bell.badge")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white)
 
@@ -967,11 +967,11 @@ private struct CapsuleSealingRitualView: View {
 
         switch progress {
         case ..<0.36:
-            return String(localized: "Капсула собирает свет вокруг желания")
+            return String(localized: "Желание становится капсулой")
         case ..<0.68:
             return String(localized: "Желание принимает форму")
         default:
-            return String(localized: "Запечатываем до назначенного дня")
+            return String(localized: "Время берёт его на хранение")
         }
     }
 

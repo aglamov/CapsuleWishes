@@ -87,10 +87,10 @@ struct CapsuleListView: View {
             .sheet(isPresented: $isCreatingCapsule) {
                 CreateCapsuleView()
             }
-            .alert("\(CapsuleCreationPolicy.activeCapsuleLimit) активные капсулы", isPresented: $isShowingCapsuleLimit) {
+            .alert("Лимит активных капсул", isPresented: $isShowingCapsuleLimit) {
                 Button("Понятно", role: .cancel) {}
             } message: {
-                Text("Настоящих желаний не должно быть слишком много одновременно. Дождись открытия одной капсулы или освободи место.")
+                Text("Сейчас у тебя уже \(CapsuleCreationPolicy.activeCapsuleLimit) активных капсул. Дай одной из них дойти до открытия или освободи место для нового желания.")
             }
             .sheet(isPresented: $isShowingNotificationSettings) {
                 NotificationSettingsView()
@@ -171,11 +171,11 @@ struct CapsuleListView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Тихое место для желаний")
+            Text("Капсулы желания")
                 .font(.largeTitle.bold())
                 .foregroundStyle(.white)
 
-            Text("Запечатай намерение, замечай странности и маленькие радости, а потом открой капсулу в нужный день.")
+            Text("Каждая капсула хранит твоё желание до момента, когда ты будешь готов увидеть его заново.")
                 .font(.body)
                 .foregroundStyle(.white.opacity(0.74))
                 .fixedSize(horizontal: false, vertical: true)

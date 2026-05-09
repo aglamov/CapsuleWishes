@@ -16,11 +16,11 @@ struct EmptyCapsulesView: View {
                 .font(.system(size: 44))
                 .foregroundStyle(.white.opacity(0.86))
 
-            Text("Первая капсула ждет")
+            Text("Первая капсула ждёт")
                 .font(.title2.bold())
                 .foregroundStyle(.white)
 
-            Text("Начни с одного желания. Не самого правильного, а самого живого.")
+            Text("Начни с одного желания: не идеального, а того, к которому хочется вернуться.")
                 .font(.body)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.white.opacity(0.68))
