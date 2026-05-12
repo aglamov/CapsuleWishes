@@ -141,7 +141,7 @@ struct WishCreationAssistantService {
     }
 
     func title(for intention: String, feeling: String) async -> String {
-        let fallback = localTitle(for: intention, feeling: feeling)
+        let fallback = fallbackTitle(for: intention, feeling: feeling)
         guard let configuration = OpenAIConfiguration.current else { return fallback }
 
         do {
@@ -174,7 +174,7 @@ struct WishCreationAssistantService {
         }
     }
 
-    private func localTitle(for intention: String, feeling: String) -> String {
+    func fallbackTitle(for intention: String, feeling: String) -> String {
         let cleanIntention = intention.trimmingCharacters(in: .whitespacesAndNewlines)
         let cleanFeeling = feeling.trimmingCharacters(in: .whitespacesAndNewlines)
         let text = [cleanIntention, cleanFeeling].joined(separator: " ").lowercased()

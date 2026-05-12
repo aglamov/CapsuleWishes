@@ -162,28 +162,18 @@ struct JournalView: View {
 
             capsulePicker(labelWidth: controlLabelWidth, controlWidth: typeControlsWidth)
 
-            HStack(alignment: .center, spacing: 12) {
-                Text(selectedType.title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.82))
-                    .frame(width: controlLabelWidth, alignment: .leading)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .center, spacing: 12) {
+                    typeControlLabel(width: controlLabelWidth)
 
-                HStack(spacing: 10) {
-                    ForEach(JournalEntryType.allCases) { type in
-                        JournalTypeIconChip(
-                            type: type,
-                            isSelected: selectedType == type
-                        ) {
-                            AudioFeedbackService.shared.play(.softSelect)
-                            withAnimation(.easeInOut(duration: 0.18)) {
-                                selectedType = type
-                            }
-                        }
-                    }
+                    journalTypeChips
+                        .frame(width: typeControlsWidth, alignment: .leading)
                 }
-                .frame(width: typeControlsWidth, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    typeControlLabel(width: nil)
+                    journalTypeChips
+                }
             }
 
             promptView
@@ -238,6 +228,31 @@ struct JournalView: View {
         )
     }
 
+    private func typeControlLabel(width: CGFloat?) -> some View {
+        Text(selectedType.title)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.white.opacity(0.82))
+            .frame(width: width, alignment: .leading)
+            .lineLimit(1)
+            .minimumScaleFactor(0.82)
+    }
+
+    private var journalTypeChips: some View {
+        HStack(spacing: 10) {
+            ForEach(JournalEntryType.allCases) { type in
+                JournalTypeIconChip(
+                    type: type,
+                    isSelected: selectedType == type
+                ) {
+                    AudioFeedbackService.shared.play(.softSelect)
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        selectedType = type
+                    }
+                }
+            }
+        }
+    }
+
     private var introHeader: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Дневник знаков")
@@ -274,6 +289,20 @@ struct JournalView: View {
     }
 
     private func capsulePicker(labelWidth: CGFloat, controlWidth: CGFloat) -> some View {
+        ViewThatFits(in: .horizontal) {
+            capsulePickerRow(labelWidth: labelWidth, controlWidth: controlWidth)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Капсула")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.82))
+
+                capsuleMenu
+            }
+        }
+    }
+
+    private func capsulePickerRow(labelWidth: CGFloat, controlWidth: CGFloat) -> some View {
         HStack(alignment: .center, spacing: 12) {
             Text("Капсула")
                 .font(.subheadline.weight(.semibold))
@@ -281,52 +310,57 @@ struct JournalView: View {
                 .frame(width: labelWidth, alignment: .leading)
                 .lineLimit(1)
 
-            Menu {
-                Button("Без привязки") {
-                    AudioFeedbackService.shared.play(.softSelect)
-                    selectedCapsuleID = nil
-                }
-
-                ForEach(activeCapsules) { capsule in
-                    Button {
-                        AudioFeedbackService.shared.play(.softSelect)
-                        selectedCapsuleID = capsule.id
-                    } label: {
-                        Text(capsule.title)
-                    }
-                }
-            } label: {
-                HStack(spacing: 9) {
-                    if let selectedCapsule {
-                        Image(systemName: selectedCapsule.symbol)
-                            .font(.subheadline.weight(.semibold))
-                    } else {
-                        Image(systemName: "link")
-                            .font(.subheadline.weight(.semibold))
-                    }
-
-                    Text(selectedCapsule?.title ?? String(localized: "Без привязки"))
-                        .font(.headline)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.white.opacity(0.72))
-                }
-                .foregroundStyle(.white)
-                .padding(.vertical, 11)
-                .padding(.horizontal, 13)
+            capsuleMenu
                 .frame(width: controlWidth, alignment: .leading)
-                .background(.white.opacity(0.11), in: Capsule())
-                .overlay(
-                    Capsule()
-                        .stroke(.white.opacity(0.13), lineWidth: 1)
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(activeCapsules.isEmpty)
         }
+    }
+
+    private var capsuleMenu: some View {
+        Menu {
+            Button("Без привязки") {
+                AudioFeedbackService.shared.play(.softSelect)
+                selectedCapsuleID = nil
+            }
+
+            ForEach(activeCapsules) { capsule in
+                Button {
+                    AudioFeedbackService.shared.play(.softSelect)
+                    selectedCapsuleID = capsule.id
+                } label: {
+                    Text(capsule.title)
+                }
+            }
+        } label: {
+            HStack(spacing: 9) {
+                if let selectedCapsule {
+                    Image(systemName: selectedCapsule.symbol)
+                        .font(.subheadline.weight(.semibold))
+                } else {
+                    Image(systemName: "link")
+                        .font(.subheadline.weight(.semibold))
+                }
+
+                Text(selectedCapsule?.title ?? String(localized: "Без привязки"))
+                    .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.72))
+            }
+            .foregroundStyle(.white)
+            .padding(.vertical, 11)
+            .padding(.horizontal, 13)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.white.opacity(0.11), in: Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(.white.opacity(0.13), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(activeCapsules.isEmpty)
     }
 
     private func addEntry() {

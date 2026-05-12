@@ -58,7 +58,9 @@ final class AudioFeedbackService {
 
     private func configureAudioSession() {
         do {
-            try AVAudioSession.sharedInstance().setCategory(.ambient, options: [.mixWithOthers])
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, options: [.mixWithOthers])
+            try session.setActive(true)
         } catch {
             AppLog.audio.error("Could not configure audio session: \(error.localizedDescription, privacy: .public)")
         }

@@ -22,7 +22,7 @@ struct OpeningPanel: View {
                 .foregroundStyle(.white.opacity(0.68))
                 .fixedSize(horizontal: false, vertical: true)
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 10)], spacing: 10) {
                 outcomeButton(.fulfilled, title: "Сбылось")
                 outcomeButton(.unfolding, title: "Еще сбывается")
                 outcomeButton(.changed, title: "Сбылось иначе")

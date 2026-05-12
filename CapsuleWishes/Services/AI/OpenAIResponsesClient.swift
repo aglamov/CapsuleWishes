@@ -25,7 +25,7 @@ struct OpenAIResponsesClient {
 
         var request = URLRequest(url: configuration.endpointURL)
         request.httpMethod = "POST"
-        request.timeoutInterval = 18
+        request.timeoutInterval = 6
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(body)
 

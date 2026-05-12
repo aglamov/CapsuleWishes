@@ -284,75 +284,85 @@ struct CapsuleDetailView: View {
         let accentColor = Color(hex: capsule.colorHex)
         let stageHeight: CGFloat = showsOpeningFinalReflection ? 268 : (showsOpeningRitualLayer ? 480 : 326)
 
-        return ZStack {
+        return GeometryReader { proxy in
+            let stageWidth = min(proxy.size.width, 326)
+            let ringSize = min(stageWidth * 0.93, 304)
+            let orbSize = min(max(stageWidth * 0.50, 132), 168)
+            let glowStartRadius = ringSize * 0.36
+            let glowEndRadius = ringSize * 0.61
+
             ZStack {
-                Circle()
-                    .stroke(.white.opacity(capsule.hasBeenOpened ? 0.08 : 0.13), lineWidth: 5)
-                    .frame(width: 304, height: 304)
-                    .opacity(focusOpacity)
+                ZStack {
+                    Circle()
+                        .stroke(.white.opacity(capsule.hasBeenOpened ? 0.08 : 0.13), lineWidth: 5)
+                        .frame(width: ringSize, height: ringSize)
+                        .opacity(focusOpacity)
 
-                Circle()
-                    .trim(from: 0, to: detailTimeProgress)
-                    .stroke(
-                        AngularGradient(
-                            colors: [
-                                accentColor.opacity(0.42),
-                                Color(hex: "FFD89A").opacity(capsule.isReadyToOpen ? 0.96 : 0.74),
-                                accentColor.opacity(0.84)
-                            ],
-                            center: .center
-                        ),
-                        style: StrokeStyle(lineWidth: capsule.isReadyToOpen ? 6 : 5, lineCap: .round)
-                    )
-                    .frame(width: 304, height: 304)
-                    .rotationEffect(.degrees(-90))
-                    .shadow(color: accentColor.opacity(capsule.isReadyToOpen ? 0.62 : 0.26), radius: capsule.isReadyToOpen ? 16 : 9)
-                    .opacity(focusOpacity)
-
-                CapsuleOrbView(
-                    capsule: capsule,
-                    size: 168,
-                    isInteractive: true,
-                    freezesMotion: freezesCapsuleMotion || isOpeningPending,
-                    allowsEffects: !isOpeningPending,
-                    openingPhase: .idle,
-                    refreshDate: readinessRefreshDate
-                )
-            }
-            .frame(width: 326, height: stageHeight)
-            .overlay {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                accentColor.opacity(capsule.isReadyToOpen ? 0.20 : 0.12),
-                                .clear
-                            ],
-                            center: .center,
-                            startRadius: 108,
-                            endRadius: 184
+                    Circle()
+                        .trim(from: 0, to: detailTimeProgress)
+                        .stroke(
+                            AngularGradient(
+                                colors: [
+                                    accentColor.opacity(0.42),
+                                    Color(hex: "FFD89A").opacity(capsule.isReadyToOpen ? 0.96 : 0.74),
+                                    accentColor.opacity(0.84)
+                                ],
+                                center: .center
+                            ),
+                            style: StrokeStyle(lineWidth: capsule.isReadyToOpen ? 6 : 5, lineCap: .round)
                         )
+                        .frame(width: ringSize, height: ringSize)
+                        .rotationEffect(.degrees(-90))
+                        .shadow(color: accentColor.opacity(capsule.isReadyToOpen ? 0.62 : 0.26), radius: capsule.isReadyToOpen ? 16 : 9)
+                        .opacity(focusOpacity)
+
+                    CapsuleOrbView(
+                        capsule: capsule,
+                        size: orbSize,
+                        isInteractive: true,
+                        freezesMotion: freezesCapsuleMotion || isOpeningPending,
+                        allowsEffects: !isOpeningPending,
+                        openingPhase: .idle,
+                        refreshDate: readinessRefreshDate
                     )
-                    .blendMode(.screen)
-                    .opacity(focusOpacity)
-                    .allowsHitTesting(false)
-            }
-            .overlay {
-                if showsOpeningRitualLayer && isOpeningPending {
-                    CapsuleOpeningRitualView(
-                        stage: openingStage,
-                        color: accentColor,
-                        title: capsule.title,
-                        symbol: capsule.symbol,
-                        startedAt: openingCeremonyStartedAt
-                    )
-                    .transition(.opacity)
                 }
+                .frame(width: stageWidth, height: stageHeight)
+                .overlay {
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    accentColor.opacity(capsule.isReadyToOpen ? 0.20 : 0.12),
+                                    .clear
+                                ],
+                                center: .center,
+                                startRadius: glowStartRadius,
+                                endRadius: glowEndRadius
+                            )
+                        )
+                        .blendMode(.screen)
+                        .opacity(focusOpacity)
+                        .allowsHitTesting(false)
+                }
+                .overlay {
+                    if showsOpeningRitualLayer && isOpeningPending {
+                        CapsuleOpeningRitualView(
+                            stage: openingStage,
+                            color: accentColor,
+                            title: capsule.title,
+                            symbol: capsule.symbol,
+                            startedAt: openingCeremonyStartedAt
+                        )
+                        .transition(.opacity)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(capsule.title), \(statusText)")
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("\(capsule.title), \(statusText)")
+            .frame(maxWidth: .infinity, minHeight: stageHeight)
         }
-        .frame(maxWidth: .infinity, minHeight: stageHeight)
+        .frame(maxWidth: .infinity)
+        .frame(height: stageHeight)
         .overlay(alignment: .topTrailing) {
             if let statusBadge, !isOpeningPending {
                 Text(statusBadge)
@@ -854,13 +864,10 @@ struct CapsuleDetailView: View {
 
         if reduceMotion {
             AudioFeedbackService.shared.play(.capsuleRelease)
-            isLoadingOpeningReflection = true
-            capsule.status = status
-            capsule.openedAt = Date()
-            CapsuleNotificationScheduler.shared.cancelSignals(for: capsule)
             openingCeremonyStartedAt = Date()
             openingStage = .returning
             showsOpeningRitualLayer = true
+            markCapsuleOpened(as: status)
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(100))
                 withAnimation(.easeInOut(duration: 0.55)) {
@@ -874,6 +881,7 @@ struct CapsuleDetailView: View {
         openingCeremonyStartedAt = Date()
         showsOpeningRitualLayer = true
         openingTask?.cancel()
+        markCapsuleOpened(as: status)
 
         withAnimation(.easeInOut(duration: 0.48)) {
             scrollProxy.scrollTo("capsule-orb", anchor: .center)
@@ -921,15 +929,6 @@ struct CapsuleDetailView: View {
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                withAnimation(.smooth(duration: 0.40)) {
-                    isLoadingOpeningReflection = true
-                    capsule.status = status
-                    capsule.openedAt = Date()
-                    CapsuleNotificationScheduler.shared.cancelSignals(for: capsule)
-                }
-            }
-
-            await MainActor.run {
                 withAnimation(.smooth(duration: 1.05)) {
                     openingStage = .returning
                 }
@@ -948,6 +947,14 @@ struct CapsuleDetailView: View {
                 openingTask = nil
             }
         }
+    }
+
+    private func markCapsuleOpened(as status: CapsuleStatus) {
+        capsule.status = status
+        capsule.openedAt = Date()
+        capsule.openingReflectionText = nil
+        isLoadingOpeningReflection = openingReflectionService.isAvailable
+        CapsuleNotificationScheduler.shared.cancelSignals(for: capsule)
     }
 
     private func deleteCapsule() {

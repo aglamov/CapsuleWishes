@@ -106,10 +106,11 @@ struct CreateCapsuleView: View {
                 }
             }
             .overlay(alignment: .topTrailing) {
-                closeButton
-                    .padding(.top, 8)
-                    .padding(.trailing, 16)
-                    .opacity(sealingStage.isActive && sealingStage != .complete ? 0 : 1)
+                if !sealingStage.isActive {
+                    closeButton
+                        .padding(.top, 8)
+                        .padding(.trailing, 16)
+                }
             }
             .contentShape(Rectangle())
             .onTapGesture {
@@ -117,6 +118,7 @@ struct CreateCapsuleView: View {
             }
             .animation(.smooth(duration: 1.05), value: sealingStage)
             .toolbar(.hidden, for: .navigationBar)
+            .interactiveDismissDisabled(sealingStage.isActive && sealingStage != .complete)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if !isTextInputFocused && !sealingStage.isActive {
                     Button {
@@ -216,7 +218,7 @@ struct CreateCapsuleView: View {
                 .foregroundStyle(.white)
 
             LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6),
+                columns: [GridItem(.adaptive(minimum: 36, maximum: 48), spacing: 8)],
                 alignment: .leading,
                 spacing: 10
             ) {
@@ -251,7 +253,11 @@ struct CreateCapsuleView: View {
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            HStack(spacing: 8) {
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 44, maximum: 58), spacing: 8)],
+                alignment: .leading,
+                spacing: 8
+            ) {
                 ForEach(symbols) { symbol in
                     Button {
                         AudioFeedbackService.shared.play(.softSelect)
@@ -379,37 +385,42 @@ struct CreateCapsuleView: View {
                 }
             }
 
-            let titleForCapsule = await creationAssistantService.title(
+            let fallbackTitle = creationAssistantService.fallbackTitle(
                 for: trimmedIntention,
                 feeling: trimmedFeeling
             )
+            async let titleRequest = creationAssistantService.title(
+                for: trimmedIntention,
+                feeling: trimmedFeeling
+            )
+            async let inspirationRequest = sealingInspirationService.inspiration(
+                title: fallbackTitle,
+                intention: trimmedIntention,
+                feeling: trimmedFeeling,
+                openAt: openAt,
+                context: sealingContext(
+                    title: fallbackTitle,
+                    intention: trimmedIntention
+                )
+            )
+
+            let titleForCapsule = await titleRequest
+            let inspiration = await inspirationRequest
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
                 generatedTitle = titleForCapsule
             }
 
-            let inspiration = await sealingInspirationService.inspiration(
-                title: titleForCapsule,
-                intention: trimmedIntention,
-                feeling: trimmedFeeling,
-                openAt: openAt,
-                context: sealingContext(
-                    title: titleForCapsule,
-                    intention: trimmedIntention
-                )
-            )
-            guard !Task.isCancelled else { return }
-
             await MainActor.run {
                 sealingInspiration = inspiration
-                createCapsule(
+                let capsule = createCapsule(
                     title: titleForCapsule,
                     intention: trimmedIntention,
                     feeling: trimmedFeeling,
-                    sealingFortuneText: inspiration.sealingText,
-                    planCheckpoints: inspiration.checkpoints
+                    sealingFortuneText: inspiration.sealingText
                 )
+                schedulePlanCheckpoints(inspiration.checkpoints, for: capsule)
 
                 withAnimation(.smooth(duration: 0.68)) {
                     sealingStage = .complete
@@ -422,9 +433,8 @@ struct CreateCapsuleView: View {
         title: String,
         intention: String,
         feeling: String,
-        sealingFortuneText: String,
-        planCheckpoints: [WishPlanCheckpoint]
-    ) {
+        sealingFortuneText: String?
+    ) -> WishCapsule {
         let capsule = WishCapsule(
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             intentionText: intention.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -436,7 +446,12 @@ struct CreateCapsuleView: View {
         )
 
         modelContext.insert(capsule)
+        scheduleOpeningSignal(for: capsule)
 
+        return capsule
+    }
+
+    private func schedulePlanCheckpoints(_ planCheckpoints: [WishPlanCheckpoint], for capsule: WishCapsule) {
         if !planCheckpoints.isEmpty {
             CapsuleNotificationScheduler.shared.schedulePlanCheckpoints(
                 planCheckpoints,
@@ -444,8 +459,19 @@ struct CreateCapsuleView: View {
                 modelContext: modelContext
             )
         }
+    }
 
+    private func scheduleOpeningSignal(for capsule: WishCapsule) {
         Task {
+            if await CapsuleNotificationScheduler.shared.requestAuthorizationIfNeeded() {
+                await MainActor.run {
+                    CapsuleNotificationScheduler.shared.scheduleOpeningSignal(
+                        for: capsule,
+                        modelContext: modelContext
+                    )
+                }
+            }
+
             if let draft = await futureLetterService.draft(for: capsule) {
                 await MainActor.run {
                     CapsuleNotificationScheduler.shared.scheduleFutureLetter(
@@ -454,14 +480,6 @@ struct CreateCapsuleView: View {
                         modelContext: modelContext
                     )
                 }
-            }
-
-            guard await CapsuleNotificationScheduler.shared.requestAuthorizationIfNeeded() else { return }
-            await MainActor.run {
-                CapsuleNotificationScheduler.shared.scheduleOpeningSignal(
-                    for: capsule,
-                    modelContext: modelContext
-                )
             }
         }
     }
@@ -730,6 +748,7 @@ private struct CapsuleSealingRitualView: View {
     let startedAt: Date
 
     private let ritualDuration: TimeInterval = 7.2
+    private let countdownLift: CGFloat = 22
 
     var body: some View {
         GeometryReader { proxy in
@@ -749,8 +768,8 @@ private struct CapsuleSealingRitualView: View {
 
     private func scene(in size: CGSize, progress: Double, time: TimeInterval, now: Date) -> some View {
         let color = Color(hex: colorHex)
-        let center = CGPoint(x: size.width * 0.5, y: size.height * 0.42)
         let capsuleSize = min(size.width * 0.44, 172)
+        let center = CGPoint(x: size.width * 0.5, y: size.height * 0.42)
 
         return ZStack {
             ritualBackdrop(color: color, size: size, center: center, progress: progress, time: time)
@@ -914,6 +933,7 @@ private struct CapsuleSealingRitualView: View {
 
     private func countdownSeal(color: Color, center: CGPoint, capsuleSize: CGFloat, progress: Double, now: Date) -> some View {
         let reveal = phase(progress, from: 0.90, to: 0.98)
+        let countdownY = center.y - capsuleSize * 1.08 - countdownLift
 
         return ZStack {
             VStack(spacing: 3) {
@@ -929,7 +949,7 @@ private struct CapsuleSealingRitualView: View {
                     .foregroundStyle(.white.opacity(0.58))
             }
             .frame(width: capsuleSize * 2.0)
-            .position(x: center.x, y: center.y - capsuleSize * 1.08)
+            .position(x: center.x, y: countdownY)
             .opacity(reveal)
             .scaleEffect(0.92 + reveal * 0.08)
 

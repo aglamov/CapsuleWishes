@@ -60,6 +60,22 @@ struct JournalEntryContext {
 }
 
 struct WishSealingInspirationService {
+    func fallbackInspiration(
+        title: String,
+        intention: String,
+        feeling: String,
+        openAt: Date
+    ) -> WishSealingInspiration {
+        let calendar = Calendar.current
+        let daysUntilOpen = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: Date()),
+            to: calendar.startOfDay(for: openAt)
+        ).day ?? 0
+
+        return localInspiration(title: title, intention: intention, feeling: feeling, daysUntilOpen: daysUntilOpen)
+    }
+
     func inspiration(
         title: String,
         intention: String,
@@ -98,7 +114,7 @@ struct WishSealingInspirationService {
         }
 
         AppLog.ai.debug("Wish sealing inspiration created by local fallback")
-        return fallbackInspiration(title: title, intention: intention, feeling: feeling, daysUntilOpen: daysUntilOpen)
+        return localInspiration(title: title, intention: intention, feeling: feeling, daysUntilOpen: daysUntilOpen)
     }
 
     private func aiInspiration(
@@ -240,7 +256,7 @@ struct WishSealingInspirationService {
         return lines.isEmpty ? AIResponseLanguage.text(ru: "Нет записей дневника.", en: "No journal entries.") : lines.joined(separator: "\n")
     }
 
-    private func fallbackInspiration(title: String, intention: String, feeling: String, daysUntilOpen: Int) -> WishSealingInspiration {
+    private func localInspiration(title: String, intention: String, feeling: String, daysUntilOpen: Int) -> WishSealingInspiration {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let cleanFeeling = feeling.trimmingCharacters(in: .whitespacesAndNewlines)
 

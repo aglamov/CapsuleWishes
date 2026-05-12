@@ -12,6 +12,9 @@ struct PrimaryCapsuleButtonStyle: ButtonStyle {
         configuration.label
             .font(.headline)
             .foregroundStyle(.white)
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+            .minimumScaleFactor(0.86)
             .padding(.vertical, 14)
             .padding(.horizontal, 18)
             .background(
