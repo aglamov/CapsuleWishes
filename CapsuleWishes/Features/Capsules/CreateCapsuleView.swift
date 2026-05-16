@@ -684,8 +684,15 @@ private struct WishSealingOverlay: View {
             ritualStartedAt = Date()
             revealsInspiration = false
         }
-        .task {
-            try? await Task.sleep(for: .milliseconds(7200))
+        .task(id: stage) {
+            guard stage == .complete else {
+                await MainActor.run {
+                    revealsInspiration = false
+                }
+                return
+            }
+
+            try? await Task.sleep(for: .milliseconds(420))
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
@@ -769,7 +776,8 @@ private struct CapsuleSealingRitualView: View {
     private func scene(in size: CGSize, progress: Double, time: TimeInterval, now: Date) -> some View {
         let color = Color(hex: colorHex)
         let capsuleSize = min(size.width * 0.44, 172)
-        let center = CGPoint(x: size.width * 0.5, y: size.height * 0.42)
+        let centerY = max(size.height * 0.42, capsuleSize * 0.72 + 96)
+        let center = CGPoint(x: size.width * 0.5, y: min(centerY, size.height * 0.52))
 
         return ZStack {
             ritualBackdrop(color: color, size: size, center: center, progress: progress, time: time)
@@ -933,7 +941,7 @@ private struct CapsuleSealingRitualView: View {
 
     private func countdownSeal(color: Color, center: CGPoint, capsuleSize: CGFloat, progress: Double, now: Date) -> some View {
         let reveal = phase(progress, from: 0.90, to: 0.98)
-        let countdownY = center.y - capsuleSize * 1.08 - countdownLift
+        let countdownY = max(46, center.y - capsuleSize * 1.08 - countdownLift)
 
         return ZStack {
             VStack(spacing: 3) {

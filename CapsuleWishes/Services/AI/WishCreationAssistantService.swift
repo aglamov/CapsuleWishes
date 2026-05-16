@@ -142,7 +142,15 @@ struct WishCreationAssistantService {
 
     func title(for intention: String, feeling: String) async -> String {
         let fallback = fallbackTitle(for: intention, feeling: feeling)
-        guard let configuration = OpenAIConfiguration.current else { return fallback }
+        if let literalTitle = literalPlaceholderTitle(for: intention) {
+            AppLog.ai.debug("Capsule title used literal placeholder input: title=\(literalTitle, privacy: .public)")
+            return literalTitle
+        }
+
+        guard let configuration = OpenAIConfiguration.current else {
+            AppLog.ai.debug("Capsule title fallback used: AI configuration unavailable, fallback=\(fallback, privacy: .public)")
+            return fallback
+        }
 
         do {
             let client = OpenAIResponsesClient(configuration: configuration)
@@ -152,6 +160,9 @@ struct WishCreationAssistantService {
                 \(AIResponseLanguage.instruction)
                 Верни короткое поэтичное название, строго 2 слова.
                 Название должно отражать желание, но не быть громким лозунгом.
+                Если желание выглядит как обычный осмысленный текст, не повторяй его механически: дай короткий образ.
+                Если желание выглядит как техническая проверка или шутливый короткий ввод, не придумывай глубину; название будет обработано приложением отдельно.
+                Не добавляй новых конкретных фактов, которых нет в желании.
                 Без кавычек, без Markdown, без эмодзи.
                 """,
                 input: AIResponseLanguage.text(
@@ -167,9 +178,13 @@ struct WishCreationAssistantService {
                 maxOutputTokens: 60
             )
 
-            return twoWordTitle(from: AITextSanitizer.value(text, fallback: fallback), fallback: fallback)
+            let sanitized = AITextSanitizer.value(text, fallback: fallback)
+            let title = twoWordTitle(from: sanitized, fallback: fallback)
+            AppLog.ai.debug("Capsule title created by AI backend: raw=\(text, privacy: .public), sanitized=\(sanitized, privacy: .public), saved=\(title, privacy: .public), fallback=\(fallback, privacy: .public)")
+            return title
         } catch {
             AppLog.ai.error("AI backend capsule title fallback: \(error.localizedDescription, privacy: .public)")
+            AppLog.ai.debug("Capsule title fallback used: fallback=\(fallback, privacy: .public)")
             return fallback
         }
     }
@@ -218,6 +233,39 @@ struct WishCreationAssistantService {
         }
 
         return AIResponseLanguage.text(ru: "Капсула \(firstWord)", en: "\(firstWord.capitalized) Capsule")
+    }
+
+    private func literalPlaceholderTitle(for intention: String) -> String? {
+        let cleanIntention = intention.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = cleanIntention
+            .lowercased()
+            .filter { !$0.isWhitespace && !$0.isPunctuation }
+
+        guard !normalized.isEmpty else { return nil }
+
+        let placeholders: Set<String> = [
+            "тест", "тесттест", "проверка", "проба",
+            "test", "testing", "asdf", "qwerty", "qwe", "abc", "example",
+            "123", "1234", "111", "000"
+        ]
+        let isPlaceholder = placeholders.contains(normalized) ||
+            (normalized.count >= 3 && Set(normalized).count == 1) ||
+            (normalized.allSatisfy(\.isNumber) && normalized.count <= 6)
+
+        guard isPlaceholder else { return nil }
+
+        let words = cleanIntention
+            .split(whereSeparator: { $0.isWhitespace || $0.isNewline })
+            .prefix(2)
+            .map(String.init)
+
+        guard !words.isEmpty else { return nil }
+
+        if words.count == 1 {
+            return AIResponseLanguage.text(ru: "Капсула \(words[0].lowercased())", en: "\(words[0].capitalized) Capsule")
+        }
+
+        return words.joined(separator: " ")
     }
 
     private func fallbackFeelingPrompt(for intention: String) -> String {

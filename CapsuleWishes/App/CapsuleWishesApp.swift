@@ -12,6 +12,12 @@ struct CapsuleWishesApp: App {
     @UIApplicationDelegateAdaptor(AppNotificationDelegate.self) private var notificationDelegate
     @StateObject private var notificationRouteCenter = NotificationRouteCenter.shared
 
+    init() {
+        UserDefaults.standard.register(defaults: [
+            AIUsagePreferences.enabledKey: AIUsagePreferences.defaultEnabled
+        ])
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()

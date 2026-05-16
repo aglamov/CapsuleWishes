@@ -10,13 +10,13 @@ import SwiftData
 
 @Model
 final class NotificationSignal {
-    var id: UUID
-    var identifier: String
-    var kindRawValue: String
-    var title: String
-    var message: String
-    var scheduledAt: Date
-    var createdAt: Date
+    var id: UUID = UUID()
+    var identifier: String = ""
+    var kindRawValue: String = NotificationSignalKind.capsuleOpen.rawValue
+    var title: String = ""
+    var message: String = ""
+    var scheduledAt: Date = Date()
+    var createdAt: Date = Date()
     var cancelledAt: Date?
     var capsuleID: UUID?
 

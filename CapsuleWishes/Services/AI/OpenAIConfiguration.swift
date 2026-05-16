@@ -15,7 +15,10 @@ struct OpenAIConfiguration {
     }
 
     static var current: OpenAIConfiguration? {
-        guard UserDefaults.standard.bool(forKey: AIUsagePreferences.enabledKey) else {
+        let defaults = UserDefaults.standard
+        let isEnabled = defaults.object(forKey: AIUsagePreferences.enabledKey) as? Bool ?? AIUsagePreferences.defaultEnabled
+
+        guard isEnabled else {
             return nil
         }
 

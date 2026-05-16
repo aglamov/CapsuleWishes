@@ -14,7 +14,7 @@ struct NotificationSettingsView: View {
     @AppStorage(NotificationPreferences.morningDreamSignalsEnabledKey) private var morningDreamSignalsEnabled = false
     @AppStorage(NotificationPreferences.morningDreamSignalHourKey) private var morningDreamSignalHour = MorningSignalTime.defaultValue.hour
     @AppStorage(NotificationPreferences.morningDreamSignalMinuteKey) private var morningDreamSignalMinute = MorningSignalTime.defaultValue.minute
-    @AppStorage(AIUsagePreferences.enabledKey) private var aiFeaturesEnabled = false
+    @AppStorage(AIUsagePreferences.enabledKey) private var aiFeaturesEnabled = AIUsagePreferences.defaultEnabled
     @AppStorage(AudioFeedbackPreferences.enabledKey) private var audioFeedbackEnabled = true
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
 

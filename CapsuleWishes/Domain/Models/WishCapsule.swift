@@ -10,17 +10,17 @@ import SwiftData
 
 @Model
 final class WishCapsule {
-    var id: UUID
-    var title: String
-    var intentionText: String
-    var desiredFeeling: String
-    var createdAt: Date
-    var sealedAt: Date
-    var openAt: Date
+    var id: UUID = UUID()
+    var title: String = ""
+    var intentionText: String = ""
+    var desiredFeeling: String = ""
+    var createdAt: Date = Date()
+    var sealedAt: Date = Date()
+    var openAt: Date = Date()
     var openedAt: Date?
-    var statusRawValue: String
-    var colorHex: String
-    var symbol: String
+    var statusRawValue: String = CapsuleStatus.sealed.rawValue
+    var colorHex: String = ""
+    var symbol: String = "star"
     var sealingFortuneText: String?
     var openingReflectionText: String?
 

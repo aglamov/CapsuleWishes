@@ -11,7 +11,7 @@ import SwiftUI
 struct JournalView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var notificationRouteCenter: NotificationRouteCenter
-    @AppStorage(AIUsagePreferences.enabledKey) private var aiFeaturesEnabled = false
+    @AppStorage(AIUsagePreferences.enabledKey) private var aiFeaturesEnabled = AIUsagePreferences.defaultEnabled
     @Query(sort: \WishCapsule.createdAt, order: .reverse) private var capsules: [WishCapsule]
     @Query(sort: \JournalEntry.createdAt, order: .reverse) private var entries: [JournalEntry]
     @State private var selectedType: JournalEntryType = .sign

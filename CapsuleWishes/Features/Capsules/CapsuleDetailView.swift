@@ -12,7 +12,7 @@ struct CapsuleDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @AppStorage(AIUsagePreferences.enabledKey) private var aiFeaturesEnabled = false
+    @AppStorage(AIUsagePreferences.enabledKey) private var aiFeaturesEnabled = AIUsagePreferences.defaultEnabled
     @Query(sort: \JournalEntry.createdAt, order: .reverse) private var allEntries: [JournalEntry]
     @Query(sort: \NotificationSignal.scheduledAt, order: .reverse) private var allSignals: [NotificationSignal]
     @Bindable var capsule: WishCapsule

@@ -10,11 +10,11 @@ import SwiftData
 
 @Model
 final class JournalEntry {
-    var id: UUID
+    var id: UUID = UUID()
     var capsuleID: UUID?
-    var typeRawValue: String
-    var text: String
-    var createdAt: Date
+    var typeRawValue: String = JournalEntryType.thought.rawValue
+    var text: String = ""
+    var createdAt: Date = Date()
 
     init(
         id: UUID = UUID(),

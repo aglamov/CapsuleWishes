@@ -9,4 +9,5 @@ import Foundation
 
 enum AIUsagePreferences {
     static let enabledKey = "aiFeaturesEnabled"
+    static let defaultEnabled = true
 }
