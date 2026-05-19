@@ -35,7 +35,10 @@ struct CapsuleDetailView: View {
     @State private var didAutoScrollToEntryPanel = false
     @State private var readinessRefreshDate = Date()
     @State private var openingCeremonyStartedAt = Date()
+    @State private var isEditingTitle = false
+    @State private var titleDraft = ""
     @FocusState private var isEntryFieldFocused: Bool
+    @FocusState private var isTitleFieldFocused: Bool
 
     private let aiWishPromptService = AIWishPromptService()
     private let openingReflectionService = OpeningReflectionService()
@@ -68,6 +71,7 @@ struct CapsuleDetailView: View {
     private var promptRequestKey: String {
         [
             capsule.id.uuidString,
+            capsule.title,
             selectedEntryType.rawValue,
             aiFeaturesEnabled.description,
             entries.first?.id.uuidString ?? "empty",
@@ -86,6 +90,10 @@ struct CapsuleDetailView: View {
 
     private var isOpeningPending: Bool {
         openingStage != .idle
+    }
+
+    private var allowsTitleEditing: Bool {
+        capsule.status == .sealed && !isOpeningPending
     }
 
     private var freezesCapsuleMotion: Bool {
@@ -158,10 +166,7 @@ struct CapsuleDetailView: View {
 
                         if !showsOpeningFinalReflection {
                             VStack(spacing: 8) {
-                                Text(capsule.title)
-                                    .font(.title.bold())
-                                    .foregroundStyle(.white)
-                                    .multilineTextAlignment(.center)
+                                editableTitleHeader
 
                                 Text(statusText)
                                     .font(.subheadline.weight(.medium))
@@ -211,6 +216,10 @@ struct CapsuleDetailView: View {
                     guard isFocused else { return }
                     scrollEntryFieldIntoView(scrollProxy)
                 }
+                .onChange(of: isTitleFieldFocused) { _, isFocused in
+                    guard !isFocused, isEditingTitle else { return }
+                    commitTitleEdit()
+                }
                 .onChange(of: entryText) { _, _ in
                     guard isEntryFieldFocused else { return }
                     scrollEntryFieldIntoView(scrollProxy)
@@ -223,12 +232,14 @@ struct CapsuleDetailView: View {
             }
         }
         .onDisappear {
+            commitTitleEdit()
             openingTask?.cancel()
             aiEntryPromptGlowTask?.cancel()
         }
         .contentShape(Rectangle())
         .onTapGesture {
             isEntryFieldFocused = false
+            isTitleFieldFocused = false
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -257,7 +268,10 @@ struct CapsuleDetailView: View {
             Text("Капсула уже хранит это желание и всё, что успело собраться вокруг него. Удалить её навсегда?")
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            FloatingKeyboardDoneBar(isVisible: isEntryFieldFocused) {
+            FloatingKeyboardDoneBar(isVisible: isEntryFieldFocused || isTitleFieldFocused) {
+                if isTitleFieldFocused {
+                    commitTitleEdit()
+                }
                 isEntryFieldFocused = false
             }
         }
@@ -278,6 +292,61 @@ struct CapsuleDetailView: View {
                 SealingFortuneReadingView(text: sealingFortuneText, sealedAt: capsule.sealedAt)
             }
         }
+    }
+
+    private var editableTitleHeader: some View {
+        HStack(alignment: .center, spacing: 8) {
+            if isEditingTitle && allowsTitleEditing {
+                TextField("Название капсулы", text: $titleDraft, axis: .vertical)
+                    .font(.title.bold())
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(1...3)
+                    .submitLabel(.done)
+                    .textFieldStyle(.plain)
+                    .focused($isTitleFieldFocused)
+                    .onSubmit {
+                        commitTitleEdit()
+                    }
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 10)
+                    .background(.white.opacity(0.11), in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(.white.opacity(0.16), lineWidth: 1)
+                    )
+            } else {
+                Text(capsule.title)
+                    .font(.title.bold())
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if allowsTitleEditing {
+                Button {
+                    AudioFeedbackService.shared.play(.softSelect)
+                    if isEditingTitle {
+                        commitTitleEdit()
+                    } else {
+                        beginTitleEdit()
+                    }
+                } label: {
+                    Image(systemName: isEditingTitle ? "checkmark" : "pencil")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.82))
+                        .frame(width: 34, height: 34)
+                        .background(.white.opacity(0.12), in: Circle())
+                        .overlay {
+                            Circle()
+                                .stroke(.white.opacity(0.14), lineWidth: 1)
+                        }
+                }
+                .accessibilityLabel(isEditingTitle ? "Сохранить название капсулы" : "Редактировать название капсулы")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.horizontal, 6)
     }
 
     private var capsuleOrbStage: some View {
@@ -702,6 +771,34 @@ struct CapsuleDetailView: View {
             entryText = ""
             isEntryFieldFocused = false
         }
+    }
+
+    private func beginTitleEdit() {
+        guard allowsTitleEditing else { return }
+
+        titleDraft = capsule.title
+        withAnimation(.easeInOut(duration: 0.18)) {
+            isEditingTitle = true
+        }
+
+        DispatchQueue.main.async {
+            isTitleFieldFocused = true
+        }
+    }
+
+    private func commitTitleEdit() {
+        guard isEditingTitle else { return }
+
+        let trimmedTitle = titleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        if allowsTitleEditing, !trimmedTitle.isEmpty, trimmedTitle != capsule.title {
+            capsule.title = trimmedTitle
+            try? modelContext.save()
+        }
+
+        withAnimation(.easeInOut(duration: 0.18)) {
+            isEditingTitle = false
+        }
+        isTitleFieldFocused = false
     }
 
     private func scrollToEntryPanelIfNeeded(_ scrollProxy: ScrollViewProxy) {
