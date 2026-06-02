@@ -112,7 +112,7 @@ final class CapsuleNotificationScheduler {
         let rawSpec = NotificationSignalSpec(
             id: Self.futureLetterIdentifier(for: capsule.id),
             kind: .futureLetter,
-            title: draft.title,
+            title: String(localized: "Письмо из будущего"),
             body: draft.letter,
             date: draft.scheduledAt,
             capsuleID: capsule.id,
@@ -427,7 +427,7 @@ final class CapsuleNotificationScheduler {
         guard spec.date > Date() else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = spec.title
+        content.title = notificationTitle(for: spec)
         content.body = notificationBody(for: spec)
         content.sound = UNNotificationSound(named: UNNotificationSoundName("notification_soft.caf"))
         content.userInfo = spec.userInfo
@@ -508,6 +508,14 @@ final class CapsuleNotificationScheduler {
         }
 
         return spec.body
+    }
+
+    private func notificationTitle(for spec: NotificationSignalSpec) -> String {
+        if spec.kind == .futureLetter {
+            return String(localized: "Письмо из будущего")
+        }
+
+        return spec.title
     }
 
     @MainActor
