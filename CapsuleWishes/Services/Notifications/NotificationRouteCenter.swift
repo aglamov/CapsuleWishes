@@ -15,6 +15,7 @@ final class NotificationRouteCenter: ObservableObject {
 
     @Published var requestedCapsuleID: UUID?
     @Published var requestedJournalEntryType: JournalEntryType?
+    @Published var requestedJournalPrompt: String?
 
     private init() { }
 
@@ -22,8 +23,9 @@ final class NotificationRouteCenter: ObservableObject {
         requestedCapsuleID = capsuleID
     }
 
-    func requestJournalEntry(_ type: JournalEntryType) {
+    func requestJournalEntry(_ type: JournalEntryType, prompt: String? = nil) {
         requestedJournalEntryType = type
+        requestedJournalPrompt = prompt
     }
 
     func consumeCapsuleOpenRequest() {
@@ -32,6 +34,7 @@ final class NotificationRouteCenter: ObservableObject {
 
     func consumeJournalEntryRequest() {
         requestedJournalEntryType = nil
+        requestedJournalPrompt = nil
     }
 }
 

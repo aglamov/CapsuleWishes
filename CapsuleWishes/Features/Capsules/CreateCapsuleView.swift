@@ -13,6 +13,7 @@ struct CreateCapsuleView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \WishCapsule.createdAt, order: .reverse) private var existingCapsules: [WishCapsule]
     @Query(sort: \JournalEntry.createdAt, order: .reverse) private var recentJournalEntries: [JournalEntry]
+    @Query(sort: \PersonalSymbol.createdAt, order: .reverse) private var personalSymbols: [PersonalSymbol]
     @State private var intention = ""
     @State private var feeling = ""
     @State private var wishPrompt = ""
@@ -25,6 +26,9 @@ struct CreateCapsuleView: View {
     @State private var openAt = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
     @State private var selectedColor = CapsulePalette.options[0]
     @State private var selectedSymbol = "star"
+    @State private var symbolSuggestion: SymbolSuggestion?
+    @State private var isLoadingSymbolSuggestion = false
+    @State private var isShowingPersonalSymbolCreator = false
     @State private var sealingStage: WishSealingStage = .idle
     @State private var sealingInspiration: WishSealingInspiration?
     @State private var sealingTask: Task<Void, Never>?
@@ -33,6 +37,7 @@ struct CreateCapsuleView: View {
     private let futureLetterService = FutureLetterService()
     private let creationAssistantService = WishCreationAssistantService()
     private let sealingInspirationService = WishSealingInspirationService()
+    private let symbolicAssistantService = SymbolicAssistantService()
     private let symbols = CapsuleCreationSymbol.library
 
     var body: some View {
@@ -83,6 +88,7 @@ struct CreateCapsuleView: View {
 
                         colorPicker
                         symbolPicker
+                        symbolAssistantPanel
                     }
                     .padding(20)
                     .padding(.bottom, 96)
@@ -155,6 +161,12 @@ struct CreateCapsuleView: View {
                 feelingPromptTask?.cancel()
                 beautifyTask?.cancel()
                 sealingTask?.cancel()
+            }
+            .sheet(isPresented: $isShowingPersonalSymbolCreator) {
+                PersonalSymbolCreatorView { symbol in
+                    modelContext.insert(symbol)
+                    selectedSymbol = symbol.systemName
+                }
             }
             .task {
                 await refreshWishPrompt()
@@ -258,6 +270,28 @@ struct CreateCapsuleView: View {
                 alignment: .leading,
                 spacing: 8
             ) {
+                ForEach(personalSymbols) { symbol in
+                    Button {
+                        AudioFeedbackService.shared.play(.softSelect)
+                        selectedSymbol = symbol.systemName
+                    } label: {
+                        Image(systemName: symbol.systemName)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 46)
+                            .background(
+                                selectedSymbol == symbol.systemName ? .white.opacity(0.24) : .white.opacity(0.10),
+                                in: RoundedRectangle(cornerRadius: 12)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(selectedSymbol == symbol.systemName ? Color(hex: "FFD89A").opacity(0.48) : .white.opacity(0.12), lineWidth: 1)
+                            }
+                    }
+                    .accessibilityLabel("\(symbol.title): \(symbol.meaning)")
+                }
+
                 ForEach(symbols) { symbol in
                     Button {
                         AudioFeedbackService.shared.play(.softSelect)
@@ -280,6 +314,94 @@ struct CreateCapsuleView: View {
                     .accessibilityLabel(symbol.accessibilityLabel)
                 }
             }
+        }
+    }
+
+    private var symbolAssistantPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Label("Личные символы", systemImage: "sparkles")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+
+                Spacer()
+
+                Button {
+                    isShowingPersonalSymbolCreator = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(.white.opacity(0.12), in: Circle())
+                }
+                .accessibilityLabel("Создать личный символ")
+            }
+
+            if let symbolSuggestion {
+                Button {
+                    AudioFeedbackService.shared.play(.softSelect)
+                    selectedSymbol = symbolSuggestion.systemName
+                    saveSuggestedSymbolIfNeeded(symbolSuggestion)
+                } label: {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: symbolSuggestion.systemName)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 38, height: 38)
+                            .background(Color(hex: "FFD89A").opacity(0.20), in: RoundedRectangle(cornerRadius: 12))
+
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(symbolSuggestion.title)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+
+                            Text(symbolSuggestion.meaning)
+                                .font(.footnote)
+                                .foregroundStyle(.white.opacity(0.72))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        Spacer(minLength: 8)
+
+                        Image(systemName: selectedSymbol == symbolSuggestion.systemName ? "checkmark.circle.fill" : "plus.circle")
+                            .font(.headline)
+                            .foregroundStyle(.white.opacity(0.70))
+                    }
+                    .padding(14)
+                    .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color(hex: "FFD89A").opacity(0.22), lineWidth: 1)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+
+            Button {
+                suggestSymbol()
+            } label: {
+                if isLoadingSymbolSuggestion {
+                    HStack {
+                        ProgressView()
+                            .tint(.white)
+                        Text("Слушаю смысл желания")
+                    }
+                    .frame(maxWidth: .infinity)
+                } else {
+                    Label("Подобрать символ", systemImage: "wand.and.stars")
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(SecondaryCapsuleButtonStyle())
+            .disabled(intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoadingSymbolSuggestion)
+            .opacity(intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.55 : 1)
+        }
+        .padding(16)
+        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(.white.opacity(0.12), lineWidth: 1)
         }
     }
 
@@ -541,6 +663,42 @@ struct CreateCapsuleView: View {
         }
     }
 
+    private func suggestSymbol() {
+        let cleanIntention = intention.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanIntention.isEmpty, !isLoadingSymbolSuggestion else { return }
+
+        isTextInputFocused = false
+        isLoadingSymbolSuggestion = true
+        Task {
+            var suggestion: SymbolSuggestion?
+            do {
+                if symbolicAssistantService.isAvailable {
+                    suggestion = try await symbolicAssistantService.suggestion(for: cleanIntention, feeling: feeling)
+                }
+            } catch {
+                AppLog.ai.error("AI backend symbol suggestion fallback: \(error.localizedDescription, privacy: .public)")
+            }
+
+            let resolvedSuggestion = suggestion ?? symbolicAssistantService.fallbackSuggestion(for: cleanIntention, feeling: feeling)
+            await MainActor.run {
+                symbolSuggestion = resolvedSuggestion
+                selectedSymbol = resolvedSuggestion.systemName
+                isLoadingSymbolSuggestion = false
+            }
+        }
+    }
+
+    private func saveSuggestedSymbolIfNeeded(_ suggestion: SymbolSuggestion) {
+        guard !personalSymbols.contains(where: { $0.systemName == suggestion.systemName && $0.title == suggestion.title }) else { return }
+
+        let symbol = PersonalSymbol(
+            systemName: suggestion.systemName,
+            title: suggestion.title,
+            meaning: suggestion.meaning
+        )
+        modelContext.insert(symbol)
+    }
+
     private func sealingContext(title: String, intention: String) -> WishSealingContext {
         let normalizedTitle = title.lowercased()
         let normalizedIntention = intention.lowercased()
@@ -573,6 +731,107 @@ struct CreateCapsuleView: View {
             relatedWishes: Array(relatedWishes),
             journalEntries: Array(journalEntries)
         )
+    }
+}
+
+private struct PersonalSymbolCreatorView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var title = ""
+    @State private var meaning = ""
+    @State private var selectedSystemName = "sparkles"
+
+    let onCreate: (PersonalSymbol) -> Void
+
+    private let symbolOptions = [
+        "sparkles", "star", "heart", "key.fill", "leaf.fill", "moon.stars",
+        "sun.max", "flame.fill", "house.fill", "paperplane.fill", "book.closed.fill",
+        "waveform.path.ecg", "circle", "seal", "lightbulb"
+    ]
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                NightSkyBackground()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        Text("Новый личный символ")
+                            .font(.title.bold())
+                            .foregroundStyle(.white)
+
+                        Text("Выбери пиктограмму и дай ей свой смысл. Она появится рядом с обычными символами при создании капсулы.")
+                            .font(.callout)
+                            .foregroundStyle(.white.opacity(0.72))
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 48, maximum: 60), spacing: 10)], spacing: 10) {
+                            ForEach(symbolOptions, id: \.self) { systemName in
+                                Button {
+                                    AudioFeedbackService.shared.play(.softSelect)
+                                    selectedSystemName = systemName
+                                } label: {
+                                    Image(systemName: systemName)
+                                        .font(.title3.weight(.semibold))
+                                        .foregroundStyle(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 48)
+                                        .background(selectedSystemName == systemName ? .white.opacity(0.22) : .white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(selectedSystemName == systemName ? Color(hex: "FFD89A").opacity(0.46) : .white.opacity(0.10), lineWidth: 1)
+                                        }
+                                }
+                            }
+                        }
+
+                        creatorField("Название", text: $title, prompt: "Например: Ключ")
+                        creatorField("Смысл", text: $meaning, prompt: "Для желания, которое открывается постепенно", lines: 3)
+                    }
+                    .padding(20)
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Отмена") { dismiss() }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Создать") {
+                        onCreate(PersonalSymbol(
+                            systemName: selectedSystemName,
+                            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+                            meaning: meaning.trimmingCharacters(in: .whitespacesAndNewlines)
+                        ))
+                        dismiss()
+                    }
+                    .disabled(!canCreate)
+                }
+            }
+        }
+    }
+
+    private var canCreate: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !meaning.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func creatorField(_ title: LocalizedStringKey, text: Binding<String>, prompt: String, lines: Int = 1) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(.white)
+
+            TextField(prompt, text: text, axis: .vertical)
+                .lineLimit(lines...max(lines, 3))
+                .textFieldStyle(.plain)
+                .foregroundStyle(.white)
+                .padding(14)
+                .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                }
+        }
     }
 }
 

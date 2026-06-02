@@ -7,4 +7,5 @@
 
 enum AudioFeedbackPreferences {
     static let enabledKey = "audioFeedback.enabled"
+    static let defaultEnabled = true
 }

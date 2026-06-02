@@ -10,17 +10,17 @@ import UserNotifications
 
 struct NotificationSettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage(NotificationPreferences.modeKey) private var notificationModeRawValue = NotificationMode.soft.rawValue
-    @AppStorage(NotificationPreferences.morningDreamSignalsEnabledKey) private var morningDreamSignalsEnabled = false
+    @AppStorage(NotificationPreferences.modeKey) private var notificationModeRawValue = NotificationPreferences.defaultMode.rawValue
+    @AppStorage(NotificationPreferences.morningDreamSignalsEnabledKey) private var morningDreamSignalsEnabled = NotificationPreferences.defaultMorningDreamSignalsEnabled
     @AppStorage(NotificationPreferences.morningDreamSignalHourKey) private var morningDreamSignalHour = MorningSignalTime.defaultValue.hour
     @AppStorage(NotificationPreferences.morningDreamSignalMinuteKey) private var morningDreamSignalMinute = MorningSignalTime.defaultValue.minute
     @AppStorage(AIUsagePreferences.enabledKey) private var aiFeaturesEnabled = AIUsagePreferences.defaultEnabled
-    @AppStorage(AudioFeedbackPreferences.enabledKey) private var audioFeedbackEnabled = true
+    @AppStorage(AudioFeedbackPreferences.enabledKey) private var audioFeedbackEnabled = AudioFeedbackPreferences.defaultEnabled
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
 
     private var notificationMode: Binding<NotificationMode> {
         Binding {
-            NotificationMode(rawValue: notificationModeRawValue) ?? .soft
+            NotificationMode(rawValue: notificationModeRawValue) ?? NotificationPreferences.defaultMode
         } set: { mode in
             notificationModeRawValue = mode.rawValue
         }

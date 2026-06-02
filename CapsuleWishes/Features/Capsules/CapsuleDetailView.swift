@@ -29,6 +29,7 @@ struct CapsuleDetailView: View {
     @State private var aiEntryPromptGlowTask: Task<Void, Never>?
     @State private var isBeautifyingEntry = false
     @State private var isLoadingOpeningReflection = false
+    @State private var isLoadingMeaningReflection = false
     @State private var showsOpeningRitualLayer = false
     @State private var selectedFutureLetterSignal: NotificationSignal?
     @State private var isShowingSealingFortune = false
@@ -42,6 +43,7 @@ struct CapsuleDetailView: View {
 
     private let aiWishPromptService = AIWishPromptService()
     private let openingReflectionService = OpeningReflectionService()
+    private let meaningReflectionService = MeaningReflectionService()
     private let creationAssistantService = WishCreationAssistantService()
     private let readinessTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
@@ -182,6 +184,16 @@ struct CapsuleDetailView: View {
                                 isShowingSealingFortune = true
                             }
                             .opacity(focusOpacity)
+
+                            if showsOpeningDayEvent {
+                                openingDayEventPanel
+                                    .opacity(focusOpacity)
+                            }
+
+                            if showsMeaningReflectionPanel {
+                                meaningReflectionPanel
+                                    .opacity(focusOpacity)
+                            }
 
                             if showsOpeningPanel {
                                 OpeningPanel(isOpening: isOpeningPending) { status in
@@ -473,7 +485,7 @@ struct CapsuleDetailView: View {
 
     private var statusBadge: String? {
         if capsule.isReadyToOpen {
-            return String(localized: "Готова")
+            return String(localized: "День открытия")
         }
 
         if capsule.hasBeenOpened {
@@ -527,6 +539,38 @@ struct CapsuleDetailView: View {
     private var sealingFortuneText: String? {
         let text = capsule.sealingFortuneText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return text.isEmpty ? nil : text
+    }
+
+    private var showsOpeningDayEvent: Bool {
+        capsule.status == .sealed && (capsule.isReadyToOpen || daysUntilOpening <= 1)
+    }
+
+    private var showsMeaningReflectionPanel: Bool {
+        entries.count >= 3
+    }
+
+    private var meaningReflectionKey: String {
+        entries
+            .prefix(12)
+            .map { "\($0.id.uuidString):\($0.createdAt.timeIntervalSince1970)" }
+            .joined(separator: "|")
+    }
+
+    private var savedMeaningReflection: CapsuleMeaningReflection? {
+        let text = capsule.meaningReflectionText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !text.isEmpty else { return nil }
+
+        let question = capsule.meaningReflectionQuestion?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let themes = (capsule.meaningReflectionThemes ?? "")
+            .split(separator: "|")
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        return CapsuleMeaningReflection(themes: themes, observation: text, question: question)
+    }
+
+    private var hasFreshMeaningReflection: Bool {
+        capsule.meaningReflectionKey == meaningReflectionKey && savedMeaningReflection != nil
     }
 
     private var openedReflection: OpenedReflection {
@@ -591,6 +635,124 @@ struct CapsuleDetailView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 18)
                 .stroke(.white.opacity(0.12), lineWidth: 1)
+        )
+    }
+
+    private var openingDayEventPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(capsule.isReadyToOpen ? "Сегодня день открытия" : "Капсула почти у двери", systemImage: "sunrise.fill")
+                .font(.headline)
+                .foregroundStyle(.white)
+
+            Text(capsule.isReadyToOpen ? "Желание уже можно открыть. Перед итогом можно на секунду вернуться к тому, что собралось вокруг него: знакам, мыслям, снам и маленьким шагам." : "До открытия остался один день. Это хороший момент не подгонять желание, а просто заметить, каким оно стало рядом с тобой.")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.74))
+                .fixedSize(horizontal: false, vertical: true)
+
+            if showsMeaningReflectionPanel, !hasFreshMeaningReflection {
+                Button {
+                    generateMeaningReflection()
+                } label: {
+                    Label("Подготовить отражение", systemImage: "sparkles")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(SecondaryCapsuleButtonStyle())
+                .disabled(isLoadingMeaningReflection)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(hex: "FFD89A").opacity(0.18),
+                    .white.opacity(0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 18)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color(hex: "FFD89A").opacity(0.20), lineWidth: 1)
+        }
+    }
+
+    private var meaningReflectionPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Label("Отражение", systemImage: "sparkles")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+
+                Spacer()
+
+                if savedMeaningReflection != nil {
+                    Button {
+                        generateMeaningReflection()
+                    } label: {
+                        Image(systemName: hasFreshMeaningReflection ? "arrow.clockwise" : "exclamationmark.arrow.triangle.2.circlepath")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white.opacity(0.72))
+                            .frame(width: 32, height: 32)
+                            .background(.white.opacity(0.10), in: Circle())
+                    }
+                    .disabled(isLoadingMeaningReflection)
+                    .accessibilityLabel("Обновить отражение")
+                }
+            }
+
+            if isLoadingMeaningReflection {
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .tint(.white)
+
+                    Text("Собираю повторяющиеся темы...")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.72))
+                }
+            } else if let reflection = savedMeaningReflection {
+                if !reflection.themeLine.isEmpty {
+                    Text(reflection.themeLine)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color(hex: "FFD89A").opacity(0.88))
+                        .textCase(.uppercase)
+                }
+
+                Text(reflection.observation)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.74))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if !reflection.question.isEmpty {
+                    Text(reflection.question)
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.90))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 2)
+                }
+            } else {
+                Text("Капсула уже хранит несколько следов. Можно собрать мягкое отражение: какие темы повторяются и какой вопрос стоит взять с собой дальше.")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.72))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button {
+                    generateMeaningReflection()
+                } label: {
+                    Label("Собрать отражение", systemImage: "wand.and.stars")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(SecondaryCapsuleButtonStyle())
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(.white.opacity(0.14), lineWidth: 1)
         )
     }
 
@@ -768,6 +930,7 @@ struct CapsuleDetailView: View {
         withAnimation {
             let entry = JournalEntry(capsuleID: capsule.id, type: selectedEntryType, text: trimmed)
             modelContext.insert(entry)
+            capsule.meaningReflectionKey = nil
             entryText = ""
             isEntryFieldFocused = false
         }
@@ -951,6 +1114,35 @@ struct CapsuleDetailView: View {
             await MainActor.run {
                 if let polished { entryText = polished }
                 isBeautifyingEntry = false
+            }
+        }
+    }
+
+    private func generateMeaningReflection() {
+        guard entries.count >= 3, !isLoadingMeaningReflection else { return }
+
+        isEntryFieldFocused = false
+        isLoadingMeaningReflection = true
+
+        Task {
+            var reflection: CapsuleMeaningReflection?
+            do {
+                if aiFeaturesEnabled, meaningReflectionService.isAvailable {
+                    reflection = try await meaningReflectionService.reflection(for: capsule, entries: entries)
+                }
+            } catch {
+                AppLog.ai.error("AI backend meaning reflection fallback: \(error.localizedDescription, privacy: .public)")
+            }
+
+            let resolvedReflection = reflection ?? meaningReflectionService.fallbackReflection(for: capsule, entries: entries)
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.32)) {
+                    capsule.meaningReflectionText = resolvedReflection.observation
+                    capsule.meaningReflectionQuestion = resolvedReflection.question
+                    capsule.meaningReflectionThemes = resolvedReflection.themes.joined(separator: "|")
+                    capsule.meaningReflectionKey = meaningReflectionKey
+                    isLoadingMeaningReflection = false
+                }
             }
         }
     }

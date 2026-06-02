@@ -13,4 +13,7 @@ enum NotificationPreferences {
     static let morningDreamSignalHourKey = "morningDreamSignalHour"
     static let morningDreamSignalMinuteKey = "morningDreamSignalMinute"
     static let lastMorningSignalAdjustmentDayKey = "lastMorningSignalAdjustmentDay"
+
+    static let defaultMode = NotificationMode.engaged
+    static let defaultMorningDreamSignalsEnabled = true
 }

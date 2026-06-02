@@ -18,6 +18,7 @@ struct JournalView: View {
     @State private var selectedCapsuleID: UUID?
     @State private var text = ""
     @State private var promptText: String?
+    @State private var promptOverride: String?
     @State private var promptPresentationID = UUID()
     @State private var isIntroExpanded = false
     @State private var isLoadingAIPrompt = false
@@ -52,7 +53,7 @@ struct JournalView: View {
     }
 
     private var currentPrompt: String {
-        promptText ?? fallbackPrompt
+        promptOverride ?? promptText ?? fallbackPrompt
     }
 
     private var promptRequestKey: String {
@@ -246,6 +247,7 @@ struct JournalView: View {
                 ) {
                     AudioFeedbackService.shared.play(.softSelect)
                     withAnimation(.easeInOut(duration: 0.18)) {
+                        promptOverride = nil
                         selectedType = type
                     }
                 }
@@ -371,13 +373,20 @@ struct JournalView: View {
         withAnimation {
             modelContext.insert(JournalEntry(capsuleID: selectedCapsule?.id, type: selectedType, text: trimmed))
             text = ""
+            promptOverride = nil
             isTextEditorFocused = false
         }
     }
 
     private func openJournalEntryRequest(_ entryType: JournalEntryType, scrollProxy: ScrollViewProxy) {
+        let requestedPrompt = notificationRouteCenter.requestedJournalPrompt?.trimmingCharacters(in: .whitespacesAndNewlines)
+
         withAnimation(.easeInOut(duration: 0.22)) {
             selectedType = entryType
+            if let requestedPrompt, !requestedPrompt.isEmpty {
+                promptOverride = requestedPrompt
+                promptPresentationID = UUID()
+            }
         }
 
         Task { @MainActor in
@@ -432,6 +441,11 @@ struct JournalView: View {
 
     @MainActor
     private func refreshAIPrompt() async {
+        guard promptOverride == nil else {
+            isLoadingAIPrompt = false
+            return
+        }
+
         let libraryPrompt = fallbackPrompt
         promptText = nil
 

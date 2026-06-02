@@ -14,7 +14,13 @@ struct CapsuleWishesApp: App {
 
     init() {
         UserDefaults.standard.register(defaults: [
-            AIUsagePreferences.enabledKey: AIUsagePreferences.defaultEnabled
+            NotificationPreferences.modeKey: NotificationPreferences.defaultMode.rawValue,
+            NotificationPreferences.morningDreamSignalsEnabledKey: NotificationPreferences.defaultMorningDreamSignalsEnabled,
+            NotificationPreferences.morningDreamSignalHourKey: MorningSignalTime.defaultValue.hour,
+            NotificationPreferences.morningDreamSignalMinuteKey: MorningSignalTime.defaultValue.minute,
+            NotificationPreferences.lastMorningSignalAdjustmentDayKey: 0.0,
+            AIUsagePreferences.enabledKey: AIUsagePreferences.defaultEnabled,
+            AudioFeedbackPreferences.enabledKey: AudioFeedbackPreferences.defaultEnabled
         ])
     }
 

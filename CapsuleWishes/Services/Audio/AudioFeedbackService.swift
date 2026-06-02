@@ -23,7 +23,7 @@ final class AudioFeedbackService {
     }
 
     func play(_ cue: AudioCue) {
-        guard UserDefaults.standard.object(forKey: AudioFeedbackPreferences.enabledKey) as? Bool ?? true else { return }
+        guard UserDefaults.standard.object(forKey: AudioFeedbackPreferences.enabledKey) as? Bool ?? AudioFeedbackPreferences.defaultEnabled else { return }
         guard let player = players[cue] ?? makePlayer(for: cue) else { return }
 
         players[cue] = player

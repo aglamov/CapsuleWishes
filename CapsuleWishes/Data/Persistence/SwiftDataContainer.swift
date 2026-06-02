@@ -15,6 +15,7 @@ enum SwiftDataContainer {
             WishCapsule.self,
             JournalEntry.self,
             NotificationSignal.self,
+            PersonalSymbol.self,
         ])
         let modelConfiguration = ModelConfiguration(
             schema: schema,
