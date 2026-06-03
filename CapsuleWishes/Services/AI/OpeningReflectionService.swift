@@ -173,32 +173,30 @@ struct MeaningReflectionService {
 
     func fallbackReflection(for capsule: WishCapsule, entries: [JournalEntry]) -> CapsuleMeaningReflection {
         let themes = localThemes(from: [capsule.title, capsule.intentionText, capsule.desiredFeeling] + entries.map(\.text))
-        let primary = themes.first ?? AIResponseLanguage.text(ru: "внутреннее движение", en: "inner movement")
-        let secondary = themes.dropFirst().first ?? AIResponseLanguage.text(ru: "внимание", en: "attention")
+        let primary = themes.first ?? String(localized: "внутреннее движение")
+        let secondary = themes.dropFirst().first ?? String(localized: "внимание")
 
         return CapsuleMeaningReflection(
             themes: Array(themes.prefix(3)),
-            observation: AIResponseLanguage.text(
-                ru: "Похоже, вокруг этой капсулы уже собралась не только история результата, но и история внимания. Чаще всего рядом с ней звучит тема \(primary), а рядом появляется \(secondary). Если это откликается, возможно, желание сейчас помогает тебе заметить не только цель, но и то, каким способом ты хочешь к ней приближаться.",
-                en: "It looks like this capsule has gathered not only a story about an outcome, but also a story about attention. The theme of \(primary) appears often, with \(secondary) close by. If that resonates, this wish may be helping you notice not only the goal, but the way you want to move toward it."
+            observation: String(
+                format: String(localized: "Похоже, вокруг этой капсулы уже собралась не только история результата, но и история внимания. Чаще всего рядом с ней звучит тема %@, а рядом появляется %@. Если это откликается, возможно, желание сейчас помогает тебе заметить не только цель, но и то, каким способом ты хочешь к ней приближаться."),
+                primary,
+                secondary
             ),
-            question: AIResponseLanguage.text(
-                ru: "Что в этом желании уже стало чуть яснее, даже если оно еще не сбылось?",
-                en: "What has become a little clearer inside this wish, even if it has not come true yet?"
-            )
+            question: String(localized: "Что в этом желании уже стало чуть яснее, даже если оно еще не сбылось?")
         )
     }
 
     private func localThemes(from texts: [String]) -> [String] {
         let text = texts.joined(separator: " ").lowercased()
         let candidates: [(String, [String])] = [
-            (AIResponseLanguage.text(ru: "спокойствие", en: "calm"), ["спокой", "тишин", "отдых", "calm", "quiet", "rest"]),
-            (AIResponseLanguage.text(ru: "дом", en: "home"), ["дом", "уют", "мест", "home", "place"]),
-            (AIResponseLanguage.text(ru: "свобода", en: "freedom"), ["свобод", "дыша", "простор", "freedom", "space"]),
-            (AIResponseLanguage.text(ru: "смелость", en: "courage"), ["смел", "страх", "реш", "courage", "brave", "fear"]),
-            (AIResponseLanguage.text(ru: "близость", en: "closeness"), ["любов", "близ", "отнош", "серд", "love", "close"]),
-            (AIResponseLanguage.text(ru: "творчество", en: "creativity"), ["твор", "проект", "книг", "иде", "create", "project"]),
-            (AIResponseLanguage.text(ru: "движение", en: "movement"), ["шаг", "движ", "дорог", "move", "step"])
+            (String(localized: "спокойствие"), ["спокой", "тишин", "отдых", "calm", "quiet", "rest"]),
+            (String(localized: "дом"), ["дом", "уют", "мест", "home", "place"]),
+            (String(localized: "свобода"), ["свобод", "дыша", "простор", "freedom", "space"]),
+            (String(localized: "смелость"), ["смел", "страх", "реш", "courage", "brave", "fear"]),
+            (String(localized: "близость"), ["любов", "близ", "отнош", "серд", "love", "close"]),
+            (String(localized: "творчество"), ["твор", "проект", "книг", "иде", "create", "project"]),
+            (String(localized: "движение"), ["шаг", "движ", "дорог", "move", "step"])
         ]
 
         let matches = candidates.compactMap { title, fragments in
@@ -206,7 +204,7 @@ struct MeaningReflectionService {
         }
 
         return matches.isEmpty
-            ? [AIResponseLanguage.text(ru: "ясность", en: "clarity"), AIResponseLanguage.text(ru: "внимание", en: "attention")]
+            ? [String(localized: "ясность"), String(localized: "внимание")]
             : matches
     }
 }
@@ -265,18 +263,18 @@ struct SymbolicAssistantService {
         let text = [intention, feeling].joined(separator: " ").lowercased()
 
         if text.contains("дом") || text.contains("уют") || text.contains("home") {
-            return SymbolSuggestion(systemName: "house.fill", title: AIResponseLanguage.text(ru: "Дом", en: "Home"), meaning: AIResponseLanguage.text(ru: "для желания о месте, где внутри становится тише", en: "for a wish about a place that feels quieter inside"))
+            return SymbolSuggestion(systemName: "house.fill", title: String(localized: "Дом"), meaning: String(localized: "для желания о месте, где внутри становится тише"))
         }
 
         if text.contains("смел") || text.contains("страх") || text.contains("brave") {
-            return SymbolSuggestion(systemName: "key.fill", title: AIResponseLanguage.text(ru: "Ключ", en: "Key"), meaning: AIResponseLanguage.text(ru: "для желания, которое открывается через смелость", en: "for a wish that opens through courage"))
+            return SymbolSuggestion(systemName: "key.fill", title: String(localized: "Ключ"), meaning: String(localized: "для желания, которое открывается через смелость"))
         }
 
         if text.contains("проект") || text.contains("твор") || text.contains("idea") {
-            return SymbolSuggestion(systemName: "lightbulb", title: AIResponseLanguage.text(ru: "Идея", en: "Idea"), meaning: AIResponseLanguage.text(ru: "для желания, которому нужна ясная искра", en: "for a wish that needs a clear spark"))
+            return SymbolSuggestion(systemName: "lightbulb", title: String(localized: "Идея"), meaning: String(localized: "для желания, которому нужна ясная искра"))
         }
 
-        return SymbolSuggestion(systemName: "sparkles", title: AIResponseLanguage.text(ru: "Искра", en: "Spark"), meaning: AIResponseLanguage.text(ru: "для желания, которое начинается с маленького знака", en: "for a wish that begins with a small sign"))
+        return SymbolSuggestion(systemName: "sparkles", title: String(localized: "Искра"), meaning: String(localized: "для желания, которое начинается с маленького знака"))
     }
 }
 

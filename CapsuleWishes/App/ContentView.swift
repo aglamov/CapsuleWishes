@@ -299,26 +299,26 @@ struct PersonalMeaningView: View {
 
             if let insight {
                 meaningRow(
-                    title: "Что повторяется",
+                    title: String(localized: "Что повторяется"),
                     systemImage: "arrow.triangle.2.circlepath",
                     text: insight.recurringPattern.isEmpty ? fallbackRecurringPattern : insight.recurringPattern
                 )
 
                 meaningRow(
-                    title: "Внутреннее напряжение",
+                    title: String(localized: "Внутреннее напряжение"),
                     systemImage: "point.topleft.down.curvedto.point.bottomright.up",
                     text: insight.innerTension.isEmpty ? fallbackInnerTension : insight.innerTension
                 )
 
                 meaningRow(
-                    title: "Потребность под желаниями",
+                    title: String(localized: "Потребность под желаниями"),
                     systemImage: "heart.text.square.fill",
                     text: insight.hiddenNeed.isEmpty ? fallbackHiddenNeed : insight.hiddenNeed
                 )
             } else {
-                meaningRow(title: "Что повторяется", systemImage: "arrow.triangle.2.circlepath", text: fallbackRecurringPattern)
-                meaningRow(title: "Внутреннее напряжение", systemImage: "point.topleft.down.curvedto.point.bottomright.up", text: fallbackInnerTension)
-                meaningRow(title: "Потребность под желаниями", systemImage: "heart.text.square.fill", text: fallbackHiddenNeed)
+                meaningRow(title: String(localized: "Что повторяется"), systemImage: "arrow.triangle.2.circlepath", text: fallbackRecurringPattern)
+                meaningRow(title: String(localized: "Внутреннее напряжение"), systemImage: "point.topleft.down.curvedto.point.bottomright.up", text: fallbackInnerTension)
+                meaningRow(title: String(localized: "Потребность под желаниями"), systemImage: "heart.text.square.fill", text: fallbackHiddenNeed)
             }
         }
         .padding(18)
@@ -477,13 +477,13 @@ struct PersonalMeaningView: View {
             .lowercased()
 
         let candidates: [(String, [String])] = [
-            ("спокойствие", ["спокой", "тишин", "отдых"]),
-            ("дом", ["дом", "уют", "мест"]),
-            ("свобода", ["свобод", "дыша", "простор"]),
-            ("смелость", ["смел", "страх", "реш"]),
-            ("близость", ["любов", "близ", "отнош"]),
-            ("творчество", ["твор", "проект", "иде"]),
-            ("движение", ["шаг", "движ", "дорог"])
+            (String(localized: "спокойствие"), ["спокой", "тишин", "отдых"]),
+            (String(localized: "дом"), ["дом", "уют", "мест"]),
+            (String(localized: "свобода"), ["свобод", "дыша", "простор"]),
+            (String(localized: "смелость"), ["смел", "страх", "реш"]),
+            (String(localized: "близость"), ["любов", "близ", "отнош"]),
+            (String(localized: "творчество"), ["твор", "проект", "иде"]),
+            (String(localized: "движение"), ["шаг", "движ", "дорог"])
         ]
 
         return candidates.compactMap { title, fragments in
@@ -516,31 +516,39 @@ struct PersonalMeaningView: View {
     }
 
     private var fallbackInsight: PersonalMeaningInsight {
-        let themes = localThemes.isEmpty ? ["ясность", "внимание", "движение"] : Array(localThemes.prefix(3))
-        let firstTheme = themes.first ?? "ясность"
+        let themes = localThemes.isEmpty
+            ? [String(localized: "ясность"), String(localized: "внимание"), String(localized: "движение")]
+            : Array(localThemes.prefix(3))
+        let firstTheme = themes.first ?? String(localized: "ясность")
 
         return PersonalMeaningInsight(
             themes: themes,
-            portrait: "По этим капсулам ты выглядишь человеком, который не просто хочет результата, а ищет состояние, в котором можно наконец выдохнуть и действовать честнее.",
+            portrait: String(localized: "По этим капсулам ты выглядишь человеком, который не просто хочет результата, а ищет состояние, в котором можно наконец выдохнуть и действовать честнее."),
             recurringPattern: fallbackRecurringPattern,
             innerTension: fallbackInnerTension,
             hiddenNeed: fallbackHiddenNeed,
-            observation: "В твоих капсулах уже начал появляться собственный ритм: \(firstTheme) возвращается не как случайное слово, а как место, куда желания снова и снова пытаются привести внимание. Видно, что тебе важен не только внешний итог. Тебе важно понять, каким человеком ты становишься по дороге к нему, где ты продолжаешь сжиматься, а где наконец позволяешь себе больше правды.",
-            question: "Какое желание ты называешь целью, хотя внутри оно больше похоже на просьбу жить иначе?"
+            observation: String(
+                format: String(localized: "В твоих капсулах уже начал появляться собственный ритм: %@ возвращается не как случайное слово, а как место, куда желания снова и снова пытаются привести внимание. Видно, что тебе важен не только внешний итог. Тебе важно понять, каким человеком ты становишься по дороге к нему, где ты продолжаешь сжиматься, а где наконец позволяешь себе больше правды."),
+                firstTheme
+            ),
+            question: String(localized: "Какое желание ты называешь целью, хотя внутри оно больше похоже на просьбу жить иначе?")
         )
     }
 
     private var fallbackRecurringPattern: String {
-        let primary = localThemes.first ?? "ясность"
-        return "Ты часто возвращаешься к теме \(primary), но формулируешь ее через разные желания, будто проверяешь один и тот же внутренний вопрос с разных сторон."
+        let primary = localThemes.first ?? String(localized: "ясность")
+        return String(
+            format: String(localized: "Ты часто возвращаешься к теме %@, но формулируешь ее через разные желания, будто проверяешь один и тот же внутренний вопрос с разных сторон."),
+            primary
+        )
     }
 
     private var fallbackInnerTension: String {
-        "Видно напряжение между желанием двигаться вперед и потребностью не потерять ощущение безопасности по дороге."
+        String(localized: "Видно напряжение между желанием двигаться вперед и потребностью не потерять ощущение безопасности по дороге.")
     }
 
     private var fallbackHiddenNeed: String {
-        "Под разными желаниями звучит потребность в более спокойном праве быть собой, выбирать свое и не доказывать важность этого выбора."
+        String(localized: "Под разными желаниями звучит потребность в более спокойном праве быть собой, выбирать свое и не доказывать важность этого выбора.")
     }
 }
 
